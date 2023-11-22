@@ -1,0 +1,10 @@
+[package]
+name = "antelope-rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+append-only-bytes = "0.1.11"
+hex = "0.4.3"
