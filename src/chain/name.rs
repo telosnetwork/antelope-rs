@@ -1,18 +1,38 @@
-use crate::types::{AntelopeType, AntelopeValue};
-use crate::types::uint64::UInt64;
+use std::string::ToString;
+use once_cell::sync::Lazy;
+use regex::Regex;
+use crate::chain::{ABISerializableObject, JSONValue};
+use crate::serializer::encoder::ABIEncoder;
+
+static RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^[a-z1-5.]{0,13}$").expect("Failed to compile regex")
+});
 
 pub struct Name {
-    pub uint64: UInt64
+    value: u64,
+}
+
+pub enum NameType {
+    Name(Name),
+    UInt64(u64),
+    String(String),
 }
 
 impl Name {
-    pub fn from_str(name: &str) -> Self {
-        let value = UInt64 {
-            value: Name::string_to_u64(name).unwrap()
-        };
 
-        return Name {
-            uint64: value
+    pub fn from(name: NameType) -> Self {
+        match name {
+            NameType::Name(value) => value,
+            NameType::UInt64(value) => {
+                return Name {
+                    value: value
+                }
+            }
+            NameType::String(value) => {
+                return Name {
+                    value: Name::string_to_u64(value.as_str()).unwrap()
+                }
+            }
         }
     }
 
@@ -61,12 +81,20 @@ impl Name {
     }
 }
 
-impl AntelopeType for Name {
-    fn deserialize(&self) -> AntelopeValue {
-        return AntelopeValue::String(Name::u64_to_string(self.uint64.value, true));
+impl ABISerializableObject for Name {
+    fn get_abi_name(&self) -> String {
+        return "name".to_string();
     }
 
-    fn serialize(&self) -> Vec<u8> {
-        return self.uint64.serialize();
+    fn to_abi(&self, mut encoder: &mut ABIEncoder) {
+        encoder.write_array(self.value.to_le_bytes().to_vec());
+    }
+
+    fn to_json(&self) -> JSONValue {
+        todo!()
+    }
+
+    fn equals(&self, obj: Box<dyn ABISerializableObject>) -> bool {
+        todo!()
     }
 }

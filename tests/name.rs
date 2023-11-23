@@ -1,5 +1,5 @@
-use antelope_rs::types::{AntelopeType, to_str};
-use antelope_rs::types::name::Name;
+use antelope_rs::chain::{AntelopeType, to_str};
+use antelope_rs::chain::name::Name;
 use antelope_rs::util;
 
 #[test]
