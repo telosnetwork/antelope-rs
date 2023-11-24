@@ -4,6 +4,8 @@ use crate::serializer::encoder::ABIEncoder;
 
 pub mod integer;
 pub mod name;
+pub mod private_key;
+pub mod public_key;
 pub mod string;
 
 pub trait ABISerializableObject {
