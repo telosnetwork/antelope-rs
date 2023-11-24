@@ -4,6 +4,7 @@ use crate::serializer::encoder::ABIEncoder;
 
 pub mod integer;
 pub mod name;
+pub mod string;
 
 pub trait ABISerializableObject {
     fn get_abi_name(&self) -> String;

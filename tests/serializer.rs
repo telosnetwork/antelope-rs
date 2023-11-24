@@ -1,7 +1,9 @@
 use antelope_rs::chain::name::{Name, NameType};
+use antelope_rs::chain::string::StringType;
 use antelope_rs::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
 use antelope_rs::serializer::Serializer;
 use antelope_rs::util;
+use antelope_rs::util::serializable_to_encode_args;
 
 
 /*
@@ -63,9 +65,10 @@ fn name() {
     let json = "foobar";
 
     // TODO: maybe a factory-like function or something to make creating EncodeArgs cleaner
-    let arg = Box::new(object);
-    let encoded = Serializer::encode(EncodeArgs::EncodeArgsSerializable(EncodeArgsSerializable { object: arg }));
+    //let arg = Box::new(object);
+    //let encoded = Serializer::encode(EncodeArgs::EncodeArgsSerializable(EncodeArgsSerializable { object: arg }));
 
+    let encoded = Serializer::encode(serializable_to_encode_args(Box::new(object)));
     assert_eq!(encoded, util::hex_to_bytes(data));
 
     /*
@@ -227,6 +230,18 @@ fn name() {
         })
     })
 
+*/
+#[test]
+fn string() {
+    let data = "0b68656c6c6f20776f726c64";
+    let object = StringType::from("hello world");
+
+    let encoded = Serializer::encode(serializable_to_encode_args(Box::new(object)));
+    //let decoded = Serializer::decode(serializable_to_encode_args(Box::new(object)));
+
+    assert_eq!(encoded, util::hex_to_bytes(data));
+
+    /*
     test('string', function () {
         const data = '0b68656c6c6f20776f726c64'
         const object = 'hello world'
@@ -236,7 +251,10 @@ fn name() {
         assert.equal(JSON.stringify(Serializer.decode({data, type: 'string'})), json)
         assert.equal(JSON.stringify(object), json)
     })
+    */
+}
 
+/*
     test('bool', function () {
         const data = '01'
         const object = true

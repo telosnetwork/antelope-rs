@@ -86,7 +86,7 @@ impl ABISerializableObject for Name {
         return "name".to_string();
     }
 
-    fn to_abi(&self, mut encoder: &mut ABIEncoder) {
+    fn to_abi(&self, encoder: &mut ABIEncoder) {
         encoder.write_array(self.value.to_le_bytes().to_vec());
     }
 

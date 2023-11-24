@@ -1,26 +1,29 @@
-use std::string::ToString;
 use crate::chain::{ABISerializableObject, JSONValue};
 use crate::serializer::encoder::ABIEncoder;
 
-pub struct UInt64 {
-    ABI_NAME: String,
-    value: u64
+pub struct StringType {
+    value: String
 }
 
-impl UInt64 {
+impl StringType {
+    pub fn from(s: &str) -> Self {
+        return StringType {
+            value: s.to_string()
+        }
+    }
 }
 
-impl ABISerializableObject for UInt64 {
+impl ABISerializableObject for StringType {
     fn get_abi_name(&self) -> String {
-        return "uint64".to_string();
+        return "string".to_string();
     }
 
     fn to_abi(&self, encoder: &mut ABIEncoder) {
-        encoder.write_array(self.value.to_le_bytes().to_vec());
+        encoder.write_string(self.value.to_string());
     }
 
     fn to_json(&self) -> JSONValue {
-        return JSONValue::UInt64(self.value);
+        return JSONValue::String(self.value.to_string());
     }
 
     fn equals(&self, other: Box<dyn ABISerializableObject>) -> bool {

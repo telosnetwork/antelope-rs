@@ -62,6 +62,31 @@ impl ABIEncoder {
         self.pos += size;
     }
 
+    pub fn write_string(&mut self, s: String) {
+        let bytes= s.into_bytes();
+        self.write_varuint32(bytes.len().try_into().unwrap());
+        self.write_array(bytes);
+    }
+
+    pub fn write_varuint32(&mut self, mut v: u32) {
+        self.ensure(4);
+        loop {
+            if v >= 0x80 {
+                self.data[self.pos] = 0x80 | (v as u8 & 0x7F);
+                self.pos += 1;
+                v >>= 7;
+            } else {
+                self.data[self.pos] = v as u8;
+                self.pos += 1;
+                break;
+            }
+        }
+    }
+
+    pub fn write_varint32(&mut self, v: i32) {
+        self.write_varuint32(((v << 1) ^ (v >> 31)) as u32);
+    }
+
     pub fn get_bytes(&self) -> Vec<u8> {
         let mut trimmed = self.data.clone();
         trimmed.truncate(self.pos);
