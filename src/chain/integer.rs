@@ -3,7 +3,6 @@ use crate::chain::{ABISerializableObject, JSONValue};
 use crate::serializer::encoder::ABIEncoder;
 
 pub struct UInt64 {
-    ABI_NAME: String,
     value: u64
 }
 

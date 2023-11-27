@@ -3,6 +3,7 @@ use fmt::{Display, Formatter};
 use crate::serializer::encoder::ABIEncoder;
 
 pub mod integer;
+pub mod key_type;
 pub mod name;
 pub mod private_key;
 pub mod public_key;

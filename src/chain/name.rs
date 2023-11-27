@@ -20,6 +20,10 @@ pub enum NameType {
 
 impl Name {
 
+    pub fn to_string(&self) -> String {
+        return Name::u64_to_string(self.value, true);
+    }
+
     pub fn from(name: NameType) -> Self {
         match name {
             NameType::Name(value) => value,
@@ -91,7 +95,7 @@ impl ABISerializableObject for Name {
     }
 
     fn to_json(&self) -> JSONValue {
-        todo!()
+        return JSONValue::String(self.to_string());
     }
 
     fn equals(&self, obj: Box<dyn ABISerializableObject>) -> bool {

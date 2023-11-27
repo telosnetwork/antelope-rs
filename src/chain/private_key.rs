@@ -1,13 +1,9 @@
-use crate::base58::{decode_key, encode_check};
+use std::fmt::{Display, Formatter};
+use crate::base58::{decode_key, encode_check, encode_ripemd160_check};
 use crate::chain::{ABISerializableObject, JSONValue};
+use crate::chain::key_type::KeyType;
 use crate::serializer::encoder::ABIEncoder;
 
-#[derive(Clone, Copy)]
-pub enum KeyType {
-    K1,
-    R1,
-    // ... other variants ...
-}
 
 pub struct PrivateKey {
     pub key_type: KeyType,
@@ -15,6 +11,19 @@ pub struct PrivateKey {
 }
 
 impl PrivateKey {
+
+    // TODO: should this be done via the ToString trait?
+    //   If so, should other structs also do that?
+    //   Also if so, should from on this and other structs use the From trait?
+    pub fn to_string(&self) -> String {
+        let type_str = self.key_type.to_string();
+        let encoded = encode_ripemd160_check(self.value.to_vec(), Option::from(self.key_type.to_string().as_str()));
+        return format!("PVT_{type_str}_{encoded}");
+    }
+
+    pub fn to_hex(&self) -> String {
+        return hex::encode(&self.value);
+    }
 
     pub fn to_wif(&self) -> Result<String, String> {
         if !matches!(self.key_type, KeyType::K1) {

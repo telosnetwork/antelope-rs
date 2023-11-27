@@ -26,7 +26,7 @@ pub struct ABIEncoder {
     pos: usize,
     data: Vec<u8>,
     page_size: usize,
-    metadata: HashMap<String, String>,
+    //metadata: HashMap<String, String>,
 }
 
 impl ABIEncoder {
@@ -37,7 +37,7 @@ impl ABIEncoder {
             pos: 0,
             data: vec![0; page_size],
             page_size,
-            metadata: HashMap::new(),
+            //metadata: HashMap::new(),
         }
     }
 
