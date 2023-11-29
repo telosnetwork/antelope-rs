@@ -6,7 +6,7 @@ use crate::util::bytes_to_hex;
 
 pub struct PublicKey {
     pub key_type: KeyType,
-    value: Vec<u8>,
+    pub value: Vec<u8>,
 }
 
 impl PublicKey {
@@ -18,22 +18,30 @@ impl PublicKey {
     }
 
     pub fn to_hex_string(&self) -> String {
-        return bytes_to_hex(self.value.to_vec());
+        return bytes_to_hex(&self.value.to_vec());
     }
 
-    pub fn to_legacy_string(&self, prefix: &str) -> Result<String, String> {
+    pub fn to_legacy_string(&self, prefix: Option<&str>) -> Result<String, String> {
+        let key_prefix = prefix.unwrap_or("EOS");
         if !matches!(self.key_type, KeyType::K1) {
             return Err(String::from("Unable to legacy key for non-k1 key"));
         }
         let encoded = encode_ripemd160_check(self.value.to_vec(), None);
-        return Ok(format!("{prefix}{encoded}"));
+        return Ok(format!("{key_prefix}{encoded}"));
     }
 
-    pub fn from(value: &str) -> Self {
+    pub fn from_str(value: &str) -> Self {
         let decoded = decode_public_key(value).unwrap();
         return PublicKey {
             key_type: decoded.0,
             value: decoded.1
+        }
+    }
+
+    pub fn from_bytes(value: Vec<u8>, key_type: KeyType) -> Self {
+        return PublicKey {
+            key_type,
+            value
         }
     }
 
@@ -45,7 +53,7 @@ impl ABISerializableObject for PublicKey {
     }
 
     fn to_abi(&self, encoder: &mut ABIEncoder) {
-        encoder.write_array(self.value.to_vec());
+        encoder.write_array(&self.value.to_vec());
     }
 
     fn to_json(&self) -> JSONValue {

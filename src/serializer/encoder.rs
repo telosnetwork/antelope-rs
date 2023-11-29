@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::serializer::Serializer;
 use crate::chain::ABISerializableObject;
 
@@ -55,7 +54,7 @@ impl ABIEncoder {
         self.pos += 1;
     }
 
-    pub fn write_array(&mut self, bytes: Vec<u8>) {
+    pub fn write_array(&mut self, bytes: &Vec<u8>) {
         let size = bytes.len();
         self.ensure(size);
         self.data[self.pos..self.pos + size].copy_from_slice(bytes.as_slice());
@@ -65,7 +64,7 @@ impl ABIEncoder {
     pub fn write_string(&mut self, s: String) {
         let bytes= s.into_bytes();
         self.write_varuint32(bytes.len().try_into().unwrap());
-        self.write_array(bytes);
+        self.write_array(&bytes);
     }
 
     pub fn write_varuint32(&mut self, mut v: u32) {

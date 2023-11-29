@@ -1,6 +1,105 @@
+use ecdsa::RecoveryId;
+use sha2::{Sha256, Digest};
+use crate::chain::key_type::KeyType;
+use ecdsa::signature::{DigestSigner};
+use k256::Secp256k1;
+use crate::chain::signature::Signature;
+use crate::crypto::curves::create_k1_field_bytes;
 
+pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Signature, String> {
+    match key_type {
+        KeyType::K1 => {
+            let mut attempt = 1;
+            loop {
+                let secret_key = k256::SecretKey::from_bytes(&create_k1_field_bytes(secret.to_vec())).expect("invalid private key");
+                let signing_key = ecdsa::SigningKey::from(secret_key);
 
+                let digest = Sha256::new().chain_update(&message);
 
-pub fn sign() {
+                //  TODO: Explore further how to follow more closely the typescript model with canonical flag
+                //    and personalization string being passed to sign method:
+                //      sig = key.sign(message, {canonical: true, pers: [attempt++]})
+                let signed: (ecdsa::Signature<Secp256k1>, RecoveryId) = signing_key.sign_digest(digest);
 
+                let signature = signed.0;
+                let recovery = signed.1;
+
+                let r = signature.r().to_bytes().to_vec();
+                let s = signature.s().to_bytes().to_vec();
+                if is_canonical(&r, &s) {
+                    let mut data: Vec<u8> = Vec::new();
+                    let mut recid = recovery.to_byte();
+                    match key_type {
+                        KeyType::K1 | KeyType::R1 => {
+                            recid += 31;
+                        }
+                    }
+
+                    if r.len() != 32 || s.len() != 32 {
+                        return Err(String::from("r and s values should both have a size of 32"));
+                    }
+
+                    data.push(recid);
+                    data.extend(r.to_vec());
+                    data.extend(s.to_vec());
+                    return Ok(Signature::from_bytes(data, key_type));
+                }
+
+                if attempt > 50 {
+                    return Err(String::from("Failed over 50 times to find canonical signature"));
+                }
+
+                attempt += 1;
+            }
+        }
+        KeyType::R1 => {
+            return Err(String::from("Not done yet"));
+        }
+    }
 }
+
+fn is_canonical(r: &Vec<u8>, s: &Vec<u8>) -> bool {
+    return !(r[0] & 0x80 != 0)
+        && !(r[0] == 0 && r[1] & 0x80 == 0)
+        && !(s[0] & 0x80 != 0)
+        && !(s[0] == 0 && s[1] & 0x80 == 0);
+}
+
+
+/*
+export function sign(secret: Uint8Array, message: Uint8Array, type: string) {
+    const curve = getCurve(type)
+    const key = curve.keyFromPrivate(secret)
+    let sig: ec.Signature
+    let r: Uint8Array
+    let s: Uint8Array
+    if (type === 'K1') {
+        let attempt = 1
+        do {
+            sig = key.sign(message, {canonical: true, pers: [attempt++]})
+            r = sig.r.toArrayLike(Uint8Array as any, 'be', 32)
+            s = sig.s.toArrayLike(Uint8Array as any, 'be', 32)
+        } while (!isCanonical(r, s))
+    } else {
+        sig = key.sign(message, {canonical: true})
+        r = sig.r.toArrayLike(Uint8Array as any, 'be', 32)
+        s = sig.s.toArrayLike(Uint8Array as any, 'be', 32)
+    }
+    return {type, r, s, recid: sig.recoveryParam || 0}
+}
+
+/**
+ * Here be dragons
+ * - https://github.com/steemit/steem/issues/1944
+ * - https://github.com/EOSIO/eos/issues/6699
+ * @internal
+ */
+function isCanonical(r: Uint8Array, s: Uint8Array) {
+    return (
+        !(r[0] & 0x80) &&
+        !(r[0] === 0 && !(r[1] & 0x80)) &&
+        !(s[0] & 0x80) &&
+        !(s[0] === 0 && !(s[1] & 0x80))
+    )
+}
+ */

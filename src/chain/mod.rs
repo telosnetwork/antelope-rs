@@ -2,11 +2,14 @@ use std::fmt;
 use fmt::{Display, Formatter};
 use crate::serializer::encoder::ABIEncoder;
 
+pub mod bytes;
+pub mod checksum;
 pub mod integer;
 pub mod key_type;
 pub mod name;
 pub mod private_key;
 pub mod public_key;
+pub mod signature;
 pub mod string;
 
 pub trait ABISerializableObject {

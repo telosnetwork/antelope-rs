@@ -4,13 +4,13 @@ use antelope_rs::chain::key_type::KeyType;
 
 #[test]
 fn private_key_encoding() {
-    let k1_key = PrivateKey::from("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu");
+    let k1_key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu");
     assert!(matches!(k1_key.key_type, KeyType::K1));
     assert_eq!(k1_key.to_wif().unwrap(), String::from("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu"));
     assert_eq!(k1_key.to_string(), "PVT_K1_2be6BwD56MHeVD4P95bRLdnP3oB3P4QRAXAsSKh4N8Xu6d4Aux");
     assert_eq!(k1_key.to_hex(), "d25968ebfce6e617bdb839b5a66cfc1fdd051d79a91094f7baceded449f84333");
 
-    let r1_key = PrivateKey::from("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm");
+    let r1_key = PrivateKey::from_str("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm");
     assert_eq!(r1_key.to_string(), "PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm");
 
     let result = r1_key.to_wif();
@@ -19,75 +19,78 @@ fn private_key_encoding() {
 
 #[test]
 fn public_key_encoding() {
-    let k1_key = PublicKey::from("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
+    let k1_key = PublicKey::from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
     assert!(matches!(k1_key.key_type, KeyType::K1));
     assert_eq!(k1_key.to_string(), "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
-    assert_eq!(k1_key.to_legacy_string("EOS").unwrap(), "EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin");
+    assert_eq!(k1_key.to_legacy_string(Option::from("EOS")).unwrap(), "EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin");
     assert_eq!(
-        PublicKey::from("EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin").to_string(),
+        PublicKey::from_str("EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin").to_string(),
         "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs"
     );
     assert_eq!(k1_key.to_hex_string(), "02caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc");
-    let r1_Key = PublicKey::from("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
-    assert_eq!(r1_Key.to_string(), "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
-    let legacy_result = r1_Key.to_legacy_string("");
+    let r1_key = PublicKey::from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
+    assert_eq!(r1_key.to_string(), "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
+    let legacy_result = r1_key.to_legacy_string(None);
     assert!(legacy_result.is_err());
 }
 
 
+
+#[test]
+fn public_key_prefix() {
+    let priv_key = PrivateKey::from_str("5J4zo6Af9QnAeJmNEQeAR4MNhaG7SKVReAYgZC8655hpkbbBscr");
+    let pub_key = priv_key.to_public();
+    assert_eq!(pub_key.to_string(), "PUB_K1_87DUhBcZrLhyFfBVDyu1iWZJUGURqbk6CQxwv5g6iWUD2X45Hv");
+    assert_eq!(
+        pub_key.to_legacy_string(None).unwrap(),
+        "EOS87DUhBcZrLhyFfBVDyu1iWZJUGURqbk6CQxwv5g6iWUCy9dCUJ"
+    );
+    assert_eq!(
+        pub_key.to_legacy_string(Option::from("FIO")).unwrap(),
+        "FIO87DUhBcZrLhyFfBVDyu1iWZJUGURqbk6CQxwv5g6iWUCy9dCUJ"
+    )
+}
+
+#[test]
+fn public_from_private() {
+    let priv_key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu");
+    let pub_key = priv_key.to_public();
+    assert_eq!(pub_key.to_string(), "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
+    let r1_priv_key = PrivateKey::from_str("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm");
+    let r1_pub_key = r1_priv_key.to_public();
+    assert_eq!(
+        r1_pub_key.to_string(),
+        "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu"
+    )
+}
+
+#[test]
+fn sign_and_verify() {
+    let priv_key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu");
+    let pub_key = PublicKey::from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
+    let message = String::from("I like turtles").into_bytes();
+    let signature = priv_key.sign_message(&message);
+    //assert_eq!(signature.verify_message(message, pub_key), true);
+    /*
+    assert.equal(signature.verifyMessage("beef", pub_key), false)
+    assert.equal(
+        signature.verifyMessage(
+            message,
+            PublicKey.from("EOS7HBX4f8UknP5NNoX8ixCx4YrA8JcPhGbuQ7Xem8gmWg1nviTqR")
+        ),
+        false
+    )
+    // r1
+    const privKey2 = PrivateKey.from(
+        "PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm"
+    )
+    const pubKey2 = PublicKey.from("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu")
+    const signature2 = privKey2.signMessage(message)
+    assert.equal(signature2.verifyMessage(message, pubKey2), true)
+    */
+}
+
 /*
-
-        test("public key prefix", function () {
-            const privKey = PrivateKey.from("5J4zo6Af9QnAeJmNEQeAR4MNhaG7SKVReAYgZC8655hpkbbBscr")
-            const pubKey = privKey.toPublic()
-            assert.equal(pubKey.toString(), "PUB_K1_87DUhBcZrLhyFfBVDyu1iWZJUGURqbk6CQxwv5g6iWUD2X45Hv")
-            assert.equal(
-                pubKey.toLegacyString(),
-                "EOS87DUhBcZrLhyFfBVDyu1iWZJUGURqbk6CQxwv5g6iWUCy9dCUJ"
-            )
-            assert.equal(
-                pubKey.toLegacyString("FIO"),
-                "FIO87DUhBcZrLhyFfBVDyu1iWZJUGURqbk6CQxwv5g6iWUCy9dCUJ"
-            )
-        })
-
-        test("public from private", function () {
-            const privKey = PrivateKey.from("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu")
-            const pubKey = privKey.toPublic()
-            assert.equal(pubKey.toString(), "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs")
-            const r1PrivKey = PrivateKey.from(
-                "PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm"
-            )
-            const r1PubKey = r1PrivKey.toPublic()
-            assert.equal(
-                r1PubKey.toString(),
-                "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu"
-            )
-        })
-
-        test("sign and verify", function () {
-            const privKey = PrivateKey.from("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu")
-            const pubKey = PublicKey.from("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs")
-            const message = Bytes.from("I like turtles", "utf8")
-            const signature = privKey.signMessage(message)
-            assert.equal(signature.verifyMessage(message, pubKey), true)
-            assert.equal(signature.verifyMessage("beef", pubKey), false)
-            assert.equal(
-                signature.verifyMessage(
-                    message,
-                    PublicKey.from("EOS7HBX4f8UknP5NNoX8ixCx4YrA8JcPhGbuQ7Xem8gmWg1nviTqR")
-                ),
-                false
-            )
-            // r1
-            const privKey2 = PrivateKey.from(
-                "PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm"
-            )
-            const pubKey2 = PublicKey.from("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu")
-            const signature2 = privKey2.signMessage(message)
-            assert.equal(signature2.verifyMessage(message, pubKey2), true)
-        })
-
         test("sign and recover", function () {
             const key = PrivateKey.from("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu")
             const message = Bytes.from("I like turtles", "utf8")
