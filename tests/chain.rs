@@ -144,6 +144,12 @@ suite('chain', function () {
 
 use antelope_rs::chain::bytes::{Bytes, BytesEncoding};
 use antelope_rs::chain::checksum::{Checksum160, Checksum256, Checksum512};
+use antelope_rs::chain::permission_level::{PermissionLevel, PermissionLevelType};
+use antelope_rs::chain::string::StringType;
+use antelope_rs::chain::ABISerializableObject;
+use antelope_rs::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
+use antelope_rs::serializer::Serializer;
+use antelope_rs::chain::name::NameType;
 use antelope_rs::util::hex_to_bytes;
 
 #[test]
@@ -347,7 +353,48 @@ fn bytes() {
             ),
             false
         )
+*/
 
+// fn print_values(perm: &PermissionLevel, other_perm: &PermissionLevel) {
+//     println!("------Testing to_string()------");
+//     println!("Permission 1: {}", perm.to_string());
+//     println!("Permission 2: {}", other_perm.to_string());
+
+//     println!("--------Testing json()--------");
+//     println!("Permission 1: {:?}", perm.to_json());
+//     println!("Permission 2: {:?}", other_perm.to_json());
+// }
+
+#[test]
+fn permission_level() {
+    // Create PermissionLevel from 'foo@bar'
+    let perm = PermissionLevel::from(PermissionLevelType::ActorPermission {
+        actor: NameType::String("foo".to_string()),
+        permission: NameType::String("bar".to_string()),
+    });
+    
+    // Test equals with itself
+    assert!(perm.equals(Box::new(perm.clone())));
+
+    // Test equals with equivalent ActorPermission
+    let other_perm = PermissionLevel::from(PermissionLevelType::ActorPermission {
+        actor: NameType::String("foo".to_string()),
+        permission: NameType::String("bar".to_string()),
+    });
+    assert_eq!(perm.equals(Box::new(other_perm)), true);
+
+    // Test equals with different PermissionLevel
+    let different_perm = PermissionLevel::from(PermissionLevelType::ActorPermission {
+        actor: NameType::String("bar".to_string()),
+        permission: NameType::String("moo".to_string()),
+    });
+
+    //print_values(&perm, &different_perm);
+    
+    assert_eq!(perm.equals(Box::new(different_perm)), false);
+}
+
+/*
         const perm = PermissionLevel.from('foo@bar')
         assert.equal(perm.equals(perm), true)
         assert.equal(perm.equals({actor: 'foo', permission: 'bar'}), true)

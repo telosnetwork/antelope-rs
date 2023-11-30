@@ -8,12 +8,12 @@ static RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^[a-z1-5.]{0,13}$").expect("Failed to compile regex")
 });
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Name {
     value: u64,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum NameType {
     Name(Name),
     UInt64(u64),

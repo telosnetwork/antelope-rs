@@ -1,4 +1,5 @@
 use std::fmt;
+use std::collections::BTreeMap;
 use fmt::{Display, Formatter};
 use crate::serializer::encoder::ABIEncoder;
 
@@ -7,6 +8,7 @@ pub mod checksum;
 pub mod integer;
 pub mod key_type;
 pub mod name;
+pub mod permission_level;
 pub mod private_key;
 pub mod public_key;
 pub mod signature;
@@ -32,14 +34,22 @@ pub enum JSONValue {
     String(String),
     Bool(bool),
     UInt64(u64),
+    Object(Box<BTreeMap<String, JSONValue>>),
 }
 
 impl Display for JSONValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            JSONValue::String(_) => write!(f, "String"),
-            JSONValue::Bool(_) => write!(f, "Bool"),
-            JSONValue::UInt64(_) => write!(f, "UInt64"),
+            JSONValue::String(s) => write!(f, "String({})", s),
+            JSONValue::Bool(b) => write!(f, "Bool({})", b),
+            JSONValue::UInt64(u) => write!(f, "UInt64({})", u),
+            JSONValue::Object(map) => {
+                write!(f, "Object(")?;
+                for (key, value) in map.iter() {
+                    write!(f, "{}: {}, ", key, value)?;
+                }
+                write!(f, ")")
+            }
         }
     }
 }
