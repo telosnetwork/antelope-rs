@@ -25,8 +25,4 @@ impl ABISerializableObject for StringType {
     fn to_json(&self) -> JSONValue {
         return JSONValue::String(self.value.to_string());
     }
-
-    fn equals(&self, other: Box<dyn ABISerializableObject>) -> bool {
-        return self.get_abi_name() == other.get_abi_name() && self.to_json() == other.to_json();
-    }
 }
