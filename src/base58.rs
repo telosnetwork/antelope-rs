@@ -37,6 +37,13 @@ pub fn decode_ripemd160_check(encoded: &str, size: Option<usize>, key_type: Opti
         return Err("Checksum mismatch".to_string());
     }
 
+    if size.is_some() {
+        let size_value = size.unwrap() + 4;
+        if data.len() > size_value {
+            return Ok(data[0..size_value].to_vec());
+        }
+    }
+
     return Ok(data.to_vec());
 }
 
@@ -123,7 +130,6 @@ pub fn encode_check(data: Vec<u8>) -> String {
 
 pub fn encode_ripemd160_check(data: Vec<u8>, suffix: Option<&str>) -> String {
     let mut ripe_checksum = ripemd160_checksum(data.to_vec(), suffix);
-    ripe_checksum.truncate(4);
 
     let mut with_ripe_checksum = data.to_vec();
     with_ripe_checksum.append(&mut ripe_checksum.to_vec());
@@ -137,7 +143,7 @@ fn ripemd160_checksum(data: Vec<u8>, suffix: Option<&str>) -> Vec<u8> {
         hasher.update(s);
     }
     let ripe_hash = hasher.finalize();
-    return ripe_hash.as_slice().to_vec();
+    return ripe_hash.as_slice()[0..4].to_vec();
 }
 
 fn double_sha_checksum(data: Vec<u8>) -> Vec<u8> {

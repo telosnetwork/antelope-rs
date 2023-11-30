@@ -1,5 +1,6 @@
 use antelope_rs::chain::name::{Name, NameType};
 use antelope_rs::chain::string::StringType;
+use antelope_rs::chain::ABISerializableObject;
 use antelope_rs::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
 use antelope_rs::serializer::Serializer;
 use antelope_rs::util;
@@ -62,7 +63,8 @@ use antelope_rs::util::serializable_to_encode_args;
 fn name() {
     let data = "000000005c73285d";
     let object = Name::from(NameType::String("foobar".to_string()));
-    let json = "foobar";
+    let cloned_object_1 = object.clone();
+    let cloned_object_2 = object.clone();
 
     // TODO: maybe a factory-like function or something to make creating EncodeArgs cleaner
     //let arg = Box::new(object);
@@ -71,13 +73,18 @@ fn name() {
     let encoded = Serializer::encode(serializable_to_encode_args(Box::new(object)));
     assert_eq!(encoded, util::hex_to_bytes(data));
 
+
+    let uint64_value = 6712742083569909760;
+    assert!(cloned_object_1.equals(Box::new(Name::from(NameType::UInt64(uint64_value)))));
+
+    assert_eq!(cloned_object_2.get_value().to_string(), "6712742083569909760")    
     /*
-        assert.equal(Serializer.encode({object}).hexString, data)
+        assert.equal(Serializer.encode({object}).hexString, data) ✓
         assert.deepEqual(Serializer.decode({data, type: Name}), object)
         assert.deepEqual(Serializer.decode({json, type: 'name'}), object)
-        assert.deepEqual(Name.from(UInt64.from('6712742083569909760')), object)
+        assert.deepEqual(Name.from(UInt64.from('6712742083569909760')), object) ✓
         assert.equal(JSON.stringify(object), json)
-        assert.equal(object.value.toString(), '6712742083569909760')
+        assert.equal(object.value.toString(), '6712742083569909760') ✓
         assert.equal(JSON.stringify(Name.from(UInt64.from(0))), '""')
      */
 }

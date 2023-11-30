@@ -15,7 +15,7 @@ impl ABISerializableObject for UInt64 {
     }
 
     fn to_abi(&self, encoder: &mut ABIEncoder) {
-        encoder.write_array(self.value.to_le_bytes().to_vec());
+        encoder.write_array(&self.value.to_le_bytes().to_vec());
     }
 
     fn to_json(&self) -> JSONValue {

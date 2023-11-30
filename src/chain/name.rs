@@ -8,10 +8,12 @@ static RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^[a-z1-5.]{0,13}$").expect("Failed to compile regex")
 });
 
+#[derive(Clone)]
 pub struct Name {
     value: u64,
 }
 
+#[derive(Clone)]
 pub enum NameType {
     Name(Name),
     UInt64(u64),
@@ -83,6 +85,10 @@ impl Name {
         }
         return result;
     }
+
+    pub fn get_value(&self) -> u64 {
+        self.value
+    }
 }
 
 impl ABISerializableObject for Name {
@@ -91,14 +97,10 @@ impl ABISerializableObject for Name {
     }
 
     fn to_abi(&self, encoder: &mut ABIEncoder) {
-        encoder.write_array(self.value.to_le_bytes().to_vec());
+        encoder.write_array(&self.value.to_le_bytes().to_vec());
     }
 
     fn to_json(&self) -> JSONValue {
         return JSONValue::String(self.to_string());
-    }
-
-    fn equals(&self, obj: Box<dyn ABISerializableObject>) -> bool {
-        todo!()
     }
 }
