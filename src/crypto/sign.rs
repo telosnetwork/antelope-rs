@@ -3,6 +3,7 @@ use sha2::{Sha256, Digest};
 use crate::chain::key_type::KeyType;
 use ecdsa::signature::{DigestSigner};
 use k256::Secp256k1;
+use p256::NistP256;
 use crate::chain::signature::Signature;
 use crate::crypto::curves::create_k1_field_bytes;
 
@@ -11,8 +12,7 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
         KeyType::K1 => {
             let mut attempt = 1;
             loop {
-                let secret_key = k256::SecretKey::from_bytes(&create_k1_field_bytes(secret.to_vec())).expect("invalid private key");
-                let signing_key = ecdsa::SigningKey::from(secret_key);
+                let signing_key = k256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(secret.to_vec())).expect("invalid private key");
 
                 let digest = Sha256::new().chain_update(&message);
 
@@ -26,23 +26,9 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
 
                 let r = signature.r().to_bytes().to_vec();
                 let s = signature.s().to_bytes().to_vec();
-                if is_canonical(&r, &s) {
-                    let mut data: Vec<u8> = Vec::new();
-                    let mut recid = recovery.to_byte();
-                    match key_type {
-                        KeyType::K1 | KeyType::R1 => {
-                            recid += 31;
-                        }
-                    }
 
-                    if r.len() != 32 || s.len() != 32 {
-                        return Err(String::from("r and s values should both have a size of 32"));
-                    }
-
-                    data.push(recid);
-                    data.extend(r.to_vec());
-                    data.extend(s.to_vec());
-                    return Ok(Signature::from_bytes(data, key_type));
+                if Signature::is_canonical(&r, &s) {
+                    return Signature::from_k1_signature(signature, recovery);
                 }
 
                 if attempt > 50 {
@@ -53,18 +39,25 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
             }
         }
         KeyType::R1 => {
-            return Err(String::from("Not done yet"));
+            let signing_key = p256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(secret.to_vec())).expect("invalid private key");
+
+            let digest = Sha256::new().chain_update(&message);
+
+            //  TODO: Explore further how to follow more closely the typescript model with canonical flag
+            //    and personalization string being passed to sign method:
+            //      sig = key.sign(message, {canonical: true, pers: [attempt++]})
+            let signed: (ecdsa::Signature<NistP256>, RecoveryId) = signing_key.sign_digest(digest);
+
+            let signature = signed.0;
+            let recovery = signed.1;
+
+            let r = signature.r().to_bytes().to_vec();
+            let s = signature.s().to_bytes().to_vec();
+
+            return Signature::from_r1_signature(signature, recovery);
         }
     }
 }
-
-fn is_canonical(r: &Vec<u8>, s: &Vec<u8>) -> bool {
-    return !(r[0] & 0x80 != 0)
-        && !(r[0] == 0 && r[1] & 0x80 == 0)
-        && !(s[0] & 0x80 != 0)
-        && !(s[0] == 0 && s[1] & 0x80 == 0);
-}
-
 
 /*
 export function sign(secret: Uint8Array, message: Uint8Array, type: string) {

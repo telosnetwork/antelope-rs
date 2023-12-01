@@ -1,6 +1,15 @@
+use ecdsa::RecoveryId;
+use ecdsa::signature::{DigestSigner, Signer};
+use k256::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
+use k256::ecdsa::signature::Verifier;
+use k256::Secp256k1;
+use sha2::{Sha256, Digest};
 use antelope_rs::chain::private_key::PrivateKey;
 use antelope_rs::chain::public_key::PublicKey;
 use antelope_rs::chain::key_type::KeyType;
+use antelope_rs::chain::signature::Signature;
+use antelope_rs::crypto::curves::create_k1_field_bytes;
+use antelope_rs::util::bytes_to_hex;
 
 #[test]
 fn private_key_encoding() {
@@ -70,24 +79,21 @@ fn sign_and_verify() {
     let pub_key = PublicKey::from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
     let message = String::from("I like turtles").into_bytes();
     let signature = priv_key.sign_message(&message);
-    //assert_eq!(signature.verify_message(message, pub_key), true);
-    /*
-    assert.equal(signature.verifyMessage("beef", pub_key), false)
-    assert.equal(
-        signature.verifyMessage(
-            message,
-            PublicKey.from("EOS7HBX4f8UknP5NNoX8ixCx4YrA8JcPhGbuQ7Xem8gmWg1nviTqR")
-        ),
-        false
-    )
+    assert!(signature.verify_message(&message, &pub_key));
+    assert!(!signature.verify_message(&b"beef".to_vec(), &pub_key));
+    assert!(
+        !signature.verify_message(
+            &message,
+            &PublicKey::from_str("EOS7HBX4f8UknP5NNoX8ixCx4YrA8JcPhGbuQ7Xem8gmWg1nviTqR")
+        )
+    );
     // r1
-    const privKey2 = PrivateKey.from(
+    let priv_key2 = PrivateKey::from_str(
         "PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm"
-    )
-    const pubKey2 = PublicKey.from("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu")
-    const signature2 = privKey2.signMessage(message)
-    assert.equal(signature2.verifyMessage(message, pubKey2), true)
-    */
+    );
+    let pub_key2 = PublicKey::from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
+    let signature2 = priv_key2.sign_message(&message);
+    assert_eq!(signature2.verify_message(&message, &pub_key2), true);
 }
 
 /*

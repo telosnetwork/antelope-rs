@@ -1,10 +1,10 @@
 use antelope_rs::chain::name::{Name, NameType};
+use antelope_rs::chain::signature::Signature;
 use antelope_rs::chain::string::StringType;
 use antelope_rs::chain::ABISerializableObject;
-use antelope_rs::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
 use antelope_rs::serializer::Serializer;
 use antelope_rs::util;
-use antelope_rs::util::serializable_to_encode_args;
+use antelope_rs::util::{hex_to_bytes, serializable_to_encode_args};
 
 
 /*
@@ -297,22 +297,26 @@ fn string() {
         assert.equal(JSON.stringify(Serializer.decode({json, type: 'public_key'})), json)
         assert.equal(JSON.stringify(object), json)
     })
+    */
 
-    test('signature', function () {
-        const data =
-            '00205150a67288c3b393fdba9061b05019c54b12bdac295fc83bebad7cd63c7bb67d5cb8cc220564da006240a58419f64d06a5c6e1fc62889816a6c3dfdd231ed389'
-        const object = Signature.from(
-            'SIG_K1_KfPLgpw35iX8nfDzhbcmSBCr7nEGNEYXgmmempQspDJYBCKuAEs5rm3s4ZuLJY428Ca8ZhvR2Dkwu118y3NAoMDxhicRj9'
-        )
-        const json =
-            '"SIG_K1_KfPLgpw35iX8nfDzhbcmSBCr7nEGNEYXgmmempQspDJYBCKuAEs5rm3s4ZuLJY428Ca8ZhvR2Dkwu118y3NAoMDxhicRj9"'
+#[test]
+fn signature() {
+        let data =
+            "00205150a67288c3b393fdba9061b05019c54b12bdac295fc83bebad7cd63c7bb67d5cb8cc220564da006240a58419f64d06a5c6e1fc62889816a6c3dfdd231ed389";
+        let json =
+            "SIG_K1_KfPLgpw35iX8nfDzhbcmSBCr7nEGNEYXgmmempQspDJYBCKuAEs5rm3s4ZuLJY428Ca8ZhvR2Dkwu118y3NAoMDxhicRj9";
+        let object = Signature::from_string(json).unwrap();
 
-        assert.equal(Serializer.encode({object}).hexString, data)
+        let encoded = Serializer::encode(serializable_to_encode_args(Box::new(object)));
+        assert_eq!(encoded, hex_to_bytes(data));
+
+    /*
         assert.equal(JSON.stringify(Serializer.decode({data, type: Signature})), json)
         assert.equal(JSON.stringify(Serializer.decode({json, type: 'signature'})), json)
         assert.equal(JSON.stringify(object), json)
-    })
-
+     */
+}
+/*
     test('signature (wa)', function () {
         const sig =
             'SIG_WA_2AAAuLJS3pLPgkQQPqLsehL6VeRBaAZS7NYM91UYRUrSAEfUvzKN7DCSwhjsDqe74cZNWKUU' +
