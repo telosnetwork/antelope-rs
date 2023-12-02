@@ -103,15 +103,6 @@ fn sign_and_recover() {
     let r1_signature = r1_private_key.sign_message(&message);
     let recovered_r1_key = r1_signature.recover_message(&message);
     assert_eq!(recovered_r1_key.to_string(), "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
-    /*
-let r1Key = PrivateKey.from("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm")
-let r1Signature = r1Key.signMessage(message)
-assert.equal(
-    r1Signature.recoverMessage(message).toString(),
-    "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu"
-)
-
- */
 }
 /*
 
