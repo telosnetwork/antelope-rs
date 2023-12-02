@@ -81,8 +81,4 @@ impl ABISerializableObject for PrivateKey {
     fn to_json(&self) -> JSONValue {
         todo!()
     }
-
-    fn equals(&self, obj: Box<dyn ABISerializableObject>) -> bool {
-        todo!()
-    }
 }

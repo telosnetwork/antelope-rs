@@ -7,6 +7,7 @@ use crate::chain::key_type::KeyTypeTrait;
 use crate::chain::{ABISerializableObject, JSONValue};
 use crate::chain::key_type::KeyType;
 use crate::chain::public_key::PublicKey;
+use crate::crypto::recover::recover_message;
 use crate::crypto::verify::{verify_message};
 use crate::serializer::encoder::ABIEncoder;
 
@@ -16,6 +17,10 @@ pub struct Signature {
 }
 
 impl Signature {
+
+    pub fn recovery_id(&self) -> u8 {
+        return self.value[0];
+    }
 
     pub fn r(&self) -> Vec<u8> {
         return self.value[1..33].to_vec();
@@ -36,6 +41,10 @@ impl Signature {
 
     pub fn verify_message(&self, message: &Vec<u8>, public_key: &PublicKey) -> bool {
         return verify_message(self, message, &public_key.value);
+    }
+
+    pub fn recover_message(&self, message: &Vec<u8>) -> PublicKey {
+        return recover_message(&self, &message);
     }
 
     pub fn to_string(&self) -> String {

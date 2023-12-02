@@ -51,9 +51,6 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
             let signature = signed.0;
             let recovery = signed.1;
 
-            let r = signature.r().to_bytes().to_vec();
-            let s = signature.s().to_bytes().to_vec();
-
             return Signature::from_r1_signature(signature, recovery);
         }
     }
