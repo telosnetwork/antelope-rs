@@ -93,7 +93,7 @@ impl Name {
 
 impl ABISerializableObject for Name {
     fn get_abi_name(&self) -> String {
-        return "name".to_string();
+        "name".to_string()
     }
 
     fn to_abi(&self, encoder: &mut ABIEncoder) {
@@ -101,6 +101,6 @@ impl ABISerializableObject for Name {
     }
 
     fn to_json(&self) -> JSONValue {
-        return JSONValue::String(self.to_string());
+        JSONValue::String(self.to_string())
     }
 }

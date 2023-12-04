@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use fmt::{Display, Formatter};
 use crate::serializer::encoder::ABIEncoder;
 
+pub mod blob;
 pub mod bytes;
 pub mod checksum;
 pub mod integer;

@@ -117,9 +117,40 @@ suite('chain', function () {
             '000000075fbe6bbad86e424962a190e8309394b7bff4bf3e16b0a2a71e5a617c'
         )
         assert.equal(blockId2.blockNum.equals(7), true)
-    })
+    })*/
+use antelope_rs::chain::bytes::{Bytes, BytesEncoding};
+use antelope_rs::chain::checksum::{Checksum160, Checksum256, Checksum512};
+use antelope_rs::chain::permission_level::{PermissionLevel, PermissionLevelType};
+use antelope_rs::chain::string::StringType;
+use antelope_rs::chain::ABISerializableObject;
+use antelope_rs::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
+use antelope_rs::serializer::Serializer;
+use antelope_rs::chain::name::NameType;
+use antelope_rs::util::hex_to_bytes;
+use antelope_rs::chain::blob::{Blob, BlobType};
+use antelope_rs::chain::JSONValue;
 
-    test('blob', function () {
+#[test]
+fn blob() {
+    let expected = Blob::from(BlobType::Bytes(vec![0xbe, 0xef, 0xfa, 0xce])).unwrap();
+
+    //Correct
+    let blob = Blob::from(BlobType::String("vu/6zg==".to_string())).unwrap();
+    assert_eq!(blob.array, expected.array);
+
+    // Wrong padding, ensure it still works
+    let blob2 = Blob::from(BlobType::String("vu/6zg=".to_string())).unwrap();
+    assert_eq!(blob2.array, expected.array);
+
+    let blob3 = Blob::from(BlobType::String("vu/6zg".to_string())).unwrap();
+    assert_eq!(blob3.array, expected.array);
+
+    let blob4 = Blob::from(BlobType::String("vu/6zg===".to_string())).unwrap();
+    assert_eq!(blob4.array, expected.array);
+}
+
+
+/*    test('blob', function () {
         const expected = Bytes.from([0xbe, 0xef, 0xfa, 0xce])
 
         // Correct
@@ -142,15 +173,7 @@ suite('chain', function () {
     })
     */
 
-use antelope_rs::chain::bytes::{Bytes, BytesEncoding};
-use antelope_rs::chain::checksum::{Checksum160, Checksum256, Checksum512};
-use antelope_rs::chain::permission_level::{PermissionLevel, PermissionLevelType};
-use antelope_rs::chain::string::StringType;
-use antelope_rs::chain::ABISerializableObject;
-use antelope_rs::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
-use antelope_rs::serializer::Serializer;
-use antelope_rs::chain::name::NameType;
-use antelope_rs::util::hex_to_bytes;
+
 
 #[test]
 fn bytes() {
