@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+log = "0.4.14"
+base64 = "0.13"
 bs58 = "0.5.0"
 ecdsa = { version = "0.16.9", features = ["std"] }
 hex = "0.4.3"
