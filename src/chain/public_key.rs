@@ -60,7 +60,4 @@ impl ABISerializableObject for PublicKey {
         return JSONValue::String(self.to_string());
     }
 
-    fn equals(&self, obj: Box<dyn ABISerializableObject>) -> bool {
-        todo!()
-    }
 }

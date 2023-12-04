@@ -70,55 +70,41 @@ fn sign_and_verify() {
     let pub_key = PublicKey::from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
     let message = String::from("I like turtles").into_bytes();
     let signature = priv_key.sign_message(&message);
-    //assert_eq!(signature.verify_message(message, pub_key), true);
-    /*
-    assert.equal(signature.verifyMessage("beef", pub_key), false)
-    assert.equal(
-        signature.verifyMessage(
-            message,
-            PublicKey.from("EOS7HBX4f8UknP5NNoX8ixCx4YrA8JcPhGbuQ7Xem8gmWg1nviTqR")
-        ),
-        false
-    )
+    assert!(signature.verify_message(&message, &pub_key));
+    assert!(!signature.verify_message(&b"beef".to_vec(), &pub_key));
+    assert!(
+        !signature.verify_message(
+            &message,
+            &PublicKey::from_str("EOS7HBX4f8UknP5NNoX8ixCx4YrA8JcPhGbuQ7Xem8gmWg1nviTqR")
+        )
+    );
     // r1
-    const privKey2 = PrivateKey.from(
+    let priv_key2 = PrivateKey::from_str(
         "PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm"
-    )
-    const pubKey2 = PublicKey.from("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu")
-    const signature2 = privKey2.signMessage(message)
-    assert.equal(signature2.verifyMessage(message, pubKey2), true)
-    */
+    );
+    let pub_key2 = PublicKey::from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
+    let signature2 = priv_key2.sign_message(&message);
+    assert_eq!(signature2.verify_message(&message, &pub_key2), true);
 }
 
+#[test]
+fn sign_and_recover() {
+    let key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu");
+    let message = b"I like turtles".to_vec();
+    let signature = key.sign_message(&message);
+    let recovered_key = signature.recover_message(&message);
+    let recovered_key_failure = signature.recover_message(&b"beef".to_vec());
+    assert_eq!(recovered_key.to_string(), "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
+    assert_eq!(recovered_key.to_legacy_string(Some("EOS")).unwrap(), "EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin");
+    assert_eq!(recovered_key.to_legacy_string(Some("FIO")).unwrap(), "FIO6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin");
+    assert_ne!(recovered_key_failure.to_string(), "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
+
+    let r1_private_key = PrivateKey::from_str("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm");
+    let r1_signature = r1_private_key.sign_message(&message);
+    let recovered_r1_key = r1_signature.recover_message(&message);
+    assert_eq!(recovered_r1_key.to_string(), "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
+}
 /*
-        test("sign and recover", function () {
-            const key = PrivateKey.from("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu")
-            const message = Bytes.from("I like turtles", "utf8")
-            const signature = key.signMessage(message)
-            const recoveredKey = signature.recoverMessage(message)
-            assert.equal(
-                recoveredKey.toString(),
-                "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs"
-            )
-            assert.equal(
-                recoveredKey.toLegacyString(),
-                "EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin"
-            )
-            assert.equal(
-                recoveredKey.toLegacyString("FIO"),
-                "FIO6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin"
-            )
-            assert.notEqual(
-                signature.recoverMessage("beef").toString(),
-                "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs"
-            )
-            const r1Key = PrivateKey.from("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm")
-            const r1Signature = r1Key.signMessage(message)
-            assert.equal(
-                r1Signature.recoverMessage(message).toString(),
-                "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu"
-            )
-        })
 
         test("shared secrets", function () {
             const priv1 = PrivateKey.from("5KGNiwTYdDWVBc9RCC28hsi7tqHGUsikn9Gs8Yii93fXbkYzxGi")

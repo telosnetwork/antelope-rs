@@ -129,7 +129,7 @@ pub fn encode_check(data: Vec<u8>) -> String {
 }
 
 pub fn encode_ripemd160_check(data: Vec<u8>, suffix: Option<&str>) -> String {
-    let mut ripe_checksum = ripemd160_checksum(data.to_vec(), suffix);
+    let ripe_checksum = ripemd160_checksum(data.to_vec(), suffix);
 
     let mut with_ripe_checksum = data.to_vec();
     with_ripe_checksum.append(&mut ripe_checksum.to_vec());
