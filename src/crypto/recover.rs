@@ -10,8 +10,8 @@ pub fn recover_message(signature: &Signature, message_bytes: &Vec<u8>) -> Public
     let key_type = signature.key_type;
     match key_type {
         KeyType::K1 => {
-            let r_scalar = create_k1_field_bytes(signature.r());
-            let s_scalar = create_k1_field_bytes(signature.s());
+            let r_scalar = create_k1_field_bytes(&signature.r());
+            let s_scalar = create_k1_field_bytes(&signature.s());
             let sig = k256::ecdsa::Signature::from_scalars(r_scalar, s_scalar).unwrap();
             let digest = Sha256::new().chain_update(&message_bytes);
             let recovery_id= RecoveryId::from_byte(signature.recovery_id()).unwrap();
@@ -25,8 +25,8 @@ pub fn recover_message(signature: &Signature, message_bytes: &Vec<u8>) -> Public
             return PublicKey::from_bytes(compressed_bytes.to_vec(), key_type);
         }
         KeyType::R1 => {
-            let r_scalar = create_r1_field_bytes(signature.r());
-            let s_scalar = create_r1_field_bytes(signature.s());
+            let r_scalar = create_r1_field_bytes(&signature.r());
+            let s_scalar = create_r1_field_bytes(&signature.s());
             let sig = p256::ecdsa::Signature::from_scalars(r_scalar, s_scalar).unwrap();
             let digest = Sha256::new().chain_update(&message_bytes);
             let recovery_id= RecoveryId::from_byte(signature.recovery_id()).unwrap();

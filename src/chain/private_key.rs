@@ -1,9 +1,11 @@
 use crate::base58::{decode_key, encode_check, encode_ripemd160_check};
 use crate::chain::{ABISerializableObject, JSONValue};
+use crate::chain::checksum::Checksum512;
 use crate::chain::key_type::KeyType;
 use crate::chain::public_key::PublicKey;
 use crate::chain::signature::Signature;
 use crate::crypto::get_public::get_public;
+use crate::crypto::shared_secrets::shared_secret;
 use crate::crypto::sign::sign;
 use crate::serializer::encoder::ABIEncoder;
 
@@ -65,6 +67,10 @@ impl PrivateKey {
 
     pub fn sign_message(&self, message: &Vec<u8>) -> Signature {
         return sign(self.value.to_vec(), message, self.key_type).unwrap();
+    }
+
+    pub fn shared_secret(&self, their_pub: &PublicKey) -> Checksum512 {
+        return Checksum512::hash(shared_secret(&self.to_bytes(), &their_pub.value, self.key_type).unwrap());
     }
 
 }

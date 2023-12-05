@@ -12,7 +12,7 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
         KeyType::K1 => {
             let mut attempt = 1;
             loop {
-                let signing_key = k256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(secret.to_vec())).expect("invalid private key");
+                let signing_key = k256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(&secret.to_vec())).expect("invalid private key");
 
                 let digest = Sha256::new().chain_update(&message);
 
@@ -39,7 +39,7 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
             }
         }
         KeyType::R1 => {
-            let signing_key = p256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(secret.to_vec())).expect("invalid private key");
+            let signing_key = p256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(&secret.to_vec())).expect("invalid private key");
 
             let digest = Sha256::new().chain_update(&message);
 
