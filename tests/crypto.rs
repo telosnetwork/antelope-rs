@@ -1,6 +1,7 @@
 use antelope_rs::chain::private_key::PrivateKey;
 use antelope_rs::chain::public_key::PublicKey;
 use antelope_rs::chain::key_type::KeyType;
+use antelope_rs::util::{bytes_to_hex, hex_to_bytes};
 
 #[test]
 fn private_key_encoding() {
@@ -104,20 +105,21 @@ fn sign_and_recover() {
     let recovered_r1_key = r1_signature.recover_message(&message);
     assert_eq!(recovered_r1_key.to_string(), "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
 }
+#[test]
+fn shared_secrets() {
+    let priv1 = PrivateKey::from_str("5KGNiwTYdDWVBc9RCC28hsi7tqHGUsikn9Gs8Yii93fXbkYzxGi");
+    let priv2 = PrivateKey::from_str("5Kik3tbLSn24ScHFsj6GwLkgd1H4Wecxkzt1VX7PBBRDQUCdGFa");
+    let pub1 = PublicKey::from_str("PUB_K1_7Wp9pzhtTfN3jSyQDCktKLqxdTAcAfgT2RrVpE6KThZraa381H");
+    let pub2 = PublicKey::from_str("PUB_K1_6P8aGPEP79815rKGQ1dbc9eDxoEjatX7Lp696ve5tinnfwJ6nt");
+    let expected =
+        "def2d32f6b849198d71118ef53dbc3b679fe2b2c174ee4242a33e1a3f34c46fcbaa698fb599ca0e36f555dde2ac913a10563de2c33572155487cd8b34523de9e";
+    let secret1 = priv1.shared_secret(&pub2);
+    assert_eq!(secret1.checksum.value.as_slice(), hex_to_bytes(expected));
+    let secret2 = priv2.shared_secret(&pub1);
+    assert_eq!(secret2.checksum.value.as_slice(), hex_to_bytes(expected));
+}
+
 /*
-
-        test("shared secrets", function () {
-            const priv1 = PrivateKey.from("5KGNiwTYdDWVBc9RCC28hsi7tqHGUsikn9Gs8Yii93fXbkYzxGi")
-            const priv2 = PrivateKey.from("5Kik3tbLSn24ScHFsj6GwLkgd1H4Wecxkzt1VX7PBBRDQUCdGFa")
-            const pub1 = PublicKey.from("PUB_K1_7Wp9pzhtTfN3jSyQDCktKLqxdTAcAfgT2RrVpE6KThZraa381H")
-            const pub2 = PublicKey.from("PUB_K1_6P8aGPEP79815rKGQ1dbc9eDxoEjatX7Lp696ve5tinnfwJ6nt")
-            const expected =
-                "def2d32f6b849198d71118ef53dbc3b679fe2b2c174ee4242a33e1a3f34c46fc" +
-                "baa698fb599ca0e36f555dde2ac913a10563de2c33572155487cd8b34523de9e"
-            assert.equal(priv1.sharedSecret(pub2), expected)
-            assert.equal(priv2.sharedSecret(pub1), expected)
-        })
-
         test("key generation", function () {
             assert.doesNotThrow(() => {
                 PrivateKey.generate("R1")
