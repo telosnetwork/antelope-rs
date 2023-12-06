@@ -30,12 +30,12 @@ impl PublicKey {
         return Ok(format!("{key_prefix}{encoded}"));
     }
 
-    pub fn from_str(value: &str) -> Self {
+    pub fn from_str(value: &str) -> Result<Self, String> {
         let decoded = decode_public_key(value).unwrap();
-        return PublicKey {
+        return Ok(PublicKey {
             key_type: decoded.0,
             value: decoded.1
-        }
+        });
     }
 
     pub fn from_bytes(value: Vec<u8>, key_type: KeyType) -> Self {

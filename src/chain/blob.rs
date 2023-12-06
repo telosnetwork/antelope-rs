@@ -1,7 +1,6 @@
 use crate::chain::{ABISerializableObject, JSONValue};
 use crate::serializer::encoder::ABIEncoder;
 use crate::util::array_equals;
-use crate::util::is_instance_of;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BlobType {

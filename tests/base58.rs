@@ -23,26 +23,27 @@ fn encode() {
 #[test]
 fn decode_check() {
     assert_eq!(
-        base58::decode_check("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu").unwrap(),
+        base58::decode_check("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu", false).unwrap(),
         hex_to_bytes("80d25968ebfce6e617bdb839b5a66cfc1fdd051d79a91094f7baceded449f84333")
     );
-    let decode_result = base58::decode_check("5KQVfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu");
+    let decode_result = base58::decode_check("5KQVfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu", false);
     assert!(decode_result.is_err());
 }
 
 #[test]
 fn decode_ripemd160_check() {
     assert_eq!(
-        base58::decode_ripemd160_check("6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin", None, None).unwrap(),
+        base58::decode_ripemd160_check("6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin", None, None, false).unwrap(),
         hex_to_bytes("02caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc"),
     );
-    let decode_result_1 = base58::decode_ripemd160_check("6RrVujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin", None, None);
+    let decode_result_1 = base58::decode_ripemd160_check("6RrVujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin", None, None, false);
     assert!(decode_result_1.is_err());
     assert_eq!(
         base58::decode_ripemd160_check(
             "6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs",
             Some(33),
-            Some(KeyType::K1)
+            Some(KeyType::K1),
+            false
         ).unwrap(),
         hex_to_bytes("02caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc")
     );
@@ -50,14 +51,16 @@ fn decode_ripemd160_check() {
         base58::decode_ripemd160_check(
             "6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs",
             Some(33),
-            Some(KeyType::K1)
+            Some(KeyType::K1),
+            false
         ).unwrap(),
         hex_to_bytes("02caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc")
     );
     let decode_result_2 = base58::decode_ripemd160_check(
         "6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs",
         None,
-        None
+        None,
+        false
     );
 
     assert!(decode_result_2.is_err());
