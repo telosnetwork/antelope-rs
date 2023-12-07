@@ -18,6 +18,6 @@ pub fn array_equals<T: PartialEq>(a: &[T], b: &[T]) -> bool {
     a.len() == b.len() && a.iter().zip(b).all(|(x, y)| x == y)
 }
 
-pub fn is_instance_of<T, U: PartialEq<T>>(value: &T, instance: &U) -> bool {
-    instance == value
+pub fn array_to_hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{:02x}", b)).collect()
 }

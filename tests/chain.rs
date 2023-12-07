@@ -99,9 +99,48 @@ suite('chain', function () {
         assert.throws(() => {
             Asset.Symbol.from('12')
         })
-    })
+    })*/
 
-    test('block id', function () {
+use antelope_rs::chain::bytes::{Bytes, BytesEncoding};
+use antelope_rs::chain::checksum::{Checksum160, Checksum256, Checksum512};
+use antelope_rs::chain::permission_level::{PermissionLevel, PermissionLevelType};
+use antelope_rs::chain::string::StringType;
+use antelope_rs::chain::ABISerializableObject;
+use antelope_rs::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
+use antelope_rs::serializer::Serializer;
+use antelope_rs::chain::name::NameType;
+use antelope_rs::util::hex_to_bytes;
+use antelope_rs::chain::blob::{Blob, BlobType};
+use antelope_rs::chain::JSONValue;
+// use antelope_rs::chain::block_id::{BlockId, BlockIdType};
+
+//use antelope_rs::chain::UInt32;
+
+#[test]
+fn block_id() {
+    // let string = "048865fb643bca3b644647177f0cf363f7956794d0a7ec3bc6d29d93d9637308";
+    // let block_id = BlockId::from(BlockIdType::Bytes(hex::decode(string).unwrap()));
+    
+    // assert_eq!(block_id.to_string(), string);
+    // assert_eq!(block_id.block_num().to_string(), "76047867");
+    // assert!(block_id.block_num().equals(76047867));
+    //assert!(block_id.block_num().equals(UInt32::from(76047867))); UInt32 not implemented yet
+
+    //decode not implemented yet
+    // let block_id2 = BlockId::from(BlockIdType::BlockChecksumAndNumber {
+    //     checksum: Checksum256::from(hex::decode(
+    //         "61375f2d5fbe6bbad86e424962a190e8309394b7bff4bf3e16b0a2a71e5a617c",
+    //     )
+    //     .unwrap()),
+    //     block_num: UInt32::from(7),
+    // });
+
+    // assert_eq!(block_id2.to_string(), "000000075fbe6bbad86e424962a190e8309394b7bff4bf3e16b0a2a71e5a617c");
+    // assert!(block_id2.block_num().equals(7));
+}
+
+
+  /*  test('block id', function () {
         const string = '048865fb643bca3b644647177f0cf363f7956794d0a7ec3bc6d29d93d9637308'
         const blockId = BlockId.from(string)
         assert.equal(String(blockId), string)
@@ -118,17 +157,7 @@ suite('chain', function () {
         )
         assert.equal(blockId2.blockNum.equals(7), true)
     })*/
-use antelope_rs::chain::bytes::{Bytes, BytesEncoding};
-use antelope_rs::chain::checksum::{Checksum160, Checksum256, Checksum512};
-use antelope_rs::chain::permission_level::{PermissionLevel, PermissionLevelType};
-use antelope_rs::chain::string::StringType;
-use antelope_rs::chain::ABISerializableObject;
-use antelope_rs::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
-use antelope_rs::serializer::Serializer;
-use antelope_rs::chain::name::NameType;
-use antelope_rs::util::hex_to_bytes;
-use antelope_rs::chain::blob::{Blob, BlobType};
-use antelope_rs::chain::JSONValue;
+
 
 #[test]
 fn blob() {
