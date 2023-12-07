@@ -66,7 +66,7 @@ impl Signature {
             }
         }
 
-        let value = base58::decode_ripemd160_check(parts[2], size, Option::from(key_type)).unwrap();
+        let value = base58::decode_ripemd160_check(parts[2], size, Option::from(key_type), false).unwrap();
         return Ok(Signature {
             key_type,
             value

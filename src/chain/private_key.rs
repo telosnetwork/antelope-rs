@@ -4,6 +4,7 @@ use crate::chain::checksum::Checksum512;
 use crate::chain::key_type::KeyType;
 use crate::chain::public_key::PublicKey;
 use crate::chain::signature::Signature;
+use crate::crypto::generate::generate;
 use crate::crypto::get_public::get_public;
 use crate::crypto::shared_secrets::shared_secret;
 use crate::crypto::sign::sign;
@@ -57,12 +58,18 @@ impl PrivateKey {
         }
     }
 
-    pub fn from_str(key: &str) -> Self {
-        let decoded = decode_key(key).unwrap();
-        return PrivateKey {
+    pub fn from_str(key: &str, ignore_checksum: bool) -> Result<Self, String> {
+        let decode_result = decode_key(key, ignore_checksum);
+        if decode_result.is_err() {
+            let err_message = decode_result.err().unwrap_or(String::from("Unknown error"));
+            return Err(format!("Failed to decode private key: {err_message}"));
+        }
+
+        let decoded = decode_result.unwrap();
+        return Ok(PrivateKey {
             key_type: decoded.0,
             value: decoded.1,
-        }
+        });
     }
 
     pub fn sign_message(&self, message: &Vec<u8>) -> Signature {
@@ -71,6 +78,11 @@ impl PrivateKey {
 
     pub fn shared_secret(&self, their_pub: &PublicKey) -> Checksum512 {
         return Checksum512::hash(shared_secret(&self.to_bytes(), &their_pub.value, self.key_type).unwrap());
+    }
+
+    pub fn random(key_type: KeyType) -> Result<Self, String> {
+        let secret_bytes = generate(key_type);
+        return Ok(Self::from_bytes(secret_bytes.unwrap(), key_type));
     }
 
 }

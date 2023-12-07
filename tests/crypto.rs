@@ -1,17 +1,18 @@
+use rand::random;
 use antelope_rs::chain::private_key::PrivateKey;
 use antelope_rs::chain::public_key::PublicKey;
 use antelope_rs::chain::key_type::KeyType;
-use antelope_rs::util::{bytes_to_hex, hex_to_bytes};
+use antelope_rs::util::{hex_to_bytes};
 
 #[test]
 fn private_key_encoding() {
-    let k1_key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu");
+    let k1_key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu", false).unwrap();
     assert!(matches!(k1_key.key_type, KeyType::K1));
     assert_eq!(k1_key.to_wif().unwrap(), String::from("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu"));
     assert_eq!(k1_key.to_string(), "PVT_K1_2be6BwD56MHeVD4P95bRLdnP3oB3P4QRAXAsSKh4N8Xu6d4Aux");
     assert_eq!(k1_key.to_hex(), "d25968ebfce6e617bdb839b5a66cfc1fdd051d79a91094f7baceded449f84333");
 
-    let r1_key = PrivateKey::from_str("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm");
+    let r1_key = PrivateKey::from_str("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm", false).unwrap();
     assert_eq!(r1_key.to_string(), "PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm");
 
     let result = r1_key.to_wif();
@@ -20,16 +21,16 @@ fn private_key_encoding() {
 
 #[test]
 fn public_key_encoding() {
-    let k1_key = PublicKey::from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
+    let k1_key = PublicKey::from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs").unwrap();
     assert!(matches!(k1_key.key_type, KeyType::K1));
     assert_eq!(k1_key.to_string(), "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
     assert_eq!(k1_key.to_legacy_string(Option::from("EOS")).unwrap(), "EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin");
     assert_eq!(
-        PublicKey::from_str("EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin").to_string(),
+        PublicKey::from_str("EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin").unwrap().to_string(),
         "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs"
     );
     assert_eq!(k1_key.to_hex_string(), "02caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc");
-    let r1_key = PublicKey::from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
+    let r1_key = PublicKey::from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu").unwrap();
     assert_eq!(r1_key.to_string(), "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
     let legacy_result = r1_key.to_legacy_string(None);
     assert!(legacy_result.is_err());
@@ -39,7 +40,7 @@ fn public_key_encoding() {
 
 #[test]
 fn public_key_prefix() {
-    let priv_key = PrivateKey::from_str("5J4zo6Af9QnAeJmNEQeAR4MNhaG7SKVReAYgZC8655hpkbbBscr");
+    let priv_key = PrivateKey::from_str("5J4zo6Af9QnAeJmNEQeAR4MNhaG7SKVReAYgZC8655hpkbbBscr", false).unwrap();
     let pub_key = priv_key.to_public();
     assert_eq!(pub_key.to_string(), "PUB_K1_87DUhBcZrLhyFfBVDyu1iWZJUGURqbk6CQxwv5g6iWUD2X45Hv");
     assert_eq!(
@@ -54,10 +55,10 @@ fn public_key_prefix() {
 
 #[test]
 fn public_from_private() {
-    let priv_key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu");
+    let priv_key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu", false).unwrap();
     let pub_key = priv_key.to_public();
     assert_eq!(pub_key.to_string(), "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
-    let r1_priv_key = PrivateKey::from_str("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm");
+    let r1_priv_key = PrivateKey::from_str("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm", false).unwrap();
     let r1_pub_key = r1_priv_key.to_public();
     assert_eq!(
         r1_pub_key.to_string(),
@@ -67,8 +68,8 @@ fn public_from_private() {
 
 #[test]
 fn sign_and_verify() {
-    let priv_key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu");
-    let pub_key = PublicKey::from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
+    let priv_key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu", false).unwrap();
+    let pub_key = PublicKey::from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs").unwrap();
     let message = String::from("I like turtles").into_bytes();
     let signature = priv_key.sign_message(&message);
     assert!(signature.verify_message(&message, &pub_key));
@@ -76,21 +77,21 @@ fn sign_and_verify() {
     assert!(
         !signature.verify_message(
             &message,
-            &PublicKey::from_str("EOS7HBX4f8UknP5NNoX8ixCx4YrA8JcPhGbuQ7Xem8gmWg1nviTqR")
+            &PublicKey::from_str("EOS7HBX4f8UknP5NNoX8ixCx4YrA8JcPhGbuQ7Xem8gmWg1nviTqR").unwrap()
         )
     );
     // r1
     let priv_key2 = PrivateKey::from_str(
-        "PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm"
-    );
-    let pub_key2 = PublicKey::from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
+        "PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm", false
+    ).unwrap();
+    let pub_key2 = PublicKey::from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu").unwrap();
     let signature2 = priv_key2.sign_message(&message);
     assert_eq!(signature2.verify_message(&message, &pub_key2), true);
 }
 
 #[test]
 fn sign_and_recover() {
-    let key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu");
+    let key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu", false).unwrap();
     let message = b"I like turtles".to_vec();
     let signature = key.sign_message(&message);
     let recovered_key = signature.recover_message(&message);
@@ -100,17 +101,17 @@ fn sign_and_recover() {
     assert_eq!(recovered_key.to_legacy_string(Some("FIO")).unwrap(), "FIO6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin");
     assert_ne!(recovered_key_failure.to_string(), "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
 
-    let r1_private_key = PrivateKey::from_str("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm");
+    let r1_private_key = PrivateKey::from_str("PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm", false).unwrap();
     let r1_signature = r1_private_key.sign_message(&message);
     let recovered_r1_key = r1_signature.recover_message(&message);
     assert_eq!(recovered_r1_key.to_string(), "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
 }
 #[test]
 fn shared_secrets() {
-    let priv1 = PrivateKey::from_str("5KGNiwTYdDWVBc9RCC28hsi7tqHGUsikn9Gs8Yii93fXbkYzxGi");
-    let priv2 = PrivateKey::from_str("5Kik3tbLSn24ScHFsj6GwLkgd1H4Wecxkzt1VX7PBBRDQUCdGFa");
-    let pub1 = PublicKey::from_str("PUB_K1_7Wp9pzhtTfN3jSyQDCktKLqxdTAcAfgT2RrVpE6KThZraa381H");
-    let pub2 = PublicKey::from_str("PUB_K1_6P8aGPEP79815rKGQ1dbc9eDxoEjatX7Lp696ve5tinnfwJ6nt");
+    let priv1 = PrivateKey::from_str("5KGNiwTYdDWVBc9RCC28hsi7tqHGUsikn9Gs8Yii93fXbkYzxGi", false).unwrap();
+    let priv2 = PrivateKey::from_str("5Kik3tbLSn24ScHFsj6GwLkgd1H4Wecxkzt1VX7PBBRDQUCdGFa", false).unwrap();
+    let pub1 = PublicKey::from_str("PUB_K1_7Wp9pzhtTfN3jSyQDCktKLqxdTAcAfgT2RrVpE6KThZraa381H").unwrap();
+    let pub2 = PublicKey::from_str("PUB_K1_6P8aGPEP79815rKGQ1dbc9eDxoEjatX7Lp696ve5tinnfwJ6nt").unwrap();
     let expected =
         "def2d32f6b849198d71118ef53dbc3b679fe2b2c174ee4242a33e1a3f34c46fcbaa698fb599ca0e36f555dde2ac913a10563de2c33572155487cd8b34523de9e";
     let secret1 = priv1.shared_secret(&pub2);
@@ -119,69 +120,51 @@ fn shared_secrets() {
     assert_eq!(secret2.checksum.value.as_slice(), hex_to_bytes(expected));
 }
 
-/*
-        test("key generation", function () {
-            assert.doesNotThrow(() => {
-                PrivateKey.generate("R1")
-            })
-            assert.doesNotThrow(() => {
-                PrivateKey.generate("K1")
-            })
-            assert.throws(() => {
-                PrivateKey.generate("XX")
-            })
-        })
+#[test]
+fn key_generation() {
 
-        test("key errors", function () {
-            try {
-                PrivateKey.from("PVT_K1_2be6BwD56MHeVD4P95bRLdnP3oB3P4QRAXAsSKh4N8Xu6d4Auz")
-                assert.fail()
-            } catch (error) {
-                assert.ok(error instanceof Base58.DecodingError)
-                assert.equal(error.code, Base58.ErrorCode.E_CHECKSUM)
-                assert.equal(error.info.hash, "ripemd160")
-                assert.deepEqual(Array.from(error.info.actual), [236, 129, 232, 27])
-                assert.deepEqual(Array.from(error.info.expected), [236, 129, 232, 29])
-            }
-            const key1 = PrivateKey.fromString(
-                "PVT_K1_2be6BwD56MHeVD4P95bRLdnP3oB3P4QRAXAsSKh4N8Xu6d4Auz",
-                true
-            )
-            assert.equal(key1.toString(), "PVT_K1_2be6BwD56MHeVD4P95bRLdnP3oB3P4QRAXAsSKh4N8Xu6d4Aux")
-            try {
-                PrivateKey.from("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zxx")
-                assert.fail()
-            } catch (error) {
-                assert.ok(error instanceof Base58.DecodingError)
-                assert.equal(error.code, Base58.ErrorCode.E_CHECKSUM)
-                assert.equal(error.info.hash, "double_sha256")
-            }
-            const key2 = PrivateKey.fromString(
-                "5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zxx",
-                true
-            )
-            assert.equal(key2.toWif(), "5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu")
-            assert.doesNotThrow(() => {
-                PrivateKey.fromString("PVT_K1_ApBgGcJ2HeGR3szXA9JJptGCWUbSwewtGsxm3DVr86pJtb5V", true)
-            })
-            assert.throws(() => {
-                PrivateKey.fromString("PVT_K1_ApBgGcJ2HeGR3szXA9JJptGCWUbSwewtGsxm3DVr86pJtb5V")
-            }, /Checksum mismatch/)
-        })
+    let k1_key = PrivateKey::random(KeyType::K1);
+    let r1_key = PrivateKey::random(KeyType::R1);
 
-        test("key generation", function () {
-            assert.doesNotThrow(() => {
-                const k = PrivateKey.generate("K1")
-                PrivateKey.fromString(String(k))
-            })
-            assert.throws(() => {
-                new PrivateKey(KeyType.K1, Bytes.random(31))
-            })
-            assert.throws(() => {
-                const k = PrivateKey.generate("K1")
-                k.data = Bytes.random(31)
-                PrivateKey.fromString(String(k))
-            })
-        })
+    assert!(k1_key.is_ok(), "Failed to generate k1 key");
+    assert!(r1_key.is_ok(), "Failed to generate r1 key");
 
+    /*
+    let bad_key = PrivateKey::random(KeyType::??
+    assert.throws(() => {
+        PrivateKey.generate("XX")
+    })
      */
+}
+
+#[test]
+fn key_errors() {
+    let invalid_private_key_result = PrivateKey::from_str("PVT_K1_2be6BwD56MHeVD4P95bRLdnP3oB3P4QRAXAsSKh4N8Xu6d4Auz", false);
+    assert!(invalid_private_key_result.is_err(), "Invalid private key checksum should fail");
+
+    let empty_private_key_result = PrivateKey::from_str("", false);
+    assert!(empty_private_key_result.is_err(), "Empty private key should fail");
+    let invalid_ok_private_key_result = PrivateKey::from_str(
+        "PVT_K1_2be6BwD56MHeVD4P95bRLdnP3oB3P4QRAXAsSKh4N8Xu6d4Auz",
+        true
+    );
+    assert!(invalid_ok_private_key_result.is_ok(), "Should not fail if ignore_checksum = true");
+    assert_eq!(invalid_ok_private_key_result.unwrap().to_string(), "PVT_K1_2be6BwD56MHeVD4P95bRLdnP3oB3P4QRAXAsSKh4N8Xu6d4Aux");
+    let invalid_wif_private_key_result_enforce_checksum = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zxx", false);
+    assert!(invalid_wif_private_key_result_enforce_checksum.is_err(), "Should fail with invalid wif key");
+
+    let invalid_wif_private_key_result_no_checksum = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zxx", true);
+    assert!(invalid_wif_private_key_result_no_checksum.is_ok(), "Should not fail with invalid wif key if ignore_checksum = true");
+    assert_eq!(invalid_wif_private_key_result_no_checksum.unwrap().to_wif().unwrap(), "5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu");
+    let valid_failing_checksum = PrivateKey::from_str("PVT_K1_ApBgGcJ2HeGR3szXA9JJptGCWUbSwewtGsxm3DVr86pJtb5V", true);
+    assert!(valid_failing_checksum.is_ok(), "Invalid checksum should pass if ignore_checksum = false");
+    let failing_checksum = PrivateKey::from_str("PVT_K1_ApBgGcJ2HeGR3szXA9JJptGCWUbSwewtGsxm3DVr86pJtb5V", false);
+    assert!(failing_checksum.is_err(), "Invalid checksum should fail");
+}
+
+#[test]
+fn key_generation2() {
+    let key = PrivateKey::random(KeyType::K1).unwrap();
+    let key_from_key = PrivateKey::from_str(key.to_string().as_str(), false);
+    assert!(key_from_key.is_ok());
+}
