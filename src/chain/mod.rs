@@ -10,11 +10,14 @@ pub mod checksum;
 pub mod integer;
 pub mod key_type;
 pub mod name;
-pub mod permission_level;
+//pub mod permission_level;
 pub mod private_key;
 pub mod public_key;
 pub mod signature;
 pub mod string;
+
+pub type Encoder = rust_chain::Encoder;
+pub type Decoder<'a> = rust_chain::Decoder<'a>;
 
 pub trait ABISerializableObject {
     fn get_abi_name(&self) -> String;

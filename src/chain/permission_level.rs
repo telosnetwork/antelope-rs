@@ -1,6 +1,6 @@
 use crate::chain::{ABISerializableObject, JSONValue};
 use crate::serializer::encoder::ABIEncoder;
-use crate::chain::name::{Name, NameType};
+use crate::chain::name::{Name};
 
 #[derive(Debug, Clone)]
 pub struct PermissionLevel {

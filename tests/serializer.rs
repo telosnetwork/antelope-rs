@@ -1,10 +1,10 @@
-use antelope_rs::chain::name::{Name, NameType};
+use antelope_rs::chain::{Decoder, Encoder};
 use antelope_rs::chain::signature::Signature;
 use antelope_rs::chain::string::StringType;
-use antelope_rs::chain::ABISerializableObject;
+use antelope_rs::chain::name::Name;
 use antelope_rs::serializer::Serializer;
 use antelope_rs::util;
-use antelope_rs::util::{hex_to_bytes, serializable_to_encode_args};
+use antelope_rs::util::{bytes_to_hex, hex_to_bytes, serializable_to_encode_args};
 
 
 /*
@@ -62,30 +62,20 @@ use antelope_rs::util::{hex_to_bytes, serializable_to_encode_args};
 #[test]
 fn name() {
     let data = "000000005c73285d";
-    let object = Name::from(NameType::String("foobar".to_string()));
-    let cloned_object_1 = object.clone();
-    let cloned_object_2 = object.clone();
+    let name1 = Name::from_str("foobar");
 
-    // TODO: maybe a factory-like function or something to make creating EncodeArgs cleaner
-    //let arg = Box::new(object);
-    //let encoded = Serializer::encode(EncodeArgs::EncodeArgsSerializable(EncodeArgsSerializable { object: arg }));
-
-    let encoded = Serializer::encode(serializable_to_encode_args(Box::new(object)));
-    assert_eq!(encoded, util::hex_to_bytes(data));
-
-
-    let uint64_value = 6712742083569909760;
-    assert!(cloned_object_1.equals(Box::new(Name::from(NameType::UInt64(uint64_value)))));
-
-    assert_eq!(cloned_object_2.get_value().to_string(), "6712742083569909760")    
+    assert_eq!(bytes_to_hex(&Encoder::pack(&name1)), data);
+    let data_bytes = hex_to_bytes(data);
+    let mut decoder = Decoder::new(data_bytes.as_slice());
+    let mut name2 = Name::default();
+    decoder.unpack(&mut name2);
+    assert_eq!(name1, name2);
+    let name3 = Name::from_u64(6712742083569909760);
+    assert_eq!(name1, name3);
+    // TODO: The typescript lib produces empty string, are they the same? (. vs '')
+    assert_eq!(Name::from_u64(0).to_string(), ".");
     /*
-        assert.equal(Serializer.encode({object}).hexString, data) ✓
-        assert.deepEqual(Serializer.decode({data, type: Name}), object)
-        assert.deepEqual(Serializer.decode({json, type: 'name'}), object)
-        assert.deepEqual(Name.from(UInt64.from('6712742083569909760')), object) ✓
-        assert.equal(JSON.stringify(object), json)
-        assert.equal(object.value.toString(), '6712742083569909760') ✓
-        assert.equal(JSON.stringify(Name.from(UInt64.from(0))), '""')
+    assert.equal(JSON.stringify(Name.from(UInt64.from(0))), """");
      */
 }
 /*
