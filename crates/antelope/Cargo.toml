@@ -10,6 +10,7 @@ name = "antelope"
 
 [dependencies]
 log = "0.4.14"
+antelope_macros = { version = "0.1.0", path = "../antelope_macros" }
 base64 = "0.13"
 bs58 = "0.5.0"
 ecdsa = { version = "0.16.9", features = ["std"] }

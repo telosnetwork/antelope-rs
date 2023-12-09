@@ -30,6 +30,7 @@ dependencies = [
 name = "antelope"
 version = "0.1.0"
 dependencies = [
+ "antelope_macros",
  "base64",
  "bs58",
  "digest",
@@ -47,6 +48,14 @@ dependencies = [
  "serde_json",
  "sha2",
  "signature",
+]
+
+[[package]]
+name = "antelope_macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
