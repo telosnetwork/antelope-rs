@@ -10,7 +10,7 @@ pub mod checksum;
 pub mod integer;
 pub mod key_type;
 pub mod name;
-//pub mod permission_level;
+pub mod permission_level;
 pub mod private_key;
 pub mod public_key;
 pub mod signature;

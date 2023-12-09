@@ -1,63 +1,68 @@
-use antelope_rs::chain::{Decoder, Encoder};
-use antelope_rs::chain::signature::Signature;
-use antelope_rs::chain::string::StringType;
-use antelope_rs::chain::name::Name;
-use antelope_rs::serializer::Serializer;
-use antelope_rs::util;
-use antelope_rs::util::{bytes_to_hex, hex_to_bytes, serializable_to_encode_args};
+use antelope::chain::{Decoder, Encoder};
+use antelope::chain::name::Name;
+use antelope::chain::signature::Signature;
+use antelope::serializer::Serializer;
+use antelope::util;
+use antelope::util::{bytes_to_hex, hex_to_bytes, serializable_to_encode_args};
 
 
-/*
-    test('array', function () {
-        const data = '0303666f6f036261720362617a'
-        const array = ['foo', 'bar', 'baz']
-        assert.equal(Serializer.encode({object: array, type: 'string[]'}).hexString, data)
-        assert.deepEqual(Serializer.decode({data, type: 'string[]'}), array)
+#[test]
+fn array() {
+        let data = "0303666f6f036261720362617a";
+        let array = vec![String::from("foo"), String::from("bar"), String::from("baz")];
+        assert_eq!(bytes_to_hex(&Encoder::pack(&array)), data);
+        /*
         assert.throws(() => {
-            Serializer.encode({object: 'banana', type: 'string[]'})
+            Serializer.encode({object: "banana", type: "string[]"})
         })
         assert.throws(() => {
-            Serializer.decode({object: 'banana', type: 'string[]'})
+            Serializer.decode({object: "banana", type: "string[]"})
         })
-        class CustomType extends Struct {
-            static abiName = 'custom'
-            static abiFields = [{name: 'foo', type: 'string[]'}]
-            declare foo: string[]
+        */
+        //#[derive(StructPacker)]
+        struct CustomType {
+            //static abiName = "custom"
+            //static abiFields = [{name: "foo", type: "string[]"}]
+            //declare foo: string[]
+            foo: Vec<String>
         }
-        const customArray = ['hello', 'world'].map((s) => {
-            return CustomType.from({foo: s.split('')})
-        })
+
+        let custom_array = vec![
+            CustomType {
+                foo: "hello".split_whitespace().map(str::to_string).collect()
+            },
+            CustomType {
+                foo: "world".split_whitespace().map(str::to_string).collect()
+            }
+        ];
+
+        let encoded = "020501680165016c016c016f050177016f0172016c0164";
+        assert_eq!(bytes_to_hex(&Encoder::pack(&array)), data);
+        //assert_eq!(bytes_to_hex(&Encoder::pack(&custom_array)), encoded);
+            /*
         assert.equal(
             Serializer.encode({
                 object: customArray,
-                type: 'custom[]',
-                customTypes: [CustomType],
             }).hexString,
-            '020501680165016c016c016f050177016f0172016c0164'
+            "020501680165016c016c016f050177016f0172016c0164"
         )
         assert.equal(
             Serializer.encode({
-                object: customArray,
-            }).hexString,
-            '020501680165016c016c016f050177016f0172016c0164'
-        )
-        assert.equal(
-            Serializer.encode({
-                object: [{foo: ['h', 'e', 'l', 'l', 'o']}, {foo: ['w', 'o', 'r', 'l', 'd']}],
-                type: 'custom[]',
+                object: [{foo: ["h", "e", "l", "l", "o"]}, {foo: ["w", "o", "r", "l", "d"]}],
+                type: "custom[]",
                 customTypes: [CustomType],
             }).hexString,
-            '020501680165016c016c016f050177016f0172016c0164'
+            "020501680165016c016c016f050177016f0172016c0164"
         )
         assert.throws(() => {
-            Serializer.encode({object: [Name.from('foo'), false]})
+            Serializer.encode({object: [Name.from("foo"), false]})
         })
         assert.throws(() => {
             Serializer.encode({object: [1, 2] as any})
         })
-    })
-
  */
+}
+
 
 #[test]
 fn name() {
@@ -231,9 +236,9 @@ fn name() {
 #[test]
 fn string() {
     let data = "0b68656c6c6f20776f726c64";
-    let object = StringType::from("hello world");
+    let object = String::from("hello world");
 
-    let encoded = Serializer::encode(serializable_to_encode_args(Box::new(object)));
+    let encoded = Encoder::pack(&object);
     //let decoded = Serializer::decode(serializable_to_encode_args(Box::new(object)));
 
     assert_eq!(encoded, util::hex_to_bytes(data));

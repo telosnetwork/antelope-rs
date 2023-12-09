@@ -1,8 +1,7 @@
-use rand::random;
-use antelope_rs::chain::private_key::PrivateKey;
-use antelope_rs::chain::public_key::PublicKey;
-use antelope_rs::chain::key_type::KeyType;
-use antelope_rs::util::{hex_to_bytes};
+use antelope::chain::private_key::PrivateKey;
+use antelope::chain::public_key::PublicKey;
+use antelope::chain::key_type::KeyType;
+use antelope::util::{hex_to_bytes};
 
 #[test]
 fn private_key_encoding() {

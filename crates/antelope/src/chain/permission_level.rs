@@ -2,6 +2,9 @@ use crate::chain::{ABISerializableObject, JSONValue};
 use crate::serializer::encoder::ABIEncoder;
 use crate::chain::name::{Name};
 
+pub type PermissionLevel = rust_chain::PermissionLevel;
+
+/*
 #[derive(Debug, Clone)]
 pub struct PermissionLevel {
     actor: Name,
@@ -52,3 +55,4 @@ impl ABISerializableObject for PermissionLevel {
         ].into_iter().collect()))
     }
 }
+ */

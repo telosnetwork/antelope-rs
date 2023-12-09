@@ -1,9 +1,9 @@
-use antelope_rs::chain::string::StringType;
-use antelope_rs::chain::ABISerializableObject;
-use antelope_rs::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
-use antelope_rs::serializer::Serializer;
-use antelope_rs::chain::JSONValue;
-use antelope_rs::chain::integer::{Int8, UInt128};
+use antelope::chain::string::StringType;
+use antelope::chain::ABISerializableObject;
+use antelope::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
+use antelope::serializer::Serializer;
+use antelope::chain::JSONValue;
+use antelope::chain::integer::{Int8, UInt128};
 
 #[test]
 fn int8() {
