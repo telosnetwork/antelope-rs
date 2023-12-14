@@ -1,6 +1,8 @@
 use std::fmt::{Display, Formatter};
+use rust_chain::Packer;
+use crate::chain::Encoder;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub enum KeyType {
     K1,
     R1,
@@ -53,3 +55,30 @@ impl Display for KeyType {
         }
     }
 }
+
+
+impl Default for KeyType {
+    fn default() -> Self { KeyType::K1 }
+}
+
+impl Packer for KeyType {
+    fn size(&self) -> usize {
+        1usize
+    }
+
+    fn pack(&self, enc: &mut Encoder) -> usize {
+        let data = enc.alloc(self.size());
+        match self {
+            KeyType::K1 => { data[0] = 0u8 }
+            KeyType::R1 => { data[0] = 1u8 }
+        }
+        self.size()
+    }
+
+    fn unpack(&mut self, data: &[u8]) -> usize {
+        assert!(data.len() >= self.size(), "KeyType::unpack: buffer overflow");
+        *self = KeyType::from_index(data[0]).unwrap();
+        self.size()
+    }
+}
+

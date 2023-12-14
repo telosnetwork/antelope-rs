@@ -1,4 +1,3 @@
-use log::warn;
 use ripemd::{Digest as RipeDigest, Ripemd160};
 use sha2::Sha256;
 use crate::base58;
@@ -117,7 +116,7 @@ pub fn decode_key(value: &str, ignore_checksum: bool) -> Result<(KeyType, Vec<u8
     } else {
         // WIF format
         let key_type = KeyType::K1;
-        let mut data_result = decode_check(value, ignore_checksum);
+        let data_result = decode_check(value, ignore_checksum);
         if data_result.is_err() {
             let data_result_err = data_result.err().unwrap_or(String::from("Unknown decode_check error"));
             return Err(data_result_err);

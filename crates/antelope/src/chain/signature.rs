@@ -1,16 +1,18 @@
 use ecdsa::RecoveryId;
 use k256::Secp256k1;
 use p256::NistP256;
+use rust_chain::Packer;
+use rust_chain::vmapi::eosio::slice_copy;
 use crate::base58;
 use crate::base58::encode_ripemd160_check;
 use crate::chain::key_type::KeyTypeTrait;
-use crate::chain::{ABISerializableObject, JSONValue};
+use crate::chain::{Encoder};
 use crate::chain::key_type::KeyType;
 use crate::chain::public_key::PublicKey;
 use crate::crypto::recover::recover_message;
 use crate::crypto::verify::{verify_message};
-use crate::serializer::encoder::ABIEncoder;
 
+#[derive(Clone, Eq, PartialEq )]
 pub struct Signature {
     pub key_type: KeyType,
     value: Vec<u8>,
@@ -133,17 +135,29 @@ impl Signature {
 
 }
 
-impl ABISerializableObject for Signature {
-    fn get_abi_name(&self) -> String {
-        return String::from("signature");
+impl Default for Signature {
+    fn default() -> Self {
+        Self { key_type: KeyType::K1, value: vec![0; 65] }
+    }
+}
+
+impl Packer for Signature {
+    fn size(&self) -> usize {
+        return 66;
     }
 
-    fn to_abi(&self, encoder: &mut ABIEncoder) {
-        encoder.write_byte(self.key_type.to_index());
-        encoder.write_array(&self.value.to_vec());
+    fn pack(&self, enc: &mut Encoder) -> usize {
+        self.key_type.pack(enc);
+        let data = enc.alloc(self.value.len());
+        slice_copy(data, &self.value.as_slice());
+        self.size()
     }
 
-    fn to_json(&self) -> JSONValue {
-        return JSONValue::String(self.to_string());
+    fn unpack(&mut self, data: &[u8]) -> usize {
+        let size = self.size();
+        assert!(data.len() >= size, "Signature::unpack: buffer overflow");
+        self.key_type = KeyType::from_index(data[0]).unwrap();
+        self.value = data[1..size].to_vec();
+        return self.size();
     }
 }

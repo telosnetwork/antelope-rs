@@ -1,40 +1,13 @@
+use antelope::chain::bytes::{Bytes, BytesEncoding};
+use antelope::chain::checksum::{Checksum160, Checksum256, Checksum512};
+use antelope::chain::{Action, PermissionLevel};
+use antelope::util::{bytes_to_hex, hex_to_bytes};
+use antelope::chain::blob::{Blob, BlobType};
+use antelope::chain::Name;
+use antelope::chain::transaction::{Transaction, TransactionHeader};
+use antelope::name;
+
 /*
-import {assert} from 'chai'
-
-import {
-    ABI,
-    ABIDef,
-    Action,
-    AnyTransaction,
-    Asset,
-    Authority,
-    Blob,
-    BlockId,
-    BlockTimestamp,
-    Bytes,
-    Checksum160,
-    Checksum256,
-    Checksum512,
-    Int32,
-    Int64,
-    Name,
-    PackedTransaction,
-    PermissionLevel,
-    PublicKey,
-    Serializer,
-    Signature,
-    SignedTransaction,
-    Struct,
-    TimePoint,
-    TimePointSec,
-    Transaction,
-    UInt128,
-    UInt32,
-    UInt64,
-    Variant,
-} from '$lib'
-
-suite('chain', function () {
     test('asset', function () {
         assert.equal(Asset.from('-1.2345 NEGS').toString(), '-1.2345 NEGS')
         assert.equal(Asset.from('-0.2345 NEGS').toString(), '-0.2345 NEGS')
@@ -101,20 +74,7 @@ suite('chain', function () {
         })
     })*/
 
-use antelope::chain::bytes::{Bytes, BytesEncoding};
-use antelope::chain::checksum::{Checksum160, Checksum256, Checksum512};
-use antelope::chain::permission_level::{PermissionLevel};
-use antelope::chain::string::StringType;
-use antelope::chain::ABISerializableObject;
-use antelope::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
-use antelope::serializer::Serializer;
-use antelope::util::hex_to_bytes;
-use antelope::chain::blob::{Blob, BlobType};
-use antelope::chain::JSONValue;
-use antelope::chain::name::Name;
-// use antelope_rs::chain::block_id::{BlockId, BlockIdType};
 
-//use antelope_rs::chain::UInt32;
 
 #[test]
 fn block_id() {
@@ -527,66 +487,43 @@ fn permission_level() {
         assert.equal(time.equals(TimePoint.from(1 * 1000000)), true)
     })
 
-    test('transaction signingDigest', async function () {
-        const transaction = Transaction.from({
-            expiration: '1970-01-01T00:00:00',
+*/
+
+#[test]
+fn transaction_signing_data_and_digest() {
+    let trx = Transaction {
+        header: TransactionHeader {
+            expiration: Default::default(),
             ref_block_num: 0,
             ref_block_prefix: 0,
-            max_net_usage_words: 0,
+            max_net_usage_words: Default::default(),
             max_cpu_usage_ms: 0,
-            delay_sec: 0,
-            context_free_actions: [],
-            actions: [
-                {
-                    account: 'eosio.token',
-                    name: 'transfer',
-                    authorization: [{actor: 'corecorecore', permission: 'active'}],
-                    data:
-                        'a02e45ea52a42e4580b1915e5d268dcaba0100000000000004454f5300' +
-                        '00000019656f73696f2d636f7265206973207468652062657374203c33',
-                },
-            ],
-            transaction_extensions: [],
-        })
-        const chainId = Checksum256.from(
-            '2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840'
-        )
-        const digest1 = transaction.signingDigest(chainId)
-        const digest2 = transaction.signingDigest(chainId.toString())
-        assert.equal(digest1.equals(digest2), true)
-        assert.equal(digest1.toString(), digest2.toString())
-    })
+            delay_sec: Default::default(),
+        },
+        context_free_actions: vec![],
+        actions: vec![Action {
+            account: name!("eosio.token"),
+            name: name!("transfer"),
+            authorization: vec![PermissionLevel::new(name!("corecorecore"), name!("active"))],
+            data: hex_to_bytes(
+                "a02e45ea52a42e4580b1915e5d268dcaba0100000000000004454f530000000019656f73696f2d636f7265206973207468652062657374203c33",
+            ),
+        }],
+        extension: vec![],
+    };
+    let chain_id = Checksum256::from_bytes(
+        hex_to_bytes("2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840")
+    ).unwrap();
+    let data = trx.signing_data(&chain_id.to_bytes());
+    let expected_data_hex= "2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a91074684000000000000000000000000000000100a6823403ea3055000000572d3ccdcd01a02e45ea52a42e4500000000a8ed32323aa02e45ea52a42e4580b1915e5d268dcaba0100000000000004454f530000000019656f73696f2d636f7265206973207468652062657374203c33000000000000000000000000000000000000000000000000000000000000000000";
+    assert_eq!(bytes_to_hex(&data), expected_data_hex);
 
-    test('transaction signingData', async function () {
-        const transaction = Transaction.from({
-            expiration: '1970-01-01T00:00:00',
-            ref_block_num: 0,
-            ref_block_prefix: 0,
-            max_net_usage_words: 0,
-            max_cpu_usage_ms: 0,
-            delay_sec: 0,
-            context_free_actions: [],
-            actions: [
-                {
-                    account: 'eosio.token',
-                    name: 'transfer',
-                    authorization: [{actor: 'corecorecore', permission: 'active'}],
-                    data:
-                        'a02e45ea52a42e4580b1915e5d268dcaba0100000000000004454f5300' +
-                        '00000019656f73696f2d636f7265206973207468652062657374203c33',
-                },
-            ],
-            transaction_extensions: [],
-        })
-        const chainId = Checksum256.from(
-            '2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840'
-        )
-        const data1 = transaction.signingData(chainId)
-        const data2 = transaction.signingData(chainId.toString())
-        assert.equal(data1.equals(data2), true)
-        assert.equal(data1.toString(), data2.toString())
-    })
+    let digest = trx.signing_digest(&chain_id.to_bytes());
+    let expected_digest_hex= "59fa6b615e3ce1b539ae27bc2398448c1374d2d3c97fe2bbba2c37c118631848";
+    assert_eq!(bytes_to_hex(&digest), expected_digest_hex);
+}
 
+/*
     test('action with no arguments', function () {
         const abi = {
             structs: [{name: 'noop', base: '', fields: []}],

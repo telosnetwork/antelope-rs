@@ -39,54 +39,6 @@ pub fn your_macro_name_derive(input: TokenStream) -> TokenStream {
         }
     });
 
-    /*
-    impl Packer for Transaction {
-    fn size(&self) -> usize {
-        let mut _size: usize = 0;
-        _size += self.expiration.size();
-        _size += self.ref_block_num.size();
-        _size += self.ref_block_prefix.size();
-        _size += self.max_net_usage_words.size();
-        _size += self.max_cpu_usage_ms.size();
-        _size += self.delay_sec.size();
-        _size += self.context_free_actions.size();
-        _size += self.actions.size();
-        _size += self.extension.size();
-        return _size;
-    }
-
-    fn pack(&self, enc: &mut Encoder) -> usize {
-        let pos = enc.get_size();
-
-        self.expiration.pack(enc);
-        self.ref_block_num.pack(enc);
-        self.ref_block_prefix.pack(enc);
-        self.max_net_usage_words.pack(enc);
-        self.max_cpu_usage_ms.pack(enc);
-        self.delay_sec.pack(enc);
-        self.context_free_actions.pack(enc);
-        self.actions.pack(enc);
-        self.extension.pack(enc);
-
-        enc.get_size() - pos
-    }
-
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        let mut dec = Decoder::new(data);
-        dec.unpack(&mut self.expiration);
-        dec.unpack(&mut self.ref_block_num);
-        dec.unpack(&mut self.ref_block_prefix);
-        dec.unpack(&mut self.max_net_usage_words);
-        dec.unpack(&mut self.max_cpu_usage_ms);
-        dec.unpack(&mut self.delay_sec);
-        dec.unpack(&mut self.context_free_actions);
-        dec.unpack(&mut self.actions);
-        dec.unpack(&mut self.extension);
-        return dec.get_pos();
-    }
-}
-     */
-
     let expanded = quote! {
         // Generate the code to be added
         impl Packer for #name {

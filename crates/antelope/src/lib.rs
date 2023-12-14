@@ -1,5 +1,6 @@
 pub use rust_chain::Packer;
 
+pub mod api;
 pub mod base58;
 pub mod chain;
 pub mod crypto;

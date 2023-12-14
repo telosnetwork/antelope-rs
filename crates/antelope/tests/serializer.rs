@@ -1,9 +1,8 @@
 use antelope::chain::{Decoder, Encoder};
-use antelope::chain::name::Name;
+use antelope::chain::Name;
 use antelope::chain::signature::Signature;
-use antelope::serializer::Serializer;
 use antelope::util;
-use antelope::util::{bytes_to_hex, hex_to_bytes, serializable_to_encode_args};
+use antelope::util::{bytes_to_hex, hex_to_bytes};
 use antelope_macros::StructPacker;
 use antelope::Packer;
 
@@ -52,28 +51,6 @@ fn array() {
         let encoded = "020501680165016c016c016f050177016f0172016c0164";
         assert_eq!(bytes_to_hex(&Encoder::pack(&array)), data);
         assert_eq!(bytes_to_hex(&Encoder::pack(&custom_array)), encoded);
-            /*
-        assert.equal(
-            Serializer.encode({
-                object: customArray,
-            }).hexString,
-            "020501680165016c016c016f050177016f0172016c0164"
-        )
-        assert.equal(
-            Serializer.encode({
-                object: [{foo: ["h", "e", "l", "l", "o"]}, {foo: ["w", "o", "r", "l", "d"]}],
-                type: "custom[]",
-                customTypes: [CustomType],
-            }).hexString,
-            "020501680165016c016c016f050177016f0172016c0164"
-        )
-        assert.throws(() => {
-            Serializer.encode({object: [Name.from("foo"), false]})
-        })
-        assert.throws(() => {
-            Serializer.encode({object: [1, 2] as any})
-        })
- */
 }
 
 
@@ -310,19 +287,19 @@ fn string() {
 #[test]
 fn signature() {
         let data =
-            "00205150a67288c3b393fdba9061b05019c54b12bdac295fc83bebad7cd63c7bb67d5cb8cc220564da006240a58419f64d06a5c6e1fc62889816a6c3dfdd231ed389";
+            hex_to_bytes("00205150a67288c3b393fdba9061b05019c54b12bdac295fc83bebad7cd63c7bb67d5cb8cc220564da006240a58419f64d06a5c6e1fc62889816a6c3dfdd231ed389");
         let json =
             "SIG_K1_KfPLgpw35iX8nfDzhbcmSBCr7nEGNEYXgmmempQspDJYBCKuAEs5rm3s4ZuLJY428Ca8ZhvR2Dkwu118y3NAoMDxhicRj9";
-        let object = Signature::from_string(json).unwrap();
+        let sig = Signature::from_string(json).unwrap();
 
-        let encoded = Serializer::encode(serializable_to_encode_args(Box::new(object)));
-        assert_eq!(encoded, hex_to_bytes(data));
+        let encoded = Encoder::pack(&sig);
+        assert_eq!(encoded, data);
 
-    /*
-        assert.equal(JSON.stringify(Serializer.decode({data, type: Signature})), json)
-        assert.equal(JSON.stringify(Serializer.decode({json, type: 'signature'})), json)
-        assert.equal(JSON.stringify(object), json)
-     */
+        let mut decoder = Decoder::new(data.as_slice());
+        let decoded_sig = &mut Signature::default();
+        let decoded_size = decoder.unpack(decoded_sig);
+        assert_eq!(decoded_size, 66);
+        assert_eq!(decoded_sig.to_string(), json);
 }
 /*
     test('signature (wa)', function () {

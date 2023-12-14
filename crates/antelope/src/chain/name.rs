@@ -1,1 +1,0 @@
-pub type Name = rust_chain::Name;
