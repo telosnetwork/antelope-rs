@@ -1,29 +1,19 @@
 use antelope::chain::{Decoder, Encoder};
-use antelope::chain::Name;
+use antelope::chain::name::Name;
 use antelope::chain::signature::Signature;
+use antelope::serializer::serializer::Packer;
 use antelope::util;
 use antelope::util::{bytes_to_hex, hex_to_bytes};
 use antelope_macros::StructPacker;
-use antelope::Packer;
 
 #[test]
 fn array() {
         let data = "0303666f6f036261720362617a";
         let array = vec![String::from("foo"), String::from("bar"), String::from("baz")];
         assert_eq!(bytes_to_hex(&Encoder::pack(&array)), data);
-        /*
-        assert.throws(() => {
-            Serializer.encode({object: "banana", type: "string[]"})
-        })
-        assert.throws(() => {
-            Serializer.decode({object: "banana", type: "string[]"})
-        })
-        */
+
         #[derive(Default, StructPacker)]
         struct CustomType {
-            //static abiName = "custom"
-            //static abiFields = [{name: "foo", type: "string[]"}]
-            //declare foo: string[]
             foo: Vec<String>
         }
 
@@ -49,7 +39,6 @@ fn array() {
         ];
 
         let encoded = "020501680165016c016c016f050177016f0172016c0164";
-        assert_eq!(bytes_to_hex(&Encoder::pack(&array)), data);
         assert_eq!(bytes_to_hex(&Encoder::pack(&custom_array)), encoded);
 }
 

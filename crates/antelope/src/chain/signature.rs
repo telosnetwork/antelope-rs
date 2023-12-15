@@ -1,16 +1,15 @@
 use ecdsa::RecoveryId;
 use k256::Secp256k1;
 use p256::NistP256;
-use rust_chain::Packer;
-use rust_chain::vmapi::eosio::slice_copy;
 use crate::base58;
 use crate::base58::encode_ripemd160_check;
 use crate::chain::key_type::KeyTypeTrait;
-use crate::chain::{Encoder};
+use crate::chain::{Encoder, Packer};
 use crate::chain::key_type::KeyType;
 use crate::chain::public_key::PublicKey;
 use crate::crypto::recover::recover_message;
 use crate::crypto::verify::{verify_message};
+use crate::util::slice_copy;
 
 #[derive(Clone, Eq, PartialEq )]
 pub struct Signature {

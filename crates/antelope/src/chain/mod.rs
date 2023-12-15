@@ -2,30 +2,24 @@ use std::fmt;
 use std::collections::BTreeMap;
 use fmt::{Display, Formatter};
 use crate::serializer::encoder::ABIEncoder;
+pub use crate::serializer::serializer::{ Decoder, Encoder, Packer };
 
-//pub mod block_id;
+pub mod action;
+pub mod asset;
 pub mod blob;
 pub mod block_id;
 pub mod bytes;
 pub mod checksum;
 pub mod integer;
 pub mod key_type;
+pub mod name;
 pub mod private_key;
 pub mod public_key;
 pub mod signature;
 pub mod string;
 pub mod transaction;
-
-// Borrowed types
-pub type Encoder = rust_chain::Encoder;
-pub type Decoder<'a> = rust_chain::Decoder<'a>;
-
-pub type Action = rust_chain::Action;
-pub type Name = rust_chain::Name;
-pub type PermissionLevel = rust_chain::PermissionLevel;
-pub type TimePoint = rust_chain::TimePoint;
-pub type TimePointSec = rust_chain::TimePointSec;
-pub type VarUint32 = rust_chain::VarUint32;
+pub mod varint;
+pub mod time;
 
 #[macro_export]
 macro_rules! name {

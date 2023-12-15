@@ -1,179 +1,154 @@
 use ripemd::{Digest as Ripemd160Digest, Ripemd160};
 use sha2::{Sha256, Sha512};
-use crate::chain::{ABISerializableObject, JSONValue};
-use crate::serializer::encoder::ABIEncoder;
-use crate::util::bytes_to_hex;
+use crate::chain::{Encoder, Packer};
+use crate::util::{bytes_to_hex, hex_to_bytes, slice_copy};
 
-pub struct Checksum {
-    pub value: Vec<u8>,
-    pub byte_size: usize,
-}
-
-impl Checksum {
-    fn to_abi(&self, encoder: &mut ABIEncoder) {
-        encoder.write_array(&self.value.to_vec());
-    }
-
-    fn to_string(&self) -> String {
-        return bytes_to_hex(&self.value.to_vec());
-    }
-
-    fn to_json(&self) -> JSONValue {
-        return JSONValue::String(self.to_string());
-    }
-}
-
-// TODO: Make all this less duplicated, somehow use generic implemetation and only specify size and hash function
-
+#[derive(Clone, Copy, Eq, PartialEq, Default)]
 pub struct Checksum160 {
-    pub checksum: Checksum
+    pub data: [u8; 20],
 }
 
 impl Checksum160 {
-    pub const BYTE_SIZE: usize = 20;
+    pub fn from_hex(s: &str) -> Result<Self, String> {
+        if s.len() != 40 { return Err(String::from("Checksum160: bad hex string length")) }
+        let data = hex_to_bytes(s);
+        Self::from_bytes(data.as_slice())
+    }
 
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, String> {
-        if bytes.len() != Checksum160::BYTE_SIZE {
-            let len = bytes.len();
-            let expected_len = Checksum160::BYTE_SIZE;
-            return Err(format!("Bytes len should be {expected_len} for Checksum160 but was {len}"));
-        }
-
-        return Ok(Checksum160 {
-            checksum: Checksum {
-                value: bytes,
-                byte_size: Checksum160::BYTE_SIZE
-            }
-        });
+    pub fn from_bytes(b: &[u8]) -> Result<Self, String> {
+        if b.len() != 20 { return Err(String::from("Checksum160: bad byte array length")) }
+        let mut ret = Self::default();
+        slice_copy(&mut ret.data, b);
+        Ok(ret)
     }
 
     pub fn hash(bytes: Vec<u8>) -> Self {
         let mut hasher = Ripemd160::new();
         hasher.update(bytes);
         let ripe_hash = hasher.finalize();
-        return Checksum160::from_bytes(ripe_hash.to_vec()).unwrap();
-    }
-
-    pub fn to_bytes(&self) -> Vec<u8> {
-        return self.checksum.value.to_vec();
+        Checksum160::from_bytes(ripe_hash.as_slice()).unwrap()
     }
 
     pub fn to_string(&self) -> String {
-        return self.checksum.to_string();
+        bytes_to_hex(&self.data.to_vec())
     }
 }
 
-impl ABISerializableObject for Checksum160 {
-    fn get_abi_name(&self) -> String {
-        return String::from("checksum160");
+impl Packer for Checksum160 {
+    fn size(&self) -> usize {
+        return 20;
     }
 
-    fn to_abi(&self, encoder: &mut ABIEncoder) {
-        self.checksum.to_abi(encoder);
+    fn pack(&self, enc: &mut Encoder) -> usize {
+        let data = enc.alloc(self.size());
+        slice_copy(data, &self.data);
+        self.size()
     }
 
-    fn to_json(&self) -> JSONValue {
-        return self.checksum.to_json();
+    fn unpack(&mut self, raw: &[u8]) -> usize {
+        let size = self.size();
+        assert!(raw.len() >= size, "Checksum160.unpack: buffer overflow!");
+        slice_copy(&mut self.data, &raw[..size]);
+        return size;
     }
 }
 
-
+#[derive(Clone, Copy, Eq, PartialEq, Default)]
 pub struct Checksum256 {
-    pub checksum: Checksum
+    pub data: [u8; 32],
 }
 
 impl Checksum256 {
-    pub const BYTE_SIZE: usize = 32;
+    pub fn from_hex(s: &str) -> Result<Self, String> {
+        if s.len() != 64 { return Err(String::from("Checksum256: bad hex string length")) }
+        let data = hex_to_bytes(s);
+        Self::from_bytes(data.as_slice())
+    }
 
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, String> {
-        if bytes.len() != Checksum256::BYTE_SIZE {
-            let len = bytes.len();
-            let expected_len = Checksum256::BYTE_SIZE;
-            return Err(format!("Bytes len should be {expected_len} for Checksum256 but was {len}"));
-        }
-
-        return Ok(Checksum256 {
-            checksum: Checksum {
-                value: bytes,
-                byte_size: Checksum256::BYTE_SIZE
-            }
-        });
+    pub fn from_bytes(b: &[u8]) -> Result<Self, String> {
+        if b.len() != 32 { return Err(String::from("Checksum256: bad byte array length")) }
+        let mut ret = Self::default();
+        slice_copy(&mut ret.data, b);
+        Ok(ret)
     }
 
     pub fn hash(bytes: Vec<u8>) -> Self {
-        return Checksum256::from_bytes(Sha256::digest(bytes).to_vec()).unwrap();
-    }
-
-    pub fn to_bytes(&self) -> Vec<u8> {
-        return self.checksum.value.to_vec();
+        return Checksum256::from_bytes(Sha256::digest(bytes).as_slice()).unwrap();
     }
 
     pub fn to_string(&self) -> String {
-        return self.checksum.to_string();
+        bytes_to_hex(&self.data.to_vec())
     }
 }
 
-impl ABISerializableObject for Checksum256 {
-    fn get_abi_name(&self) -> String {
-        return String::from("checksum256");
+impl Packer for Checksum256 {
+    fn size(&self) -> usize {
+        return 32;
     }
 
-    fn to_abi(&self, encoder: &mut ABIEncoder) {
-        self.checksum.to_abi(encoder);
+    fn pack(&self, enc: &mut Encoder) -> usize {
+        let data = enc.alloc(self.size());
+        slice_copy(data, &self.data);
+        self.size()
     }
 
-    fn to_json(&self) -> JSONValue {
-        return self.checksum.to_json();
+    fn unpack(&mut self, raw: &[u8]) -> usize {
+        let size = self.size();
+        assert!(raw.len() >= size, "Checksum256.unpack: buffer overflow!");
+        slice_copy(&mut self.data, &raw[..size]);
+        return self.size();
     }
 }
 
-
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Checksum512 {
-    pub checksum: Checksum
+    pub data: [u8; 64],
 }
 
 impl Checksum512 {
-    pub const BYTE_SIZE: usize = 64;
+    pub fn from_hex(s: &str) -> Result<Self, String> {
+        if s.len() != 128 { return Err(String::from("Checksum512: bad hex string length")) }
+        let data = hex_to_bytes(s);
+        Ok(Self::from_bytes(data.as_slice()))
+    }
 
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, String> {
-        if bytes.len() != Checksum512::BYTE_SIZE {
-            let len = bytes.len();
-            let expected_len = Checksum512::BYTE_SIZE;
-            return Err(format!("Bytes len should be {expected_len} for Checksum512 but was {len}"));
-        }
-
-        return Ok(Checksum512 {
-            checksum: Checksum {
-                value: bytes,
-                byte_size: Checksum512::BYTE_SIZE
-            }
-        });
+    pub fn from_bytes(b: &[u8]) -> Self {
+        assert!(b.len() == 64, "Checksum512: bad byte array length");
+        let mut ret = Self::default();
+        slice_copy(&mut ret.data, b);
+        ret
     }
 
     pub fn hash(bytes: Vec<u8>) -> Self {
-        return Checksum512::from_bytes(Sha512::digest(bytes).to_vec()).unwrap();
-    }
-
-    pub fn to_bytes(&self) -> Vec<u8> {
-        return self.checksum.value.to_vec();
+        return Checksum512::from_bytes(Sha512::digest(bytes).as_slice());
     }
 
     pub fn to_string(&self) -> String {
-        return self.checksum.to_string();
+        bytes_to_hex(&self.data.to_vec())
     }
 }
 
-impl ABISerializableObject for Checksum512 {
-    fn get_abi_name(&self) -> String {
-        return String::from("checksum512");
-    }
-
-    fn to_abi(&self, encoder: &mut ABIEncoder) {
-        self.checksum.to_abi(encoder);
-    }
-
-    fn to_json(&self) -> JSONValue {
-        return self.checksum.to_json();
+impl Default for Checksum512 {
+    fn default() -> Self {
+        Checksum512 {data: [0; 64]}
     }
 }
 
+impl Packer for Checksum512 {
+    fn size(&self) -> usize {
+        return 64;
+    }
+
+    fn pack(&self, enc: &mut Encoder) -> usize {
+        let data = enc.alloc(self.size());
+        slice_copy(data, &self.data);
+        self.size()
+    }
+
+    fn unpack(&mut self, raw: &[u8]) -> usize {
+        let size = self.size();
+        assert!(raw.len() >= size, "Checksum512.unpack: buffer overflow!");
+        slice_copy(&mut self.data, &raw[..size]);
+        return size;
+    }
+}

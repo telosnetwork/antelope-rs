@@ -1,78 +1,90 @@
 use antelope::chain::bytes::{Bytes, BytesEncoding};
 use antelope::chain::checksum::{Checksum160, Checksum256, Checksum512};
-use antelope::chain::{Action, PermissionLevel};
+use antelope::chain::{action::Action, asset::Asset, Encoder, Decoder, Packer, action::PermissionLevel};
+use antelope::chain::asset::Symbol;
 use antelope::util::{bytes_to_hex, hex_to_bytes};
 use antelope::chain::blob::{Blob, BlobType};
-use antelope::chain::Name;
+use antelope::chain::name::Name;
 use antelope::chain::transaction::{Transaction, TransactionHeader};
 use antelope::name;
+use antelope_macros::StructPacker;
 
-/*
-    test('asset', function () {
-        assert.equal(Asset.from('-1.2345 NEGS').toString(), '-1.2345 NEGS')
-        assert.equal(Asset.from('-0.2345 NEGS').toString(), '-0.2345 NEGS')
-        assert.equal(Asset.from('0.0000000000000 DUCKS').toString(), '0.0000000000000 DUCKS')
-        assert.equal(Asset.from('99999999999 DUCKS').toString(), '99999999999 DUCKS')
-        assert.equal(Asset.from('-99999999999 DUCKS').toString(), '-99999999999 DUCKS')
-        assert.equal(Asset.from('-0.0000000000001 DUCKS').toString(), '-0.0000000000001 DUCKS')
+#[test]
+fn asset() {
+    // TODO: Should asset support negative values?
+    //assert_eq!(Asset::from_string("-1.2345 NEGS").to_string(), "-1.2345 NEGS");
+    //assert.equal(Asset.from('-1.2345 NEGS').toString(), '-1.2345 NEGS')
+    //assert.equal(Asset.from('-0.2345 NEGS').toString(), '-0.2345 NEGS')
+    //assert.equal(Asset.from('-99999999999 DUCKS').toString(), '-99999999999 DUCKS')
+    //assert.equal(Asset.from('-0.0000000000001 DUCKS').toString(), '-0.0000000000001 DUCKS')
+    assert_eq!(Asset::from_string("0.0000000000000 DUCKS").to_string(), "0.0000000000000 DUCKS");
+    assert_eq!(Asset::from_string("99999999999 DUCKS").to_string(), "99999999999 DUCKS");
 
-        let asset = Asset.from(Asset.from('1.000000000 FOO'))
-        assert.equal(asset.value, 1.0)
-        asset.value += 0.000000001
-        assert.equal(asset.value, 1.000000001)
-        asset.value = -100
-        assert.equal(asset.toString(), '-100.000000000 FOO')
-        assert.equal(asset.units.toString(), '-100000000000')
+    let asset = Asset::from(Asset::from_string("1.000000000 FOO"));
+    assert_eq!(asset.amount(), 1000000000);
+    let new_asset = asset + asset;
+    assert_eq!(new_asset.amount(), 2000000000);
+    /* TODO: Support negative?
+    asset.value = -100
+    assert.equal(asset.toString(), '-100.000000000 FOO')
+    assert.equal(asset.units.toString(), '-100000000000')
+    */
 
-        const symbol = Asset.Symbol.from(Asset.Symbol.from('10,K'))
-        assert.equal(symbol.name, 'K')
-        assert.equal(symbol.precision, '10')
-        assert.equal(Asset.Symbol.from(symbol.value).toString(), symbol.toString())
+    let symbol = Symbol::from(Symbol::new("K", 10));
+    assert_eq!(symbol.code().to_string(), "K");
+    assert_eq!(symbol.precision(), 10);
+    assert_eq!(symbol.to_string(), "10,K");
 
-        // test null asset
-        asset = Asset.from('0 ')
-        assert.equal(Number(asset.value), 0)
-        assert.equal(String(asset), '0 ')
+    let symbol_bytes = Encoder::pack(&symbol);
+    let mut symbol_decoder = Decoder::new(symbol_bytes.as_slice());
+    let symbol_unpacked = symbol_decoder.unpack(&mut Symbol::default());
+    //assert_eq!(symbol.to_string(), symbol_unpacked.to_string());
+    /*
+    // test null asset
+    asset = Asset.from('0 ')
+    assert.equal(Number(asset.value), 0)
+    assert.equal(String(asset), '0 ')
 
-        asset = Asset.from(10, '4,POX')
-        assert.equal(asset.value, 10)
-        assert.equal(Number(asset.units), 100000)
+    asset = Asset.from(10, '4,POX')
+    assert.equal(asset.value, 10)
+    assert.equal(Number(asset.units), 100000)
 
-        asset = Asset.fromUnits(1, '10,KEK')
-        assert.equal(asset.value, 0.0000000001)
-        asset.value += 0.0000000001
-        assert.equal(Number(asset.units), 2)
+    asset = Asset.fromUnits(1, '10,KEK')
+    assert.equal(asset.value, 0.0000000001)
+    asset.value += 0.0000000001
+    assert.equal(Number(asset.units), 2)
 
-        asset = Asset.from(3.004, '4,RAR')
-        asset.value += 1
-        assert.equal(asset.toString(), '4.0040 RAR')
-        assert.equal(asset.value, 4.004)
+    asset = Asset.from(3.004, '4,RAR')
+    asset.value += 1
+    assert.equal(asset.toString(), '4.0040 RAR')
+    assert.equal(asset.value, 4.004)
 
-        asset = Asset.from(3.004, '8,RAR')
-        asset.value += 1
-        assert.equal(asset.units.toNumber(), 400400000)
-        assert.equal(asset.toString(), '4.00400000 RAR')
-        assert.equal(asset.value, 4.004)
+    asset = Asset.from(3.004, '8,RAR')
+    asset.value += 1
+    assert.equal(asset.units.toNumber(), 400400000)
+    assert.equal(asset.toString(), '4.00400000 RAR')
+    assert.equal(asset.value, 4.004)
 
-        assert.throws(() => {
-            symbol.convertUnits(Int64.from('9223372036854775807'))
-        })
-        assert.throws(() => {
-            Asset.from('')
-        })
-        assert.throws(() => {
-            Asset.from('1POP')
-        })
-        assert.throws(() => {
-            Asset.from('1.0000000000000000000000 BIGS')
-        })
-        assert.throws(() => {
-            Asset.from('1.2 horse')
-        })
-        assert.throws(() => {
-            Asset.Symbol.from('12')
-        })
-    })*/
+    assert.throws(() => {
+        symbol.convertUnits(Int64.from('9223372036854775807'))
+    })
+    assert.throws(() => {
+        Asset.from('')
+    })
+    assert.throws(() => {
+        Asset.from('1POP')
+    })
+    assert.throws(() => {
+        Asset.from('1.0000000000000000000000 BIGS')
+    })
+    assert.throws(() => {
+        Asset.from('1.2 horse')
+    })
+    assert.throws(() => {
+        Asset.Symbol.from('12')
+    })
+ */
+}
 
 
 
@@ -218,48 +230,71 @@ fn bytes() {
             Math.round(now.getTime() / 500)
         )
     })
+    */
 
-    test('transaction', function () {
-        @Struct.type('transfer')
-        class Transfer extends Struct {
-            @Struct.field('name') from!: Name
-            @Struct.field('name') to!: Name
-            @Struct.field('asset') quantity!: Asset
-            @Struct.field('string') memo!: string
-        }
-        const action = Action.from({
-            authorization: [],
-            account: 'eosio.token',
-            name: 'transfer',
-            data: Transfer.from({
-                from: 'foo',
-                to: 'bar',
-                quantity: '1.0000 EOS',
-                memo: 'hello',
-            }),
-        })
-        const transaction = Transaction.from({
-            ref_block_num: 0,
-            ref_block_prefix: 0,
-            expiration: 0,
-            actions: [action],
-        })
-        assert.equal(
-            transaction.id.hexString,
-            '97b4d267ce0e0bd6c78c52f85a27031bd16def0920703ca3b72c28c2c5a1a79b'
-        )
-        const transfer = transaction.actions[0].decodeData(Transfer)
-        assert.equal(String(transfer.from), 'foo')
+#[test]
+fn transaction() {
 
-        const signed = SignedTransaction.from({
-            ...transaction,
-            signatures: [
-                'SIG_K1_KdNTcLLSyzUFC4AdMxEDn58X8ZN368euanvet4jucUdSPXvLkgsG32tpcqVvnDR9Xv1f7HsTm6kocjeZzFGvUSc2yCbdEA',
-            ],
-        })
-        assert.equal(String(signed.id), String(transaction.id))
+    #[derive(Clone, Eq, PartialEq, Default, StructPacker)]
+    struct Transfer {
+        from: Name,
+        to: Name,
+        quantity: Asset,
+        memo: String
+    }
+
+    let transfer_data = Transfer {
+        from: name!("foo"),
+        to: name!("bar"),
+        quantity: Asset::from_string("1.0000 EOS"),
+        memo: String::from("hello")
+    };
+
+    let transfer_data_packed = Encoder::pack(&transfer_data);
+    assert_eq!(bytes_to_hex(&transfer_data_packed), "000000000000285d000000000000ae39102700000000000004454f53000000000568656c6c6f");
+
+    let action = Action::new_ex(
+        name!("eosio.token"),
+        name!("transfer"),
+        vec![],
+        &transfer_data
+    );
+
+    let action_packed = Encoder::pack(&action);
+    assert_eq!(bytes_to_hex(&action_packed), "00a6823403ea3055000000572d3ccdcd0026000000000000285d000000000000ae39102700000000000004454f53000000000568656c6c6f");
+
+    let transaction = Transaction {
+        header: TransactionHeader::default(),
+        context_free_actions: vec![],
+        actions: vec![action],
+        extension: vec![],
+    };
+    assert_eq!(
+        bytes_to_hex(&transaction.id()),
+        "97b4d267ce0e0bd6c78c52f85a27031bd16def0920703ca3b72c28c2c5a1a79b"
+    );
+
+    let transaction_packed = Encoder::pack(&transaction);
+    let transfer_decoded = &mut Transfer::default();
+    let mut decoder = Decoder::new(transaction_packed.as_slice());
+    //decoder.unpack(transfer_decoded);
+    //assert_eq!(transfer_decoded.from, name!("foo"));
+    /*
+    const transfer = transaction.actions[0].decodeData(Transfer)
+    assert.equal(String(transfer.from), 'foo')
+
+    const signed = SignedTransaction.from({
+        ...transaction,
+        signatures: [
+            'SIG_K1_KdNTcLLSyzUFC4AdMxEDn58X8ZN368euanvet4jucUdSPXvLkgsG32tpcqVvnDR9Xv1f7HsTm6kocjeZzFGvUSc2yCbdEA',
+        ],
     })
+    assert.equal(String(signed.id), String(transaction.id))
 
+     */
+}
+
+/*
     test('any transaction', function () {
         const tx: AnyTransaction = {
             delay_sec: 0,
@@ -512,13 +547,13 @@ fn transaction_signing_data_and_digest() {
         extension: vec![],
     };
     let chain_id = Checksum256::from_bytes(
-        hex_to_bytes("2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840")
+        hex_to_bytes("2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840").as_slice()
     ).unwrap();
-    let data = trx.signing_data(&chain_id.to_bytes());
+    let data = trx.signing_data(&chain_id.data.to_vec());
     let expected_data_hex= "2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a91074684000000000000000000000000000000100a6823403ea3055000000572d3ccdcd01a02e45ea52a42e4500000000a8ed32323aa02e45ea52a42e4580b1915e5d268dcaba0100000000000004454f530000000019656f73696f2d636f7265206973207468652062657374203c33000000000000000000000000000000000000000000000000000000000000000000";
     assert_eq!(bytes_to_hex(&data), expected_data_hex);
 
-    let digest = trx.signing_digest(&chain_id.to_bytes());
+    let digest = trx.signing_digest(&chain_id.data.to_vec());
     let expected_digest_hex= "59fa6b615e3ce1b539ae27bc2398448c1374d2d3c97fe2bbba2c37c118631848";
     assert_eq!(bytes_to_hex(&digest), expected_digest_hex);
 }

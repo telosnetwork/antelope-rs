@@ -1,8 +1,6 @@
-use rust_chain::{ Packer, Encoder, Decoder };
 use antelope_macros::StructPacker;
-use crate::api::v1::structs::GetInfoResponse;
 use crate::chain::signature::Signature;
-use crate::chain::{Action, TimePointSec, VarUint32};
+use crate::chain::{action::Action, Encoder, Decoder, Packer, time::TimePointSec, varint::VarUint32};
 use crate::chain::checksum::Checksum256;
 
 #[derive(Clone, Eq, PartialEq, Default, StructPacker)]
@@ -26,10 +24,14 @@ pub struct Transaction {
     pub header:                 TransactionHeader,
     pub context_free_actions:   Vec<Action>,
     pub actions:                Vec<Action>,
-    pub extension:              Vec<rust_chain::TransactionExtension>,
+    pub extension:              Vec<TransactionExtension>,
 }
 
 impl Transaction {
+
+    pub fn id(&self) -> Vec<u8> {
+        Checksum256::hash(Encoder::pack(self)).data.to_vec()
+    }
 
     pub fn signing_data(&self, chain_id: &Vec<u8>) -> Vec<u8> {
         let mut bytes = chain_id.to_vec();
@@ -40,7 +42,7 @@ impl Transaction {
     }
 
     pub fn signing_digest(&self, chain_id: &Vec<u8>) -> Vec<u8> {
-        return Checksum256::hash(self.signing_data(chain_id)).to_bytes();
+        Checksum256::hash(self.signing_data(chain_id)).data.to_vec()
     }
 }
 

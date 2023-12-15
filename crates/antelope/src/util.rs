@@ -1,4 +1,5 @@
 use hex::{decode, encode};
+use std::slice;
 use crate::chain::ABISerializableObject;
 use crate::serializer::encoder::{EncodeArgs, EncodeArgsSerializable};
 
@@ -20,4 +21,21 @@ pub fn array_equals<T: PartialEq>(a: &[T], b: &[T]) -> bool {
 
 pub fn array_to_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+pub fn memcpy( dst: *mut u8, src: *const u8, length: usize) -> *mut u8 {
+    let mut _dst = unsafe {
+        slice::from_raw_parts_mut(dst, length)
+    };
+
+    let _src = unsafe {
+        slice::from_raw_parts(src, length)
+    };
+    _dst.copy_from_slice(_src);
+    dst
+}
+
+pub fn slice_copy( dst: &mut [u8], src: &[u8]) {
+    assert!(dst.len() == src.len(), "copy_slice: length not the same!");
+    memcpy(dst.as_mut_ptr(), src.as_ptr(), dst.len());
 }

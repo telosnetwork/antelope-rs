@@ -1,9 +1,11 @@
-use log::warn;
-use rust_chain::VarUint32;
-use crate::chain::checksum::Checksum256;
-use crate::chain::{Name, TimePoint, TimePointSec};
-use crate::chain::block_id::BlockId;
-use crate::chain::transaction::TransactionHeader;
+use crate::chain::{
+    checksum::Checksum256,
+    name::Name,
+    time::{TimePoint, TimePointSec},
+    block_id::BlockId,
+    transaction::TransactionHeader,
+    varint::VarUint32,
+};
 
 pub struct GetInfoResponse {
     server_version: String,

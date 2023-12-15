@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
-use rust_chain::Packer;
-use crate::chain::Encoder;
+use crate::chain::{Encoder, Packer};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub enum KeyType {

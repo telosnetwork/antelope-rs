@@ -1,5 +1,4 @@
-use rust_chain::Packer;
-use crate::chain::{ Encoder, Decoder };
+use crate::chain::{ Encoder, Decoder, Packer };
 use antelope_macros::StructPacker;
 
 #[derive(Clone, Eq, PartialEq, StructPacker)]

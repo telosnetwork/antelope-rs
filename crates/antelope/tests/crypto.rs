@@ -114,9 +114,9 @@ fn shared_secrets() {
     let expected =
         "def2d32f6b849198d71118ef53dbc3b679fe2b2c174ee4242a33e1a3f34c46fcbaa698fb599ca0e36f555dde2ac913a10563de2c33572155487cd8b34523de9e";
     let secret1 = priv1.shared_secret(&pub2);
-    assert_eq!(secret1.checksum.value.as_slice(), hex_to_bytes(expected));
+    assert_eq!(secret1.data.to_vec(), hex_to_bytes(expected));
     let secret2 = priv2.shared_secret(&pub1);
-    assert_eq!(secret2.checksum.value.as_slice(), hex_to_bytes(expected));
+    assert_eq!(secret2.data.to_vec(), hex_to_bytes(expected));
 }
 
 #[test]
