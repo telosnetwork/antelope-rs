@@ -1,5 +1,4 @@
 use crate::base58::{decode_key, encode_check, encode_ripemd160_check};
-use crate::chain::{ABISerializableObject, JSONValue};
 use crate::chain::checksum::Checksum512;
 use crate::chain::key_type::KeyType;
 use crate::chain::public_key::PublicKey;
@@ -8,7 +7,6 @@ use crate::crypto::generate::generate;
 use crate::crypto::get_public::get_public;
 use crate::crypto::shared_secrets::shared_secret;
 use crate::crypto::sign::sign;
-use crate::serializer::encoder::ABIEncoder;
 
 
 pub struct PrivateKey {
@@ -85,18 +83,4 @@ impl PrivateKey {
         return Ok(Self::from_bytes(secret_bytes.unwrap(), key_type));
     }
 
-}
-
-impl ABISerializableObject for PrivateKey {
-    fn get_abi_name(&self) -> String {
-        return "private_key".to_string();
-    }
-
-    fn to_abi(&self, encoder: &mut ABIEncoder) {
-        encoder.write_array(&self.value.to_vec());
-    }
-
-    fn to_json(&self) -> JSONValue {
-        todo!()
-    }
 }

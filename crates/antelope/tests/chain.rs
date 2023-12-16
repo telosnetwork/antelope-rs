@@ -1,4 +1,3 @@
-use antelope::chain::bytes::{Bytes, BytesEncoding};
 use antelope::chain::checksum::{Checksum160, Checksum256, Checksum512};
 use antelope::chain::{action::Action, asset::Asset, Encoder, Decoder, Packer, action::PermissionLevel};
 use antelope::chain::asset::Symbol;
@@ -178,30 +177,24 @@ fn blob() {
 
 #[test]
 fn bytes() {
-    assert_eq!(Bytes::from_str("hello", BytesEncoding::UTF8).to_hex_string(), "68656c6c6f");
-    //assert.equal(Bytes.equal('beef', 'beef'), true)
-    //assert.equal(Bytes.equal('beef', 'face'), false)
-    assert_eq!(Bytes::from_str("68656c6c6f", BytesEncoding::HEX).to_utf8_string(), "hello");
-    assert_eq!(Bytes::from_bytes(hex_to_bytes("ff00ff00")).to_hex_string(), "ff00ff00");
+    let hello_world_bytes = "hello world".as_bytes();
+    let hello_bytes = "hello".as_bytes();
+    assert_eq!(bytes_to_hex(&hello_bytes.to_vec()), "68656c6c6f");
+
     assert_eq!(
-        Checksum256::hash(Bytes::from_str("hello world", BytesEncoding::UTF8).to_bytes()).to_string(),
+        Checksum256::hash(hello_world_bytes.to_vec()).to_string(),
         "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
     );
     assert_eq!(
-        Checksum512::hash(Bytes::from_str("hello world", BytesEncoding::UTF8).to_bytes()).to_string(),
+        Checksum512::hash(hello_world_bytes.to_vec()).to_string(),
         "309ecc489c12d6eb4cc40f50c902f2b4d0ed77ee511a7c7a9bcd3ca86d4cd86f989dd35bc5ff499670da34255b45b0cfd830e81f605dcf7dc5542e93ae9cd76f"
     );
     assert_eq!(
-        Checksum160::hash(Bytes::from_str("hello world", BytesEncoding::UTF8).to_bytes()).to_string(),
+        Checksum160::hash(hello_world_bytes.to_vec()).to_string(),
         "98c615784ccb5fe5936fbc0cbe9dfdb408d92f0f"
     );
     /*
-        assert.throws(() => {
-            Bytes.from('numeris in culus', 'latin' as any)
-        })
-        assert.throws(() => {
-            Bytes.from('babababa').toString('latin' as any)
-        })
+        // TODO: add zeropadded support
         assert.equal(Bytes.from('beef').zeropadded(4).toString('hex'), '0000beef')
         assert.equal(Bytes.from('beef').zeropadded(2).toString('hex'), 'beef')
         assert.equal(Bytes.from('beef').zeropadded(1).toString('hex'), 'beef')
