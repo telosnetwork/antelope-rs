@@ -36,8 +36,9 @@ fn asset() {
 
     let symbol_bytes = Encoder::pack(&symbol);
     let mut symbol_decoder = Decoder::new(symbol_bytes.as_slice());
-    let symbol_unpacked = symbol_decoder.unpack(&mut Symbol::default());
-    //assert_eq!(symbol.to_string(), symbol_unpacked.to_string());
+    let symbol_unpacked = &mut Symbol::default();
+    symbol_decoder.unpack(symbol_unpacked);
+    assert_eq!(symbol.to_string(), symbol_unpacked.to_string());
     /*
     // test null asset
     asset = Asset.from('0 ')
