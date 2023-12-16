@@ -268,11 +268,10 @@ fn transaction() {
         "97b4d267ce0e0bd6c78c52f85a27031bd16def0920703ca3b72c28c2c5a1a79b"
     );
 
-    let transaction_packed = Encoder::pack(&transaction);
     let transfer_decoded = &mut Transfer::default();
-    let mut decoder = Decoder::new(transaction_packed.as_slice());
-    //decoder.unpack(transfer_decoded);
-    //assert_eq!(transfer_decoded.from, name!("foo"));
+    let mut decoder = Decoder::new(&transaction.actions[0].data);
+    decoder.unpack(transfer_decoded);
+    assert_eq!(transfer_decoded.from, name!("foo"));
     /*
     const transfer = transaction.actions[0].decodeData(Transfer)
     assert.equal(String(transfer.from), 'foo')
