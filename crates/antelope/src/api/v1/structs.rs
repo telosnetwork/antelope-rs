@@ -8,21 +8,21 @@ use crate::chain::{
 };
 
 pub struct GetInfoResponse {
-    server_version: String,
-    chain_id: Checksum256,
-    head_block_num: u32,
-    last_irreversible_block_num: u32,
-    last_irreversible_block_id: BlockId,
-    head_block_id: BlockId,
-    head_block_time: TimePoint,
-    head_block_producer: Name,
-    virtual_block_cpu_limit: u64,
-    virtual_block_net_limit: u64,
-    block_cpu_limit: u64,
-    block_net_limit: u64,
-    server_version_string: Option<String>,
-    fork_db_head_block_num: Option<u32>,
-    fork_db_head_block_id: Option<BlockId>
+    pub server_version: String,
+    pub chain_id: Checksum256,
+    pub head_block_num: u32,
+    pub last_irreversible_block_num: u32,
+    pub last_irreversible_block_id: BlockId,
+    pub head_block_id: BlockId,
+    pub head_block_time: TimePoint,
+    pub head_block_producer: Name,
+    pub virtual_block_cpu_limit: u64,
+    pub virtual_block_net_limit: u64,
+    pub block_cpu_limit: u64,
+    pub block_net_limit: u64,
+    pub server_version_string: Option<String>,
+    pub fork_db_head_block_num: Option<u32>,
+    pub fork_db_head_block_id: Option<BlockId>
 }
 
 impl GetInfoResponse {

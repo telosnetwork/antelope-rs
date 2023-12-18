@@ -1,5 +1,3 @@
-use crate::chain::{ABISerializableObject, JSONValue};
-use crate::serializer::encoder::ABIEncoder;
 use crate::util::array_equals;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -50,26 +48,4 @@ impl Blob {
             Err(_) => Err("Invalid UTF-8 string"),
         }
     }
-}
-
-impl ABISerializableObject for Blob {
-    fn get_abi_name(&self) -> String {
-        "blob".to_string()
-    }
-
-    fn to_abi(&self, encoder: &mut ABIEncoder) {
-        encoder.write_array(&self.array);
-    }
-
-    fn to_json(&self) -> JSONValue {
-        JSONValue::String(self.base64_string())
-    }
-
-    // fn equals(&self, other: Box<dyn ABISerializableObject>) -> bool {
-    //     if let Some(blob) = other.downcast_ref::<Blob>() {
-    //         self.equals(&BlobType::Bytes(blob.array.clone()))
-    //     } else {
-    //         false
-    //     }
-    // }
 }
