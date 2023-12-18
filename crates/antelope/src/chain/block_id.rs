@@ -26,4 +26,8 @@ impl BlockId {
 
         u32::from(num)
     }
+
+    pub fn to_string(&self) -> String {
+        self.block_num().to_string()
+    }
 }

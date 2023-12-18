@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 use antelope::chain::block_id::BlockId;
-use antelope::chain::bytes::{Bytes, BytesEncoding};
-=======
->>>>>>> 3e38a74a55929d5832521b2d03b78c9c46cc9b70
 use antelope::chain::checksum::{Checksum160, Checksum256, Checksum512};
 use antelope::chain::{action::Action, asset::Asset, Encoder, Decoder, Packer, action::PermissionLevel};
 use antelope::chain::asset::Symbol;
