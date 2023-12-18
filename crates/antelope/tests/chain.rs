@@ -1,3 +1,4 @@
+use antelope::chain::block_id::BlockId;
 use antelope::chain::bytes::{Bytes, BytesEncoding};
 use antelope::chain::checksum::{Checksum160, Checksum256, Checksum512};
 use antelope::chain::{action::Action, asset::Asset, Encoder, Decoder, Packer, action::PermissionLevel};
@@ -90,12 +91,25 @@ fn asset() {
 
 #[test]
 fn block_id() {
-    // let string = "048865fb643bca3b644647177f0cf363f7956794d0a7ec3bc6d29d93d9637308";
-    // let block_id = BlockId::from(BlockIdType::Bytes(hex::decode(string).unwrap()));
+    let string = "048865fb643bca3b644647177f0cf363f7956794d0a7ec3bc6d29d93d9637308";
+
+    let block_id = match hex::decode(string) {
+        Ok(bytes) => match BlockId::from_bytes(&bytes) {
+            Ok(block_id) => block_id,
+            Err(err) => {
+                eprintln!("Error creating BlockId: {}", err);
+                return;
+            }
+        },
+        Err(err) => {
+            eprintln!("Error decoding hex string: {}", err);
+            return;
+        }
+    };
     
-    // assert_eq!(block_id.to_string(), string);
-    // assert_eq!(block_id.block_num().to_string(), "76047867");
-    // assert!(block_id.block_num().equals(76047867));
+    //assert_eq!(block_id.to_string(), string);
+    assert_eq!(block_id.block_num().to_string(), "76047867");
+    assert!(block_id.block_num() == 76047867);
     //assert!(block_id.block_num().equals(UInt32::from(76047867))); UInt32 not implemented yet
 
     //decode not implemented yet
