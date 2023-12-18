@@ -1,8 +1,13 @@
 use serde_json::Value;
-use crate::api::client::{APIClient, Provider};
+use crate::api::client::{Provider};
 use crate::api::client::HTTPMethod::GET;
 use crate::chain::block_id::BlockId;
 use crate::api::v1::structs::GetInfoResponse;
+use crate::chain::checksum::Checksum256;
+use crate::chain::time::TimePoint;
+use crate::chain::name::Name;
+use crate::name;
+use crate::serializer::formatter::{JSONObject};
 
 pub struct ChainAPI {
     provider: Box<dyn Provider>
@@ -19,22 +24,23 @@ impl ChainAPI {
     pub fn get_info(&self) -> Result<GetInfoResponse, String> {
         let result = self.provider.call(GET, String::from("/v1/chain/get_info"), None);
         let json: Value = serde_json::from_str(result.unwrap().as_str()).unwrap();
+        let obj = JSONObject::new(json);
         Ok(GetInfoResponse {
-            server_version: "".to_string(),
-            chain_id: Default::default(),
-            head_block_num: 0,
-            last_irreversible_block_num: 0,
-            last_irreversible_block_id: BlockId { bytes: vec![] },
-            head_block_id: BlockId { bytes: vec![] },
-            head_block_time: Default::default(),
-            head_block_producer: Default::default(),
-            virtual_block_cpu_limit: 0,
-            virtual_block_net_limit: 0,
-            block_cpu_limit: 0,
-            block_net_limit: 0,
-            server_version_string: None,
-            fork_db_head_block_num: None,
-            fork_db_head_block_id: None,
+            server_version: obj.get_string("server_version")?,
+            chain_id: Checksum256::from_hex(obj.get_string("chain_id")?.as_str())?,
+            head_block_num: obj.get_u32("head_block_num")?,
+            last_irreversible_block_num: obj.get_u32("last_irreversible_block_num")?,
+            last_irreversible_block_id: BlockId { bytes: obj.get_hex_bytes("last_irreversible_block_id")? },
+            head_block_id: BlockId { bytes: obj.get_hex_bytes("head_block_id")? },
+            head_block_time: TimePoint::from_timestamp(obj.get_str("head_block_time")?)?,
+            head_block_producer: name!(obj.get_str("head_block_producer")?),
+            virtual_block_cpu_limit: obj.get_u64("virtual_block_cpu_limit")?,
+            virtual_block_net_limit: obj.get_u64("virtual_block_net_limit")?,
+            block_cpu_limit: obj.get_u64("block_cpu_limit")?,
+            block_net_limit: obj.get_u64("block_net_limit")?,
+            server_version_string: obj.get_string("server_version_string").ok(),
+            fork_db_head_block_num: obj.get_u32("fork_db_head_block_num").ok(),
+            fork_db_head_block_id: BlockId::from_bytes(&obj.get_hex_bytes("fork_db_head_block_id")?).ok()
         })
     }
 }

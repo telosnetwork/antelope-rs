@@ -28,3 +28,4 @@ signature = { version = "2.2.0", features = [] }
 digest = { version = "0.10.7", features = [] }
 reqwest = { version = "0.11.22", features = ["json", "blocking"] }
 tokio = { version = "1.35.0", features = ["full"] }
+chrono = "0.4.31"
