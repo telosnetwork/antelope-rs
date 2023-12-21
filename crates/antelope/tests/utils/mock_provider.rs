@@ -15,7 +15,7 @@ impl Provider for MockProvider {
 
         let filename = Checksum160::hash(to_hash.into_bytes()).to_string();
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("tests/mock_provider_data/");
+        d.push("tests/utils/mock_provider_data/");
         d.push(filename + ".json");
         Ok(fs::read_to_string(&d).unwrap())
     }

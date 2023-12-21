@@ -8,7 +8,7 @@ pub struct ValueTo {
 impl ValueTo {
 
     pub fn str(v: Option<&Value>) -> Result<&str, String> {
-        check_some(v, "String")?;
+        check_some(v, "str")?;
         let value = v.unwrap();
         if !value.is_string() {
             return Err(String::from("Value is not String"));
@@ -33,7 +33,7 @@ impl ValueTo {
     }
 
     pub fn u32(v: Option<&Value>) -> Result<u32, String> {
-        check_some(v, "u32");
+        check_some(v, "u32")?;
         let value = v.unwrap();
         if !value.is_number() {
             return Err(String::from("Value is not a number"));
@@ -43,7 +43,7 @@ impl ValueTo {
     }
 
     pub fn u64(v: Option<&Value>) -> Result<u64, String> {
-        check_some(v, "u64");
+        check_some(v, "u64")?;
         let value = v.unwrap();
         if !value.is_number() {
             return Err(String::from("Value is not a number"));

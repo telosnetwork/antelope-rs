@@ -1,13 +1,14 @@
+use reqwest::blocking::Client;
 use crate::api::client::{HTTPMethod, Provider};
 
 pub struct DefaultProvider {
     base_url: String,
-    client: reqwest::blocking::Client
+    client: Client
 }
 
 impl DefaultProvider {
     pub fn new(base_url: String) -> Result<Self, String> {
-        let client = reqwest::blocking::Client::builder().build();
+        let client = Client::builder().build();
         if client.is_err() {
             let err = client.err();
             let mut err_message = String::from("Error building http client");

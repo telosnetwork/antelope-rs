@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use crate::chain::{
     checksum::Checksum256,
     name::Name,

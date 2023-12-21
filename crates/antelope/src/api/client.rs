@@ -25,12 +25,12 @@ pub struct APIClient {
 }
 
 impl APIClient {
-    pub fn default_client(base_url: String) -> Result<Self, String> {
+    pub fn default_provider(base_url: String) -> Result<Self, String> {
         let provider = Box::new(DefaultProvider::new(base_url).unwrap());
-        APIClient::custom_client(provider)
+        APIClient::custom_provider(provider)
     }
 
-    pub fn custom_client(provider: Box<dyn Provider>) -> Result<Self, String> {
+    pub fn custom_provider(provider: Box<dyn Provider>) -> Result<Self, String> {
         Ok(APIClient {
             v1_chain: ChainAPI::new(provider)
         })

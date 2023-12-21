@@ -23,8 +23,11 @@ impl ChainAPI {
 
     pub fn get_info(&self) -> Result<GetInfoResponse, String> {
         let result = self.provider.call(GET, String::from("/v1/chain/get_info"), None);
-        let json: Value = serde_json::from_str(result.unwrap().as_str()).unwrap();
-        let obj = JSONObject::new(json);
+        let json = serde_json::from_str(result.unwrap().as_str());
+        if json.is_err() {
+            return Err(String::from("Failed to parse JSON"));
+        }
+        let obj = JSONObject::new(json.unwrap());
         Ok(GetInfoResponse {
             server_version: obj.get_string("server_version")?,
             chain_id: Checksum256::from_hex(obj.get_string("chain_id")?.as_str())?,
