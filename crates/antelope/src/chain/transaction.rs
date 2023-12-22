@@ -1,3 +1,4 @@
+use serde_json::json;
 use antelope_macros::StructPacker;
 use crate::chain::signature::Signature;
 use crate::chain::{action::Action, Encoder, Decoder, Packer, time::TimePointSec, varint::VarUint32};
@@ -48,7 +49,15 @@ impl Transaction {
 
 #[derive(Clone, Eq, PartialEq, Default, StructPacker)]
 pub struct SignedTransaction {
-    transaction:        Transaction,
-    signatures:         Vec<Signature>,
-    context_free_data:  Vec<Vec<u8>>
+    pub transaction:        Transaction,
+    pub signatures:         Vec<Signature>,
+    pub context_free_data:  Vec<Vec<u8>>
+}
+
+impl SignedTransaction {
+    pub fn to_json() -> String {
+        json!({
+            "signatures":
+        }).to_string();
+    }
 }
