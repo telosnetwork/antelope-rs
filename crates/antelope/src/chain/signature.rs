@@ -1,4 +1,5 @@
 use ecdsa::RecoveryId;
+use k256::elliptic_curve::Curve;
 use k256::Secp256k1;
 use p256::NistP256;
 use crate::base58;

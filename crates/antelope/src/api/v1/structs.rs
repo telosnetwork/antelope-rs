@@ -45,3 +45,11 @@ impl GetInfoResponse {
         }
     }
 }
+
+pub struct SendTransactionResponse {
+    pub transaction_id: String
+}
+
+pub struct SendTransactionError {
+    pub message: String
+}

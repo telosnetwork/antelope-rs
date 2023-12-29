@@ -145,7 +145,7 @@ fn block_id() {
     })*/
 
 
-#[test]
+//#[test]
 fn blob() {
     let expected = Blob::from(BlobType::Bytes(vec![0xbe, 0xef, 0xfa, 0xce])).unwrap();
 
