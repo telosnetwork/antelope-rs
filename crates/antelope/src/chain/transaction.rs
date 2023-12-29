@@ -1,8 +1,10 @@
-use serde_json::json;
+use std::collections::HashMap;
+use serde_json::{json, Value};
 use antelope_macros::StructPacker;
 use crate::chain::signature::Signature;
 use crate::chain::{action::Action, Encoder, Decoder, Packer, time::TimePointSec, varint::VarUint32};
 use crate::chain::checksum::Checksum256;
+use crate::util::{bytes_to_hex, zlib_compress};
 
 #[derive(Clone, Eq, PartialEq, Default, StructPacker)]
 pub struct TransactionExtension {
@@ -54,10 +56,56 @@ pub struct SignedTransaction {
     pub context_free_data:  Vec<Vec<u8>>
 }
 
-impl SignedTransaction {
-    pub fn to_json() -> String {
-        json!({
-            "signatures":
-        }).to_string();
+#[derive(PartialEq)]
+pub enum CompressionType {
+    ZLIB,
+    NONE
+}
+
+impl CompressionType {
+    pub fn index(&self) -> usize {
+        match self {
+            CompressionType::NONE => 0,
+            CompressionType::ZLIB => 1,
+        }
     }
+}
+
+#[derive(Clone, Eq, PartialEq, Default, StructPacker)]
+pub struct PackedTransaction {
+    signatures:         Vec<Signature>,
+    compression:        Option<u8>,
+    packed_context_free_data:  Vec<u8>,
+    packed_transaction:        Vec<u8>
+}
+
+impl PackedTransaction {
+    pub fn from_signed(signed: SignedTransaction, compression: CompressionType) -> Result<Self, String> {
+        let mut packed_transaction = Encoder::pack(&signed.transaction);
+        let mut packed_context_free_data = Encoder::pack(&signed.context_free_data);
+        if compression == CompressionType::ZLIB {
+            packed_transaction = zlib_compress(packed_transaction.as_slice())?;
+            packed_context_free_data = zlib_compress(packed_context_free_data.as_slice())?;
+        }
+
+        Ok(Self {
+            signatures: signed.signatures,
+            compression: Some(compression.index() as u8),
+            packed_transaction,
+            packed_context_free_data
+        })
+    }
+
+    pub fn to_json(&self) -> String {
+        let mut trx: HashMap<&str, Value> = HashMap::new();
+        let signatures: Vec<String> = self.signatures.iter().map(|sig| sig.to_string()).collect();
+        trx.insert("signatures", json!(signatures));
+        if self.compression.is_some() {
+            trx.insert("compression", Value::Number(self.compression.unwrap().into()));
+        }
+        trx.insert("packed_context_free_data", Value::String(bytes_to_hex(&self.packed_context_free_data)));
+        trx.insert("packed_trx", Value::String(bytes_to_hex(&self.packed_transaction)));
+        json!(trx).to_string()
+    }
+
 }

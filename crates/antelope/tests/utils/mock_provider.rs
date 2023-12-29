@@ -65,9 +65,10 @@ pub fn make_mock_transaction(info: &GetInfoResponse) -> Transaction {
 
 pub fn sign_mock_transaction(trx: Transaction, info: &GetInfoResponse) -> SignedTransaction {
     let private_key = PrivateKey::from_str("5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9", false).unwrap();
+    let sign_data = trx.signing_data(&info.chain_id.data.to_vec());
     SignedTransaction {
         transaction: trx,
-        signatures: vec![private_key.sign_message(&trx.signing_digest(&info.chain_id.data.to_vec()))],
+        signatures: vec![private_key.sign_message(&sign_data)],
         context_free_data: vec![],
     }
 }

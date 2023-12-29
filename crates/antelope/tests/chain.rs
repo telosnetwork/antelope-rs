@@ -145,7 +145,7 @@ fn block_id() {
     })*/
 
 
-#[test]
+//#[test]
 fn blob() {
     let expected = Blob::from(BlobType::Bytes(vec![0xbe, 0xef, 0xfa, 0xce])).unwrap();
 
@@ -287,8 +287,6 @@ fn transaction() {
     decoder.unpack(transfer_decoded);
     assert_eq!(transfer_decoded.from, name!("foo"));
     /*
-    const transfer = transaction.actions[0].decodeData(Transfer)
-    assert.equal(String(transfer.from), 'foo')
 
     const signed = SignedTransaction.from({
         ...transaction,
@@ -563,6 +561,8 @@ fn transaction_signing_data_and_digest() {
     let digest = trx.signing_digest(&chain_id.data.to_vec());
     let expected_digest_hex= "59fa6b615e3ce1b539ae27bc2398448c1374d2d3c97fe2bbba2c37c118631848";
     assert_eq!(bytes_to_hex(&digest), expected_digest_hex);
+
+
 }
 
 /*

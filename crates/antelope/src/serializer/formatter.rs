@@ -1,4 +1,3 @@
-use serde::Deserializer;
 use serde_json::Value;
 use crate::util::hex_to_bytes;
 

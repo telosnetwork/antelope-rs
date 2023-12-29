@@ -1,4 +1,5 @@
 use ecdsa::RecoveryId;
+use k256::elliptic_curve::Curve;
 use k256::Secp256k1;
 use p256::NistP256;
 use crate::base58;
@@ -78,7 +79,7 @@ impl Signature {
         let r = signature.r().to_bytes().to_vec();
         let s = signature.s().to_bytes().to_vec();
         let mut data: Vec<u8> = Vec::new();
-        let recid = recovery.to_byte();
+        let recid = recovery.to_byte() + 27;
 
         if r.len() != 32 || s.len() != 32 {
             return Err(String::from("r and s values should both have a size of 32"));
