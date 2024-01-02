@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use crate::chain::{
     checksum::Checksum256,
     name::Name,
@@ -7,6 +6,81 @@ use crate::chain::{
     transaction::TransactionHeader,
     varint::VarUint32,
 };
+
+#[derive(Debug)]
+pub enum ClientError<T> {
+    SIMPLE(SimpleError),
+    SERVER(T),
+    HTTP(HTTPError),
+    ENCODING(EncodingError)
+}
+
+impl<T> ClientError<T> {
+    pub fn simple(message: String) -> Self {
+        ClientError::SIMPLE(SimpleError { message })
+    }
+
+    pub fn encoding(message: String) -> Self {
+        ClientError::ENCODING(EncodingError { message })
+    }
+
+    pub fn server(server_error: T) -> Self {
+        ClientError::SERVER(server_error)
+    }
+}
+
+impl<T> From<EncodingError> for ClientError<T> {
+    fn from(value: EncodingError) -> Self {
+        ClientError::ENCODING(value)
+    }
+}
+
+impl<T> From<String> for ClientError<T> {
+    fn from(value: String) -> Self {
+        ClientError::simple(value)
+    }
+}
+
+#[derive(Debug)]
+pub struct SimpleError {
+    pub message: String
+}
+
+#[derive(Debug)]
+pub struct ServerError<T> {
+    error: T
+}
+
+#[derive(Debug)]
+pub struct HTTPError {
+    pub code: u16,
+    pub message: String
+}
+
+#[derive(Debug)]
+pub struct EncodingError {
+    pub message: String
+}
+
+impl EncodingError {
+    pub fn new(message: String) -> Self {
+        EncodingError { message }
+    }
+}
+
+// pub trait ClientError {
+//     fn get_message(&self) -> &str;
+// }
+//
+// pub struct SimpleError {
+//     pub message: str,
+// }
+//
+// impl ClientError for SimpleError {
+//     fn get_message(&self) -> String {
+//         self.message.to_string()
+//     }
+// }
 
 pub struct GetInfoResponse {
     pub server_version: String,
@@ -46,10 +120,64 @@ impl GetInfoResponse {
     }
 }
 
-pub struct SendTransactionResponse {
-    pub transaction_id: String
+pub struct ProcessedTransactionReceipt {
+    pub status: String,
+    pub cpu_usage_us: u32,
+    pub net_usage_words: u32
 }
 
+pub struct ProcessedTransaction {
+    pub id: String,
+    pub block_num: u64,
+    pub block_time: String,
+    pub receipt: ProcessedTransactionReceipt,
+    pub elapsed: u64,
+    pub except: Option<SendTransactionResponseException>,
+    pub net_usage: u32,
+    pub scheduled: bool,
+    pub action_traces: String, // TODO: create a type for this?
+    pub account_ram_delta: String // TODO: create a type for this?
+
+}
+
+pub struct SendTransactionResponseExceptionStackContext {
+    pub level: String,
+    pub file: String,
+    pub line: u32,
+    pub method: String,
+    pub hostname: String,
+    pub thread_name: String,
+    pub timestamp: String
+}
+
+pub struct SendTransactionResponseExceptionStack {
+    pub context: SendTransactionResponseExceptionStackContext,
+    pub format: String,
+    pub data: String // TODO: create a type for this?
+}
+
+pub struct SendTransactionResponseException {
+    pub code: u32,
+    pub name: String,
+    pub message: String,
+    pub stack: Vec<SendTransactionResponseExceptionStack>
+}
+
+pub struct SendTransactionResponse {
+    pub transaction_id: String,
+    pub processed: ProcessedTransaction
+}
+
+
+#[derive(Debug)]
 pub struct SendTransactionError {
     pub message: String
 }
+//
+// impl From<dyn ClientError> for SendTransactionError {
+//     fn from(value: ClientError) -> Self {
+//         Self {
+//             message: value.message
+//         }
+//     }
+// }

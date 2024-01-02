@@ -17,7 +17,8 @@ impl Display for HTTPMethod {
 
 // TODO: Make this return an APIResponse with status code, timing, etc..
 pub trait Provider {
-    fn call(&self, method: HTTPMethod, path: String, body: Option<String>) -> Result<String, String>;
+    fn post(&self, path: String, body: Option<String>) -> Result<String, String>;
+    fn get(&self, path: String) -> Result<String, String>;
 }
 
 pub struct APIClient {

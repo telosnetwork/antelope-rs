@@ -1,5 +1,5 @@
 use reqwest::blocking::Client;
-use crate::api::client::{HTTPMethod, Provider};
+use crate::api::client::{Provider};
 
 pub struct DefaultProvider {
     base_url: String,
@@ -26,6 +26,10 @@ impl DefaultProvider {
         })
     }
 
+}
+
+impl Provider for DefaultProvider {
+
     fn get(&self, path: String) -> Result<String, String> {
         let res = self.client.get(self.base_url.to_string() + &path).send();
         if res.is_err() {
@@ -46,18 +50,5 @@ impl DefaultProvider {
         }
 
         Ok(res.unwrap().text().unwrap())
-    }
-}
-
-impl Provider for DefaultProvider {
-    fn call(&self, method: HTTPMethod, path: String, body: Option<String>) -> Result<String, String> {
-        match method {
-            HTTPMethod::GET => {
-                self.get(path)
-            }
-            HTTPMethod::POST => {
-                self.post(path, body)
-            }
-        }
     }
 }

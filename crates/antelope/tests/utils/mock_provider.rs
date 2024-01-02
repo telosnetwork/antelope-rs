@@ -15,7 +15,7 @@ use antelope_macros::StructPacker;
 pub struct MockProvider {
 }
 
-impl Provider for MockProvider {
+impl MockProvider {
     fn call(&self, method: HTTPMethod, path: String, body: Option<String>) -> Result<String, String> {
         let mut to_hash = method.to_string() + &path;
         if body.is_some() {
@@ -27,6 +27,16 @@ impl Provider for MockProvider {
         d.push("tests/utils/mock_provider_data/");
         d.push(filename + ".json");
         Ok(fs::read_to_string(&d).unwrap())
+    }
+}
+
+impl Provider for MockProvider {
+    fn post(&self, path: String, body: Option<String>) -> Result<String, String> {
+        self.call(HTTPMethod::POST, path, body)
+    }
+
+    fn get(&self, path: String) -> Result<String, String> {
+        self.call(HTTPMethod::GET, path, None)
     }
 }
 
@@ -63,11 +73,11 @@ pub fn make_mock_transaction(info: &GetInfoResponse) -> Transaction {
     }
 }
 
-pub fn sign_mock_transaction(trx: Transaction, info: &GetInfoResponse) -> SignedTransaction {
+pub fn sign_mock_transaction(trx: &Transaction, info: &GetInfoResponse) -> SignedTransaction {
     let private_key = PrivateKey::from_str("5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9", false).unwrap();
     let sign_data = trx.signing_data(&info.chain_id.data.to_vec());
     SignedTransaction {
-        transaction: trx,
+        transaction: trx.clone(),
         signatures: vec![private_key.sign_message(&sign_data)],
         context_free_data: vec![],
     }

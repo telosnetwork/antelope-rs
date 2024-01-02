@@ -20,6 +20,8 @@ pub struct Signature {
 
 impl Signature {
 
+    pub const RECOVERY_ID_ADDITION: u8 = 27;
+
     pub fn recovery_id(&self) -> u8 {
         return self.value[0];
     }
@@ -79,7 +81,7 @@ impl Signature {
         let r = signature.r().to_bytes().to_vec();
         let s = signature.s().to_bytes().to_vec();
         let mut data: Vec<u8> = Vec::new();
-        let recid = recovery.to_byte() + 27;
+        let recid = recovery.to_byte() + Signature::RECOVERY_ID_ADDITION;
 
         if r.len() != 32 || s.len() != 32 {
             return Err(String::from("r and s values should both have a size of 32"));

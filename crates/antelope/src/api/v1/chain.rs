@@ -1,8 +1,7 @@
 use serde_json::Value;
 use crate::api::client::{Provider};
-use crate::api::client::HTTPMethod::{GET, POST};
 use crate::chain::block_id::BlockId;
-use crate::api::v1::structs::{GetInfoResponse, SendTransactionError, SendTransactionResponse};
+use crate::api::v1::structs::{ClientError, GetInfoResponse, ProcessedTransaction, ProcessedTransactionReceipt, SendTransactionError, SendTransactionResponse};
 use crate::chain::checksum::Checksum256;
 use crate::chain::time::TimePoint;
 use crate::chain::name::Name;
@@ -22,11 +21,11 @@ impl ChainAPI {
         }
     }
 
-    pub fn get_info(&self) -> Result<GetInfoResponse, String> {
-        let result = self.provider.call(GET, String::from("/v1/chain/get_info"), None);
+    pub fn get_info(&self) -> Result<GetInfoResponse, ClientError<()>> {
+        let result = self.provider.get(String::from("/v1/chain/get_info"));
         let json = serde_json::from_str(result.unwrap().as_str());
         if json.is_err() {
-            return Err(String::from("Failed to parse JSON"));
+            return Err(ClientError::encoding("Failed to parse JSON".into()));
         }
         let obj = JSONObject::new(json.unwrap());
         Ok(GetInfoResponse {
@@ -48,21 +47,39 @@ impl ChainAPI {
         })
     }
 
-    pub fn send_transaction(&self, trx: SignedTransaction) -> Result<SendTransactionResponse, SendTransactionError> {
+    pub fn send_transaction(&self, trx: SignedTransaction) -> Result<SendTransactionResponse, ClientError<SendTransactionError>> {
         let packed_result = PackedTransaction::from_signed(trx, CompressionType::ZLIB);
         if packed_result.is_err() {
-            return Err(SendTransactionError {
+            return Err(ClientError::server(SendTransactionError {
                 message: String::from("Failed to pack transaction"),
-            })
+            }));
         }
         let packed = packed_result.unwrap();
         let trx_json = packed.to_json();
-        let result = self.provider.call(POST, String::from("/v1/chain/send_transaction"), Some(trx_json));
+        let result = self.provider.post(String::from("/v1/chain/send_transaction"), Some(trx_json));
         let json: Value = serde_json::from_str(result.unwrap().as_str()).unwrap();
-        let obj = JSONObject::new(json);
+        let response_obj = JSONObject::new(json);
+        let processed_obj = JSONObject::new(response_obj.get_value("processed").unwrap());
+        let receipt_obj = JSONObject::new(processed_obj.get_value("receipt").unwrap());
 
         Ok(SendTransactionResponse {
-            transaction_id: String::from("")
+            transaction_id: response_obj.get_string("transaction_id")?,
+            processed: ProcessedTransaction {
+                id: processed_obj.get_string("id")?,
+                block_num: processed_obj.get_u64("block_num")?,
+                block_time: processed_obj.get_string("block_time")?,
+                receipt: ProcessedTransactionReceipt {
+                    status: receipt_obj.get_string("status")?,
+                    cpu_usage_us: receipt_obj.get_u32("cpu_usage_us")?,
+                    net_usage_words: receipt_obj.get_u32("net_usage_words")?,
+                },
+                elapsed: processed_obj.get_u64("elapsed")?,
+                except: None,
+                net_usage: processed_obj.get_u32("net_usage")?,
+                scheduled: false,
+                action_traces: "".to_string(),  // TODO: Properly encode this
+                account_ram_delta: "".to_string(), // TODO: Properly encode this
+            },
         })
     }
 }
