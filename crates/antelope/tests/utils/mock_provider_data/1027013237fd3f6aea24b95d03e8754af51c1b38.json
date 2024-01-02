@@ -1,0 +1,166 @@
+{
+  "transaction_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
+  "processed": {
+    "id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
+    "block_num": 275003381,
+    "block_time": "2024-01-02T19:01:00.000",
+    "producer_block_id": null,
+    "receipt": {
+      "status": "executed",
+      "cpu_usage_us": 185,
+      "net_usage_words": 20
+    },
+    "elapsed": 185,
+    "net_usage": 160,
+    "scheduled": false,
+    "action_traces": [
+      {
+        "action_ordinal": 1,
+        "creator_action_ordinal": 0,
+        "closest_unnotified_ancestor_action_ordinal": 0,
+        "receipt": {
+          "receiver": "eosio.token",
+          "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
+          "global_sequence": 383003514,
+          "recv_sequence": 1837548,
+          "auth_sequence": [
+            [
+              "corecorecore",
+              13
+            ]
+          ],
+          "code_sequence": 7,
+          "abi_sequence": 8
+        },
+        "receiver": "eosio.token",
+        "act": {
+          "account": "eosio.token",
+          "name": "transfer",
+          "authorization": [
+            {
+              "actor": "corecorecore",
+              "permission": "active"
+            }
+          ],
+          "data": {
+            "from": "corecorecore",
+            "to": "teamgreymass",
+            "quantity": "0.0420 TLOS",
+            "memo": "Testing antelope-rs"
+          },
+          "hex_data": "a02e45ea52a42e4580b1915e5d268dcaa40100000000000004544c4f530000001354657374696e6720616e74656c6f70652d7273"
+        },
+        "context_free": false,
+        "elapsed": 74,
+        "console": "",
+        "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
+        "block_num": 275003381,
+        "block_time": "2024-01-02T19:01:00.000",
+        "producer_block_id": null,
+        "account_ram_deltas": [],
+        "except": null,
+        "error_code": null,
+        "return_value_hex_data": ""
+      },
+      {
+        "action_ordinal": 2,
+        "creator_action_ordinal": 1,
+        "closest_unnotified_ancestor_action_ordinal": 1,
+        "receipt": {
+          "receiver": "corecorecore",
+          "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
+          "global_sequence": 383003515,
+          "recv_sequence": 6,
+          "auth_sequence": [
+            [
+              "corecorecore",
+              14
+            ]
+          ],
+          "code_sequence": 7,
+          "abi_sequence": 8
+        },
+        "receiver": "corecorecore",
+        "act": {
+          "account": "eosio.token",
+          "name": "transfer",
+          "authorization": [
+            {
+              "actor": "corecorecore",
+              "permission": "active"
+            }
+          ],
+          "data": {
+            "from": "corecorecore",
+            "to": "teamgreymass",
+            "quantity": "0.0420 TLOS",
+            "memo": "Testing antelope-rs"
+          },
+          "hex_data": "a02e45ea52a42e4580b1915e5d268dcaa40100000000000004544c4f530000001354657374696e6720616e74656c6f70652d7273"
+        },
+        "context_free": false,
+        "elapsed": 3,
+        "console": "",
+        "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
+        "block_num": 275003381,
+        "block_time": "2024-01-02T19:01:00.000",
+        "producer_block_id": null,
+        "account_ram_deltas": [],
+        "except": null,
+        "error_code": null,
+        "return_value_hex_data": ""
+      },
+      {
+        "action_ordinal": 3,
+        "creator_action_ordinal": 1,
+        "closest_unnotified_ancestor_action_ordinal": 1,
+        "receipt": {
+          "receiver": "teamgreymass",
+          "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
+          "global_sequence": 383003516,
+          "recv_sequence": 23,
+          "auth_sequence": [
+            [
+              "corecorecore",
+              15
+            ]
+          ],
+          "code_sequence": 7,
+          "abi_sequence": 8
+        },
+        "receiver": "teamgreymass",
+        "act": {
+          "account": "eosio.token",
+          "name": "transfer",
+          "authorization": [
+            {
+              "actor": "corecorecore",
+              "permission": "active"
+            }
+          ],
+          "data": {
+            "from": "corecorecore",
+            "to": "teamgreymass",
+            "quantity": "0.0420 TLOS",
+            "memo": "Testing antelope-rs"
+          },
+          "hex_data": "a02e45ea52a42e4580b1915e5d268dcaa40100000000000004544c4f530000001354657374696e6720616e74656c6f70652d7273"
+        },
+        "context_free": false,
+        "elapsed": 6,
+        "console": "",
+        "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
+        "block_num": 275003381,
+        "block_time": "2024-01-02T19:01:00.000",
+        "producer_block_id": null,
+        "account_ram_deltas": [],
+        "except": null,
+        "error_code": null,
+        "return_value_hex_data": ""
+      }
+    ],
+    "account_ram_delta": null,
+    "except": null,
+    "error_code": null
+  }
+}
