@@ -1,9 +1,9 @@
+use crate::api::client::Provider;
 use reqwest::blocking::Client;
-use crate::api::client::{Provider};
 
 pub struct DefaultProvider {
     base_url: String,
-    client: Client
+    client: Client,
 }
 
 impl DefaultProvider {
@@ -18,18 +18,16 @@ impl DefaultProvider {
             return Err(err_message);
         }
 
-        let url = base_url.trim_end_matches("/");
+        let url = base_url.trim_end_matches('/');
 
         Ok(Self {
             base_url: String::from(url),
-            client: client.unwrap()
+            client: client.unwrap(),
         })
     }
-
 }
 
 impl Provider for DefaultProvider {
-
     fn get(&self, path: String) -> Result<String, String> {
         let res = self.client.get(self.base_url.to_string() + &path).send();
         if res.is_err() {

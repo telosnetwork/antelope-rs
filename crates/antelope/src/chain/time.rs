@@ -1,7 +1,7 @@
 use crate::chain::{Encoder, Packer};
-use chrono::{DateTime, NaiveDateTime, ParseError, TimeZone, Utc};
+use chrono::{NaiveDateTime, TimeZone, Utc};
 
-             #[derive(Copy, Clone, Default, PartialEq)]
+#[derive(Copy, Clone, Default, PartialEq)]
 pub struct TimePoint {
     /// elapsed in microseconds
     pub elapsed: u64,
@@ -13,22 +13,20 @@ impl TimePoint {
         let naive_date_time = NaiveDateTime::parse_from_str(t, "%Y-%m-%dT%H:%M:%S%.f");
 
         if naive_date_time.is_err() {
-            return Err(
-                String::from("Failed to parse datetime ") +
-                    naive_date_time.err().unwrap().to_string().as_str()
-            );
+            return Err(String::from("Failed to parse datetime ")
+                + naive_date_time.err().unwrap().to_string().as_str());
         }
         let date_time = Utc.from_utc_datetime(&naive_date_time.unwrap());
 
         Ok(Self {
-            elapsed: (date_time.timestamp_millis() * 1000) as u64
+            elapsed: (date_time.timestamp_millis() * 1000) as u64,
         })
     }
 }
 
 impl Packer for TimePoint {
     fn size(&self) -> usize {
-        return 8;
+        8
     }
 
     fn pack(&self, enc: &mut Encoder) -> usize {
@@ -36,8 +34,11 @@ impl Packer for TimePoint {
     }
 
     fn unpack(&mut self, raw: &[u8]) -> usize {
-        assert!(raw.len() >= self.size(), "TimePoint.unpack: buffer overflow!");
-        return self.elapsed.unpack(raw);
+        assert!(
+            raw.len() >= self.size(),
+            "TimePoint.unpack: buffer overflow!"
+        );
+        self.elapsed.unpack(raw)
     }
 }
 
@@ -48,18 +49,18 @@ pub struct TimePointSec {
 }
 
 impl TimePointSec {
-    pub fn new(seconds: u32) -> Self{
-        Self{ seconds }
+    pub fn new(seconds: u32) -> Self {
+        Self { seconds }
     }
 
     pub fn seconds(&self) -> u32 {
-        return self.seconds;
+        self.seconds
     }
 }
 
 impl Packer for TimePointSec {
     fn size(&self) -> usize {
-        return 4;
+        4
     }
 
     fn pack(&self, enc: &mut Encoder) -> usize {
@@ -67,7 +68,10 @@ impl Packer for TimePointSec {
     }
 
     fn unpack(&mut self, raw: &[u8]) -> usize {
-        assert!(raw.len() >= self.size(), "TimePointSec.unpack: buffer overflow!");
-        return self.seconds.unpack(raw);
+        assert!(
+            raw.len() >= self.size(),
+            "TimePointSec.unpack: buffer overflow!"
+        );
+        self.seconds.unpack(raw)
     }
 }

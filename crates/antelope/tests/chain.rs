@@ -1,12 +1,13 @@
+use antelope::chain::asset::Symbol;
 use antelope::chain::block_id::BlockId;
 use antelope::chain::checksum::{Checksum160, Checksum256, Checksum512};
-use antelope::chain::{action::Action, asset::Asset, Encoder, Decoder, Packer, action::PermissionLevel};
-use antelope::chain::asset::Symbol;
-use antelope::util::{bytes_to_hex, hex_to_bytes};
-use antelope::chain::blob::{Blob, BlobType};
 use antelope::chain::name::Name;
 use antelope::chain::transaction::{Transaction, TransactionHeader};
+use antelope::chain::{
+    action::Action, action::PermissionLevel, asset::Asset, Decoder, Encoder, Packer,
+};
 use antelope::name;
+use antelope::util::{bytes_to_hex, hex_to_bytes};
 use antelope_macros::StructPacker;
 
 #[test]
@@ -17,8 +18,14 @@ fn asset() {
     //assert.equal(Asset.from('-0.2345 NEGS').toString(), '-0.2345 NEGS')
     //assert.equal(Asset.from('-99999999999 DUCKS').toString(), '-99999999999 DUCKS')
     //assert.equal(Asset.from('-0.0000000000001 DUCKS').toString(), '-0.0000000000001 DUCKS')
-    assert_eq!(Asset::from_string("0.0000000000000 DUCKS").to_string(), "0.0000000000000 DUCKS");
-    assert_eq!(Asset::from_string("99999999999 DUCKS").to_string(), "99999999999 DUCKS");
+    assert_eq!(
+        Asset::from_string("0.0000000000000 DUCKS").to_string(),
+        "0.0000000000000 DUCKS"
+    );
+    assert_eq!(
+        Asset::from_string("99999999999 DUCKS").to_string(),
+        "99999999999 DUCKS"
+    );
 
     let asset = Asset::from(Asset::from_string("1.000000000 FOO"));
     assert_eq!(asset.amount(), 1000000000);
@@ -41,53 +48,51 @@ fn asset() {
     symbol_decoder.unpack(symbol_unpacked);
     assert_eq!(symbol.to_string(), symbol_unpacked.to_string());
     /*
-    // test null asset
-    asset = Asset.from('0 ')
-    assert.equal(Number(asset.value), 0)
-    assert.equal(String(asset), '0 ')
+       // test null asset
+       asset = Asset.from('0 ')
+       assert.equal(Number(asset.value), 0)
+       assert.equal(String(asset), '0 ')
 
-    asset = Asset.from(10, '4,POX')
-    assert.equal(asset.value, 10)
-    assert.equal(Number(asset.units), 100000)
+       asset = Asset.from(10, '4,POX')
+       assert.equal(asset.value, 10)
+       assert.equal(Number(asset.units), 100000)
 
-    asset = Asset.fromUnits(1, '10,KEK')
-    assert.equal(asset.value, 0.0000000001)
-    asset.value += 0.0000000001
-    assert.equal(Number(asset.units), 2)
+       asset = Asset.fromUnits(1, '10,KEK')
+       assert.equal(asset.value, 0.0000000001)
+       asset.value += 0.0000000001
+       assert.equal(Number(asset.units), 2)
 
-    asset = Asset.from(3.004, '4,RAR')
-    asset.value += 1
-    assert.equal(asset.toString(), '4.0040 RAR')
-    assert.equal(asset.value, 4.004)
+       asset = Asset.from(3.004, '4,RAR')
+       asset.value += 1
+       assert.equal(asset.toString(), '4.0040 RAR')
+       assert.equal(asset.value, 4.004)
 
-    asset = Asset.from(3.004, '8,RAR')
-    asset.value += 1
-    assert.equal(asset.units.toNumber(), 400400000)
-    assert.equal(asset.toString(), '4.00400000 RAR')
-    assert.equal(asset.value, 4.004)
+       asset = Asset.from(3.004, '8,RAR')
+       asset.value += 1
+       assert.equal(asset.units.toNumber(), 400400000)
+       assert.equal(asset.toString(), '4.00400000 RAR')
+       assert.equal(asset.value, 4.004)
 
-    assert.throws(() => {
-        symbol.convertUnits(Int64.from('9223372036854775807'))
-    })
-    assert.throws(() => {
-        Asset.from('')
-    })
-    assert.throws(() => {
-        Asset.from('1POP')
-    })
-    assert.throws(() => {
-        Asset.from('1.0000000000000000000000 BIGS')
-    })
-    assert.throws(() => {
-        Asset.from('1.2 horse')
-    })
-    assert.throws(() => {
-        Asset.Symbol.from('12')
-    })
- */
+       assert.throws(() => {
+           symbol.convertUnits(Int64.from('9223372036854775807'))
+       })
+       assert.throws(() => {
+           Asset.from('')
+       })
+       assert.throws(() => {
+           Asset.from('1POP')
+       })
+       assert.throws(() => {
+           Asset.from('1.0000000000000000000000 BIGS')
+       })
+       assert.throws(() => {
+           Asset.from('1.2 horse')
+       })
+       assert.throws(() => {
+           Asset.Symbol.from('12')
+       })
+    */
 }
-
-
 
 #[test]
 fn block_id() {
@@ -106,7 +111,7 @@ fn block_id() {
             return;
         }
     };
-    
+
     //assert_eq!(block_id.to_string(), string);
     assert_eq!(block_id.block_num().to_string(), "76047867");
     assert!(block_id.block_num() == 76047867);
@@ -125,27 +130,26 @@ fn block_id() {
     // assert!(block_id2.block_num().equals(7));
 }
 
+/*  test('block id', function () {
+    const string = '048865fb643bca3b644647177f0cf363f7956794d0a7ec3bc6d29d93d9637308'
+    const blockId = BlockId.from(string)
+    assert.equal(String(blockId), string)
+    assert.equal(Number(blockId.blockNum), 76047867)
+    assert.equal(blockId.blockNum.equals(76047867), true)
+    assert.equal(blockId.blockNum.equals(UInt32.from(76047867)), true)
+    const blockId2 = BlockId.fromBlockChecksum(
+        '61375f2d5fbe6bbad86e424962a190e8309394b7bff4bf3e16b0a2a71e5a617c',
+        7
+    )
+    assert.equal(
+        String(blockId2),
+        '000000075fbe6bbad86e424962a190e8309394b7bff4bf3e16b0a2a71e5a617c'
+    )
+    assert.equal(blockId2.blockNum.equals(7), true)
+})*/
 
-  /*  test('block id', function () {
-        const string = '048865fb643bca3b644647177f0cf363f7956794d0a7ec3bc6d29d93d9637308'
-        const blockId = BlockId.from(string)
-        assert.equal(String(blockId), string)
-        assert.equal(Number(blockId.blockNum), 76047867)
-        assert.equal(blockId.blockNum.equals(76047867), true)
-        assert.equal(blockId.blockNum.equals(UInt32.from(76047867)), true)
-        const blockId2 = BlockId.fromBlockChecksum(
-            '61375f2d5fbe6bbad86e424962a190e8309394b7bff4bf3e16b0a2a71e5a617c',
-            7
-        )
-        assert.equal(
-            String(blockId2),
-            '000000075fbe6bbad86e424962a190e8309394b7bff4bf3e16b0a2a71e5a617c'
-        )
-        assert.equal(blockId2.blockNum.equals(7), true)
-    })*/
-
-
-//#[test]
+/*
+#[test]
 fn blob() {
     let expected = Blob::from(BlobType::Bytes(vec![0xbe, 0xef, 0xfa, 0xce])).unwrap();
 
@@ -163,32 +167,30 @@ fn blob() {
     let blob4 = Blob::from(BlobType::String("vu/6zg===".to_string())).unwrap();
     assert_eq!(blob4.array, expected.array);
 }
-
+*/
 
 /*    test('blob', function () {
-        const expected = Bytes.from([0xbe, 0xef, 0xfa, 0xce])
+    const expected = Bytes.from([0xbe, 0xef, 0xfa, 0xce])
 
-        // Correct
-        const string = 'vu/6zg=='
-        const blob = Blob.from(string)
-        assert.isTrue(Bytes.from(blob.array).equals(expected))
+    // Correct
+    const string = 'vu/6zg=='
+    const blob = Blob.from(string)
+    assert.isTrue(Bytes.from(blob.array).equals(expected))
 
-        // Wrong padding, ensure it still works
-        const string2 = 'vu/6zg='
-        const blob2 = Blob.from(string2)
-        assert.isTrue(Bytes.from(blob2.array).equals(expected))
+    // Wrong padding, ensure it still works
+    const string2 = 'vu/6zg='
+    const blob2 = Blob.from(string2)
+    assert.isTrue(Bytes.from(blob2.array).equals(expected))
 
-        const string3 = 'vu/6zg'
-        const blob3 = Blob.from(string3)
-        assert.isTrue(Bytes.from(blob3.array).equals(expected))
+    const string3 = 'vu/6zg'
+    const blob3 = Blob.from(string3)
+    assert.isTrue(Bytes.from(blob3.array).equals(expected))
 
-        const string4 = 'vu/6zg==='
-        const blob4 = Blob.from(string4)
-        assert.isTrue(Bytes.from(blob4.array).equals(expected))
-    })
-    */
-
-
+    const string4 = 'vu/6zg==='
+    const blob4 = Blob.from(string4)
+    assert.isTrue(Bytes.from(blob4.array).equals(expected))
+})
+*/
 
 #[test]
 fn bytes() {
@@ -209,63 +211,65 @@ fn bytes() {
         "98c615784ccb5fe5936fbc0cbe9dfdb408d92f0f"
     );
     /*
-        // TODO: add zeropadded support
-        assert.equal(Bytes.from('beef').zeropadded(4).toString('hex'), '0000beef')
-        assert.equal(Bytes.from('beef').zeropadded(2).toString('hex'), 'beef')
-        assert.equal(Bytes.from('beef').zeropadded(1).toString('hex'), 'beef')
-        assert.equal(Bytes.from('beef').zeropadded(1, true).toString('hex'), 'be')
-        assert.equal(Bytes.from('beef').zeropadded(2, true).toString('hex'), 'beef')
-        assert.equal(Bytes.from('beef').zeropadded(3, true).toString('hex'), '00beef')
+       // TODO: add zeropadded support
+       assert.equal(Bytes.from('beef').zeropadded(4).toString('hex'), '0000beef')
+       assert.equal(Bytes.from('beef').zeropadded(2).toString('hex'), 'beef')
+       assert.equal(Bytes.from('beef').zeropadded(1).toString('hex'), 'beef')
+       assert.equal(Bytes.from('beef').zeropadded(1, true).toString('hex'), 'be')
+       assert.equal(Bytes.from('beef').zeropadded(2, true).toString('hex'), 'beef')
+       assert.equal(Bytes.from('beef').zeropadded(3, true).toString('hex'), '00beef')
 
-     */
+    */
 }
 
 /*
 
-    test('time', function () {
-        const now = new Date()
-        assert.equal(TimePoint.from(now).toMilliseconds(), now.getTime())
-        assert.equal(
-            TimePointSec.from(TimePointSec.from(now)).toMilliseconds() / 1000,
-            Math.round(now.getTime() / 1000)
-        )
-        assert.throws(() => {
-            TimePoint.from('blah')
-        })
-        assert.equal(BlockTimestamp.from('2021-08-25T02:37:24.500'), '2021-08-25T02:37:24.500')
-        assert.equal(
-            Math.round(BlockTimestamp.from(now).toMilliseconds() / 500),
-            Math.round(now.getTime() / 500)
-        )
+test('time', function () {
+    const now = new Date()
+    assert.equal(TimePoint.from(now).toMilliseconds(), now.getTime())
+    assert.equal(
+        TimePointSec.from(TimePointSec.from(now)).toMilliseconds() / 1000,
+        Math.round(now.getTime() / 1000)
+    )
+    assert.throws(() => {
+        TimePoint.from('blah')
     })
-    */
+    assert.equal(BlockTimestamp.from('2021-08-25T02:37:24.500'), '2021-08-25T02:37:24.500')
+    assert.equal(
+        Math.round(BlockTimestamp.from(now).toMilliseconds() / 500),
+        Math.round(now.getTime() / 500)
+    )
+})
+*/
 
 #[test]
 fn transaction() {
-
     #[derive(Clone, Eq, PartialEq, Default, StructPacker)]
     struct Transfer {
         from: Name,
         to: Name,
         quantity: Asset,
-        memo: String
+        memo: String,
     }
 
     let transfer_data = Transfer {
         from: name!("foo"),
         to: name!("bar"),
         quantity: Asset::from_string("1.0000 EOS"),
-        memo: String::from("hello")
+        memo: String::from("hello"),
     };
 
     let transfer_data_packed = Encoder::pack(&transfer_data);
-    assert_eq!(bytes_to_hex(&transfer_data_packed), "000000000000285d000000000000ae39102700000000000004454f53000000000568656c6c6f");
+    assert_eq!(
+        bytes_to_hex(&transfer_data_packed),
+        "000000000000285d000000000000ae39102700000000000004454f53000000000568656c6c6f"
+    );
 
     let action = Action::new_ex(
         name!("eosio.token"),
         name!("transfer"),
         vec![],
-        &transfer_data
+        &transfer_data,
     );
 
     let action_packed = Encoder::pack(&action);
@@ -420,17 +424,17 @@ fn transaction() {
 #[test]
 fn permission_level() {
     // Create PermissionLevel from 'foo@bar'
-    let perm = PermissionLevel::new(Name::from_str("foo"), Name::from_str("bar"));
+    let perm = PermissionLevel::new(Name::new_from_str("foo"), Name::new_from_str("bar"));
 
     // Test equals with itself
     assert_eq!(perm, perm.clone());
 
     // Test equals with equivalent ActorPermission
-    let other_perm = PermissionLevel::new(Name::from_str("foo"), Name::from_str("bar"));
+    let other_perm = PermissionLevel::new(Name::new_from_str("foo"), Name::new_from_str("bar"));
     assert_eq!(perm, other_perm);
 
     // Test equals with different PermissionLevel
-    let different_perm = PermissionLevel::new(Name::from_str("bar"), Name::from_str("moo"));
+    let different_perm = PermissionLevel::new(Name::new_from_str("bar"), Name::new_from_str("moo"));
     assert_ne!(perm, different_perm);
 }
 
@@ -552,17 +556,16 @@ fn transaction_signing_data_and_digest() {
         extension: vec![],
     };
     let chain_id = Checksum256::from_bytes(
-        hex_to_bytes("2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840").as_slice()
-    ).unwrap();
+        hex_to_bytes("2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840").as_slice(),
+    )
+    .unwrap();
     let data = trx.signing_data(&chain_id.data.to_vec());
     let expected_data_hex= "2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a91074684000000000000000000000000000000100a6823403ea3055000000572d3ccdcd01a02e45ea52a42e4500000000a8ed32323aa02e45ea52a42e4580b1915e5d268dcaba0100000000000004454f530000000019656f73696f2d636f7265206973207468652062657374203c33000000000000000000000000000000000000000000000000000000000000000000";
     assert_eq!(bytes_to_hex(&data), expected_data_hex);
 
     let digest = trx.signing_digest(&chain_id.data.to_vec());
-    let expected_digest_hex= "59fa6b615e3ce1b539ae27bc2398448c1374d2d3c97fe2bbba2c37c118631848";
+    let expected_digest_hex = "59fa6b615e3ce1b539ae27bc2398448c1374d2d3c97fe2bbba2c37c118631848";
     assert_eq!(bytes_to_hex(&digest), expected_digest_hex);
-
-
 }
 
 /*

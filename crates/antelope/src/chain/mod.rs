@@ -1,4 +1,4 @@
-pub use crate::serializer::serializer::{ Decoder, Encoder, Packer };
+pub use crate::serializer::{Decoder, Encoder, Packer};
 
 pub mod action;
 pub mod asset;
@@ -10,13 +10,13 @@ pub mod name;
 pub mod private_key;
 pub mod public_key;
 pub mod signature;
+pub mod time;
 pub mod transaction;
 pub mod varint;
-pub mod time;
 
 #[macro_export]
 macro_rules! name {
     ($str:expr) => {
-        Name::from_str($str)
+        Name::new_from_str($str)
     };
 }

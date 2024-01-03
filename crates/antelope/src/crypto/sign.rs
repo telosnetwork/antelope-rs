@@ -1,34 +1,34 @@
+use crate::chain::key_type::KeyType;
+use crate::chain::signature::Signature;
+use crate::crypto::curves::create_k1_field_bytes;
 use digest::consts::U32;
 use digest::core_api::{CoreWrapper, CtVariableCoreWrapper};
 use digest::generic_array::ArrayLength;
-use ecdsa::hazmat::{bits2field, DigestPrimitive, SignPrimitive};
-use ecdsa::{PrimeCurve, RecoveryId, SignatureSize};
-use ecdsa::elliptic_curve::{CurveArithmetic, Scalar};
 use ecdsa::elliptic_curve::ops::Invert;
 use ecdsa::elliptic_curve::subtle::CtOption;
-use sha2::{Sha256, Digest, Sha256VarCore, OidSha256};
-use crate::chain::key_type::KeyType;
+use ecdsa::elliptic_curve::{CurveArithmetic, Scalar};
+use ecdsa::hazmat::{bits2field, DigestPrimitive, SignPrimitive};
+use ecdsa::{PrimeCurve, RecoveryId, SignatureSize};
+use k256::ecdsa::signature::DigestSigner;
 use k256::Secp256k1;
 use p256::NistP256;
-use crate::chain::signature::Signature;
-use crate::crypto::curves::create_k1_field_bytes;
-use k256::{
-    ecdsa::{signature::{DigestSigner}}
-};
+use sha2::{Digest, OidSha256, Sha256, Sha256VarCore};
 use signature::Error;
-
 
 pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Signature, String> {
     match key_type {
         KeyType::K1 => {
             let mut attempt = 1i8;
             loop {
-                let signing_key = k256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(&secret.to_vec())).expect("invalid private key");
+                let signing_key =
+                    k256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(&secret.to_vec()))
+                        .expect("invalid private key");
 
                 let pers = &attempt.to_be_bytes();
-                let digest = Sha256::new().chain_update(&message);
+                let digest = Sha256::new().chain_update(message);
 
-                let signed: (ecdsa::Signature<Secp256k1>, RecoveryId) = k1_sign_with_pers(signing_key, digest, pers).unwrap();
+                let signed: (ecdsa::Signature<Secp256k1>, RecoveryId) =
+                    k1_sign_with_pers(signing_key, digest, pers).unwrap();
                 let signature = signed.0;
                 let recovery = signed.1;
 
@@ -40,20 +40,25 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
                 }
 
                 if attempt % 10 == 0 {
-                    println!("Failed {} times to find canonical signature", attempt.to_string());
+                    println!("Failed {} times to find canonical signature", attempt);
                 }
 
                 if attempt > 100 {
-                    return Err(format!("Reached max canonical signature checks: {}", attempt.to_string()));
+                    return Err(format!(
+                        "Reached max canonical signature checks: {}",
+                        attempt
+                    ));
                 }
 
                 attempt += 1;
             }
         }
         KeyType::R1 => {
-            let signing_key = p256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(&secret.to_vec())).expect("invalid private key");
+            let signing_key =
+                p256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(&secret.to_vec()))
+                    .expect("invalid private key");
 
-            let digest = Sha256::new().chain_update(&message);
+            let digest = Sha256::new().chain_update(message);
 
             //  TODO: Explore further how to follow more closely the typescript model with canonical flag
             //    and personalization string being passed to sign method:
@@ -63,12 +68,16 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
             let signature = signed.0;
             let recovery = signed.1;
 
-            return Signature::from_r1_signature(signature, recovery);
+            Signature::from_r1_signature(signature, recovery)
         }
     }
 }
 
-fn k1_sign_with_pers<C>(signing_key: ecdsa::SigningKey<C>, digest: CoreWrapper<CtVariableCoreWrapper<Sha256VarCore, U32, OidSha256>>, pers: &[u8]) -> signature::Result<(ecdsa::Signature<C>, RecoveryId)>
+fn k1_sign_with_pers<C>(
+    signing_key: ecdsa::SigningKey<C>,
+    digest: CoreWrapper<CtVariableCoreWrapper<Sha256VarCore, U32, OidSha256>>,
+    pers: &[u8],
+) -> signature::Result<(ecdsa::Signature<C>, RecoveryId)>
 where
     C: PrimeCurve + CurveArithmetic + DigestPrimitive,
     Scalar<C>: Invert<Output = CtOption<Scalar<C>>> + SignPrimitive<C>,

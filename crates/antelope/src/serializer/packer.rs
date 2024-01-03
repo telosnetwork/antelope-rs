@@ -1,9 +1,7 @@
-use core::{
-    mem::size_of,
-};
+use core::mem::size_of;
 
 use crate::chain::varint::VarUint32;
-use crate::util::{slice_copy};
+use crate::util::slice_copy;
 
 ///
 /// The `Packer` trait provides methods for packing and unpacking values to and from byte arrays.
@@ -11,7 +9,7 @@ use crate::util::{slice_copy};
 /// # Examples
 ///
 /// ```
-/// use crate::antelope::serializer::serializer::{Encoder, Decoder, Packer};
+/// use crate::antelope::serializer::{Encoder, Decoder, Packer};
 ///
 /// let mut encoder = Encoder::new(4);
 /// let value = 123u32;
@@ -55,7 +53,7 @@ pub trait Packer {
 /// # Examples
 ///
 /// ```
-/// use antelope::serializer::serializer::{Encoder, Packer};
+/// use antelope::serializer::{Encoder, Packer};
 ///
 /// let mut encoder = Encoder::new(4);
 /// let value = 123u32;
@@ -82,7 +80,7 @@ impl Encoder {
     /// A new `Encoder` instance with the given initial capacity.
     pub fn new(size: usize) -> Self {
         Self {
-            buf: Vec::with_capacity(size)
+            buf: Vec::with_capacity(size),
         }
     }
 
@@ -113,10 +111,9 @@ impl Encoder {
     /// # Returns
     ///
     /// A mutable reference to the allocated
-    pub fn alloc(&mut self, size: usize) -> &mut [u8]
-    {
+    pub fn alloc(&mut self, size: usize) -> &mut [u8] {
         let old_size = self.buf.len();
-        self.buf.resize(old_size+size, 0u8);
+        self.buf.resize(old_size + size, 0u8);
         &mut self.buf[old_size..]
     }
 
@@ -129,13 +126,12 @@ impl Encoder {
     /// # Examples
     ///
     /// ```
-    /// use antelope::serializer::serializer::{Encoder, Packer};
+    /// use antelope::serializer::{Encoder, Packer};
     ///
     /// let data = Encoder::pack(&1234u32);
     /// assert_eq!(data, vec![210, 4, 0, 0]);
     /// ```
-    pub fn pack<T: Packer>(value: &T) -> Vec<u8>
-    {
+    pub fn pack<T: Packer>(value: &T) -> Vec<u8> {
         // Create a new Encoder with the size of the value being packed
         let mut enc = Self::new(value.size());
         // Pack the value using the encoder
@@ -143,7 +139,6 @@ impl Encoder {
         // Return the packed data as a vector of bytes
         enc.get_bytes().to_vec()
     }
-
 }
 
 /// A struct for unpacking packed data
@@ -151,7 +146,7 @@ impl Encoder {
 /// # Examples
 ///
 /// ```
-/// use crate::antelope::serializer::serializer::{Decoder, Packer};
+/// use crate::antelope::serializer::{Decoder, Packer};
 ///
 /// let data = &vec![210, 4, 0, 0];
 /// let mut decoder = Decoder::new(&data);
@@ -161,22 +156,20 @@ impl Encoder {
 /// ```
 pub struct Decoder<'a> {
     buf: &'a [u8],
-    pos: usize
+    pos: usize,
 }
 
 /// A struct for unpacking packed data
 impl<'a> Decoder<'a> {
-
     /// Creates a new `Decoder` instance from the given byte array.
     pub fn new(data: &'a [u8]) -> Self {
-        Self {
-            buf: data, pos: 0
-        }
+        Self { buf: data, pos: 0 }
     }
 
     /// Unpacks the given value from the decoder
     pub fn unpack<T>(&mut self, packer: &mut T) -> usize
-        where T: Packer,
+    where
+        T: Packer,
     {
         let size = packer.unpack(&self.buf[self.pos..]);
         self.pos += size;
@@ -187,7 +180,6 @@ impl<'a> Decoder<'a> {
     pub fn get_pos(&self) -> usize {
         self.pos
     }
-
 }
 
 /// A trait for packing and unpacking values
@@ -243,7 +235,7 @@ impl Packer for bool {
         } else if data[0] == 0 {
             *self = false;
         } else {
-            assert!(false, "bool::unpack: invalid raw bool value");
+            panic!("bool::unpack: invalid raw bool value");
         }
         self.size()
     }
@@ -251,7 +243,6 @@ impl Packer for bool {
 
 /// Implement `Packer` for i8 type.
 impl Packer for i8 {
-
     /// Returns the size of this value in bytes.
     fn size(&self) -> usize {
         1usize
@@ -274,7 +265,6 @@ impl Packer for i8 {
 
 /// Implement `Packer` for u8 type.
 impl Packer for u8 {
-
     /// Returns the size of this value in bytes.
     fn size(&self) -> usize {
         1usize
@@ -308,7 +298,6 @@ impl_packed!(f64);
 
 /// Implement `Packer` for `String` type.
 impl Packer for String {
-
     /// Returns the size of this value in bytes.
     fn size(&self) -> usize {
         VarUint32::new(self.len() as u32).size() + self.len()
@@ -331,28 +320,31 @@ impl Packer for String {
 
     /// Unpacks this value from the given data.
     fn unpack(&mut self, data: &[u8]) -> usize {
-        let mut length = VarUint32{n: 0};
+        let mut length = VarUint32 { n: 0 };
         let size = length.unpack(data);
-        if let Ok(s) = String::from_utf8(data[size..size+length.value() as usize].to_vec()) {
+        if let Ok(s) = String::from_utf8(data[size..size + length.value() as usize].to_vec()) {
             *self = s;
         } else {
-            assert!(false, "invalid utf8 string");
+            panic!("invalid utf8 string");
         }
         size + length.value() as usize
     }
 }
 
 /// Implement `Packer` for `Vec<T>` type.
-impl<T> Packer for Vec<T> where T: Packer + Default {
+impl<T> Packer for Vec<T>
+where
+    T: Packer + Default,
+{
     /// Returns the size of this value in bytes.
     fn size(&self) -> usize {
-        if self.len() == 0 {
+        if self.is_empty() {
             return 1;
         }
 
         let mut size: usize = 0;
-        for i in 0..self.len() {
-            size += self[i].size();
+        for i in self {
+            size += i.size();
         }
         VarUint32::new(size as u32).size() + size
     }
@@ -360,7 +352,9 @@ impl<T> Packer for Vec<T> where T: Packer + Default {
     /// Packs this value into the given encoder.
     fn pack(&self, enc: &mut Encoder) -> usize {
         let pos = enc.get_size();
-        let len = VarUint32{n: self.len() as u32};
+        let len = VarUint32 {
+            n: self.len() as u32,
+        };
         len.pack(enc);
         for v in self {
             v.pack(enc);
@@ -371,7 +365,7 @@ impl<T> Packer for Vec<T> where T: Packer + Default {
     /// Unpacks this value from the given data.
     fn unpack(&mut self, data: &[u8]) -> usize {
         let mut dec = Decoder::new(data);
-        let mut size = VarUint32{n: 0};
+        let mut size = VarUint32 { n: 0 };
         dec.unpack(&mut size);
         self.reserve(size.value() as usize);
         for _ in 0..size.value() {
@@ -384,8 +378,10 @@ impl<T> Packer for Vec<T> where T: Packer + Default {
 }
 
 /// Implement `Packer` for `Option<T>` type.
-impl<T> Packer for Option<T> where T: Packer + Default {
-
+impl<T> Packer for Option<T>
+where
+    T: Packer + Default,
+{
     /// Returns the size of this value in bytes.
     fn size(&self) -> usize {
         match self {

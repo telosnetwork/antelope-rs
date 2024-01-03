@@ -1,22 +1,26 @@
-use std::fs;
-use std::path::PathBuf;
 use antelope::api::client::{HTTPMethod, Provider};
 use antelope::api::v1::structs::GetInfoResponse;
+use antelope::chain::action::{Action, PermissionLevel};
 use antelope::chain::asset::Asset;
 use antelope::chain::checksum::Checksum160;
 use antelope::chain::name::Name;
 use antelope::chain::private_key::PrivateKey;
 use antelope::chain::transaction::{SignedTransaction, Transaction};
-use antelope::chain::{Packer, Encoder, Decoder};
-use antelope::chain::action::{Action, PermissionLevel};
+use antelope::chain::{Decoder, Encoder, Packer};
 use antelope::name;
 use antelope_macros::StructPacker;
+use std::fs;
+use std::path::PathBuf;
 
-pub struct MockProvider {
-}
+pub struct MockProvider {}
 
 impl MockProvider {
-    fn call(&self, method: HTTPMethod, path: String, body: Option<String>) -> Result<String, String> {
+    fn call(
+        &self,
+        method: HTTPMethod,
+        path: String,
+        body: Option<String>,
+    ) -> Result<String, String> {
         let mut to_hash = method.to_string() + &path;
         if body.is_some() {
             to_hash += body.unwrap().as_str();
@@ -40,7 +44,7 @@ impl Provider for MockProvider {
     }
 }
 
-pub fn make_mock_transaction(info: &GetInfoResponse) -> Transaction {
+pub fn make_mock_transaction(info: &GetInfoResponse, asset_to_transfer: Asset) -> Transaction {
     let trx_header = info.get_transaction_header(90);
 
     #[derive(Clone, Eq, PartialEq, Default, StructPacker)]
@@ -48,13 +52,13 @@ pub fn make_mock_transaction(info: &GetInfoResponse) -> Transaction {
         from: Name,
         to: Name,
         quantity: Asset,
-        memo: String
+        memo: String,
     }
 
     let transfer_data = Transfer {
         from: name!("corecorecore"),
         to: name!("teamgreymass"),
-        quantity: Asset::from_string("0.0420 TLOS"),
+        quantity: asset_to_transfer,
         memo: String::from("Testing antelope-rs"),
     };
 
@@ -62,7 +66,7 @@ pub fn make_mock_transaction(info: &GetInfoResponse) -> Transaction {
         name!("eosio.token"),
         name!("transfer"),
         vec![PermissionLevel::new(name!("corecorecore"), name!("active"))],
-        &transfer_data
+        &transfer_data,
     );
 
     Transaction {
@@ -74,7 +78,8 @@ pub fn make_mock_transaction(info: &GetInfoResponse) -> Transaction {
 }
 
 pub fn sign_mock_transaction(trx: &Transaction, info: &GetInfoResponse) -> SignedTransaction {
-    let private_key = PrivateKey::from_str("5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9", false).unwrap();
+    let private_key =
+        PrivateKey::from_str("5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9", false).unwrap();
     let sign_data = trx.signing_data(&info.chain_id.data.to_vec());
     SignedTransaction {
         transaction: trx.clone(),
