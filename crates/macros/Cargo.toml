@@ -2,6 +2,7 @@
 name = "antelope-client-macros"
 description = "A proc-macro crate for StructPacker"
 version = "0.1.0"
+documentation = ""
 
 edition.workspace = true
 rust-version.workspace = true
