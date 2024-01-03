@@ -1,7 +1,7 @@
 use antelope::chain::{Decoder, Encoder};
 use antelope::chain::name::Name;
 use antelope::chain::signature::Signature;
-use antelope::serializer::serializer::Packer;
+use antelope::serializer::Packer;
 use antelope::util;
 use antelope::util::{bytes_to_hex, hex_to_bytes};
 use antelope_macros::StructPacker;
@@ -46,7 +46,7 @@ fn array() {
 #[test]
 fn name() {
     let data = "000000005c73285d";
-    let name1 = Name::from_str("foobar");
+    let name1 = Name::new_from_str("foobar");
 
     assert_eq!(bytes_to_hex(&Encoder::pack(&name1)), data);
     let data_bytes = hex_to_bytes(data);

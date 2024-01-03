@@ -15,7 +15,7 @@ pub fn verify_message(signature: &Signature, message_bytes: &Vec<u8>, pub_key: &
             let s_scalar = create_k1_field_bytes(&signature.s());
             let sig_result = k256::ecdsa::Signature::from_scalars(r_scalar, s_scalar).unwrap();
             let verification = verifying_key.verify(message_bytes.as_slice(), &sig_result);
-            return verification.is_ok();
+            verification.is_ok()
         }
         KeyType::R1 => {
             let public_key_point = p256::PublicKey::from_sec1_bytes(pub_key.as_slice()).unwrap().to_encoded_point(false);
@@ -24,7 +24,7 @@ pub fn verify_message(signature: &Signature, message_bytes: &Vec<u8>, pub_key: &
             let s_scalar = create_r1_field_bytes(&signature.s());
             let sig_result = p256::ecdsa::Signature::from_scalars(r_scalar, s_scalar).unwrap();
             let verification = verifying_key.verify(message_bytes.as_slice(), &sig_result);
-            return verification.is_ok();
+            verification.is_ok()
         }
     }
 }

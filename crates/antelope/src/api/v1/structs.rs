@@ -10,7 +10,7 @@ use crate::chain::{
 #[derive(Debug)]
 pub enum ClientError<T> {
     SIMPLE(SimpleError),
-    SERVER(T),
+    SERVER(ServerError<T>),
     HTTP(HTTPError),
     ENCODING(EncodingError)
 }
@@ -24,8 +24,8 @@ impl<T> ClientError<T> {
         ClientError::ENCODING(EncodingError { message })
     }
 
-    pub fn server(server_error: T) -> Self {
-        ClientError::SERVER(server_error)
+    pub fn server(error: T) -> Self {
+        ClientError::SERVER(ServerError { error } )
     }
 }
 
@@ -48,7 +48,7 @@ pub struct SimpleError {
 
 #[derive(Debug)]
 pub struct ServerError<T> {
-    error: T
+    pub error: T
 }
 
 #[derive(Debug)]
@@ -132,7 +132,7 @@ pub struct ProcessedTransaction {
     pub block_time: String,
     pub receipt: ProcessedTransactionReceipt,
     pub elapsed: u64,
-    pub except: Option<SendTransactionResponseException>,
+    pub except: Option<SendTransactionResponseError>,
     pub net_usage: u32,
     pub scheduled: bool,
     pub action_traces: String, // TODO: create a type for this?
@@ -140,6 +140,7 @@ pub struct ProcessedTransaction {
 
 }
 
+#[derive(Debug)]
 pub struct SendTransactionResponseExceptionStackContext {
     pub level: String,
     pub file: String,
@@ -150,13 +151,15 @@ pub struct SendTransactionResponseExceptionStackContext {
     pub timestamp: String
 }
 
+#[derive(Debug)]
 pub struct SendTransactionResponseExceptionStack {
     pub context: SendTransactionResponseExceptionStackContext,
     pub format: String,
     pub data: String // TODO: create a type for this?
 }
 
-pub struct SendTransactionResponseException {
+#[derive(Debug)]
+pub struct SendTransactionResponseError {
     pub code: u32,
     pub name: String,
     pub message: String,
@@ -167,17 +170,3 @@ pub struct SendTransactionResponse {
     pub transaction_id: String,
     pub processed: ProcessedTransaction
 }
-
-
-#[derive(Debug)]
-pub struct SendTransactionError {
-    pub message: String
-}
-//
-// impl From<dyn ClientError> for SendTransactionError {
-//     fn from(value: ClientError) -> Self {
-//         Self {
-//             message: value.message
-//         }
-//     }
-// }

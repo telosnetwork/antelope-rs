@@ -4,14 +4,12 @@ use crate::chain::{
 };
 use crate::chain::checksum::Checksum256;
 
-use crate::serializer::serializer::{
+use crate::serializer::{
     Packer,
     Encoder,
     Decoder,
 };
 
-/// A structure representing a permission level for an action in a smart contract system.
-#[cfg_attr(feature = "std", derive(eosio_scale_info::TypeInfo))]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
 pub struct PermissionLevel {
     /// The account holding the permission.
@@ -31,7 +29,7 @@ impl PermissionLevel {
 impl Packer for PermissionLevel {
     /// Returns the packed size of the PermissionLevel structure.
     fn size(&self) -> usize {
-        return 16;
+        16
     }
 
     /// Packs the PermissionLevel structure into the provided Encoder.
@@ -48,12 +46,10 @@ impl Packer for PermissionLevel {
         let mut dec = Decoder::new(data);
         dec.unpack(&mut self.actor);
         dec.unpack(&mut self.permission);
-        return 16;
+        16
     }
 }
 
-/// A structure representing an action to be executed in a smart contract system.
-#[cfg_attr(feature = "std", derive(eosio_scale_info::TypeInfo))]
 #[derive(Clone, Eq, PartialEq)]
 pub struct Action {
     /// The account on which the action is executed.
@@ -107,7 +103,7 @@ impl Packer for Action {
         size = 16;
         size += VarUint32::new(self.authorization.len() as u32).size()+ self.authorization.len() * 16;
         size += VarUint32::new(self.data.len() as u32).size() + self.data.len();
-        return size
+        size
     }
 
     /// Packs the Action structure into the provided Encoder.

@@ -1,8 +1,9 @@
 use std::fmt::{Display, Formatter};
 use crate::chain::{Encoder, Packer};
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Default)]
 pub enum KeyType {
+    #[default]
     K1,
     R1,
     // ... other variants ...
@@ -24,7 +25,7 @@ impl KeyTypeTrait for KeyType {
             return Ok(KeyType::R1);
         }
 
-        return Err(format!("Unknown key type {s}"));
+        Err(format!("Unknown key type {s}"))
     }
 
     fn from_index(i: u8) -> Result<KeyType, String> {
@@ -35,7 +36,7 @@ impl KeyTypeTrait for KeyType {
         if i == 1 {
             return Ok(KeyType::R1);
         }
-        return Err(String::from(format!("Unknown KeyType index {i}")));
+        Err(format!("Unknown KeyType index {i}"))
     }
 
     fn to_index(&self) -> u8 {
@@ -55,10 +56,6 @@ impl Display for KeyType {
     }
 }
 
-
-impl Default for KeyType {
-    fn default() -> Self { KeyType::K1 }
-}
 
 impl Packer for KeyType {
     fn size(&self) -> usize {

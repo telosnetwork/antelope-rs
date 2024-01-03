@@ -40,7 +40,7 @@ impl Provider for MockProvider {
     }
 }
 
-pub fn make_mock_transaction(info: &GetInfoResponse) -> Transaction {
+pub fn make_mock_transaction(info: &GetInfoResponse, asset_to_transfer: Asset) -> Transaction {
     let trx_header = info.get_transaction_header(90);
 
     #[derive(Clone, Eq, PartialEq, Default, StructPacker)]
@@ -54,7 +54,7 @@ pub fn make_mock_transaction(info: &GetInfoResponse) -> Transaction {
     let transfer_data = Transfer {
         from: name!("corecorecore"),
         to: name!("teamgreymass"),
-        quantity: Asset::from_string("0.0420 TLOS"),
+        quantity: asset_to_transfer,
         memo: String::from("Testing antelope-rs"),
     };
 

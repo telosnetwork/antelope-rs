@@ -1,7 +1,7 @@
 use serde_json::Value;
 use crate::api::client::{Provider};
 use crate::chain::block_id::BlockId;
-use crate::api::v1::structs::{ClientError, GetInfoResponse, ProcessedTransaction, ProcessedTransactionReceipt, SendTransactionError, SendTransactionResponse};
+use crate::api::v1::structs::{ClientError, GetInfoResponse, ProcessedTransaction, ProcessedTransactionReceipt, SendTransactionResponse, SendTransactionResponseError};
 use crate::chain::checksum::Checksum256;
 use crate::chain::time::TimePoint;
 use crate::chain::name::Name;
@@ -47,18 +47,27 @@ impl ChainAPI {
         })
     }
 
-    pub fn send_transaction(&self, trx: SignedTransaction) -> Result<SendTransactionResponse, ClientError<SendTransactionError>> {
+    pub fn send_transaction(&self, trx: SignedTransaction) -> Result<SendTransactionResponse, ClientError<SendTransactionResponseError>> {
         let packed_result = PackedTransaction::from_signed(trx, CompressionType::ZLIB);
         if packed_result.is_err() {
-            return Err(ClientError::server(SendTransactionError {
-                message: String::from("Failed to pack transaction"),
-            }));
+            return Err(ClientError::encoding("Failed to pack transaction".into()));
         }
         let packed = packed_result.unwrap();
         let trx_json = packed.to_json();
         let result = self.provider.post(String::from("/v1/chain/send_transaction"), Some(trx_json));
         let json: Value = serde_json::from_str(result.unwrap().as_str()).unwrap();
         let response_obj = JSONObject::new(json);
+        if response_obj.has("code") {
+            let error_value = response_obj.get_value("error").unwrap();
+            let error_json = error_value.to_string();
+            let error_obj = JSONObject::new(error_value);
+            return Err(ClientError::server(SendTransactionResponseError {
+                code: error_obj.get_u32("code")?,
+                name: error_obj.get_string("name")?,
+                message: error_json,
+                stack: vec![],
+            }))
+        }
         let processed_obj = JSONObject::new(response_obj.get_value("processed").unwrap());
         let receipt_obj = JSONObject::new(processed_obj.get_value("receipt").unwrap());
 

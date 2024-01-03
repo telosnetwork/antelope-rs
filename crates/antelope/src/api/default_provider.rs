@@ -18,7 +18,7 @@ impl DefaultProvider {
             return Err(err_message);
         }
 
-        let url = base_url.trim_end_matches("/");
+        let url = base_url.trim_end_matches('/');
 
         Ok(Self {
             base_url: String::from(url),

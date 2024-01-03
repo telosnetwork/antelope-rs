@@ -1,10 +1,8 @@
-use crate::serializer::serializer::{
+use crate::serializer::{
     Packer,
     Encoder,
 };
 
-/// A variable-length unsigned integer structure.
-#[cfg_attr(feature = "std", derive(crate::eosio_scale_info::TypeInfo))]
 #[derive(Copy, Clone, Eq, PartialEq, Default, Debug)]
 pub struct VarUint32 {
     /// The unsigned integer value.
@@ -14,12 +12,12 @@ pub struct VarUint32 {
 impl VarUint32 {
     /// Create a new VarUint32 instance with the given value.
     pub fn new(n: u32) -> Self {
-        Self { n: n }
+        Self { n }
     }
 
     /// Get the value of the VarUint32 instance.
     pub fn value(&self) -> u32 {
-        return self.n;
+        self.n
     }
 }
 
@@ -36,7 +34,7 @@ impl Packer for VarUint32 {
             val >>= 7;
             size += 1;
         }
-        return size;
+        size
     }
 
     /// Serialize the VarUint32 value.
@@ -76,7 +74,7 @@ impl Packer for VarUint32 {
             assert!(by < 32, "malformed varuint32 data");
         }
         self.n = value;
-        return length;
+        length
     }
 }
 

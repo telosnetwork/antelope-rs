@@ -20,16 +20,16 @@ fn private_key_encoding() {
 
 #[test]
 fn public_key_encoding() {
-    let k1_key = PublicKey::from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs").unwrap();
+    let k1_key = PublicKey::new_from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs").unwrap();
     assert!(matches!(k1_key.key_type, KeyType::K1));
     assert_eq!(k1_key.to_string(), "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs");
     assert_eq!(k1_key.to_legacy_string(Option::from("EOS")).unwrap(), "EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin");
     assert_eq!(
-        PublicKey::from_str("EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin").unwrap().to_string(),
+        PublicKey::new_from_str("EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin").unwrap().to_string(),
         "PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs"
     );
     assert_eq!(k1_key.to_hex_string(), "02caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc");
-    let r1_key = PublicKey::from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu").unwrap();
+    let r1_key = PublicKey::new_from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu").unwrap();
     assert_eq!(r1_key.to_string(), "PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu");
     let legacy_result = r1_key.to_legacy_string(None);
     assert!(legacy_result.is_err());
@@ -68,7 +68,7 @@ fn public_from_private() {
 #[test]
 fn sign_and_verify() {
     let priv_key = PrivateKey::from_str("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu", false).unwrap();
-    let pub_key = PublicKey::from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs").unwrap();
+    let pub_key = PublicKey::new_from_str("PUB_K1_6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs").unwrap();
     let message = String::from("I like turtles").into_bytes();
     let signature = priv_key.sign_message(&message);
     assert!(signature.verify_message(&message, &pub_key));
@@ -76,14 +76,14 @@ fn sign_and_verify() {
     assert!(
         !signature.verify_message(
             &message,
-            &PublicKey::from_str("EOS7HBX4f8UknP5NNoX8ixCx4YrA8JcPhGbuQ7Xem8gmWg1nviTqR").unwrap()
+            &PublicKey::new_from_str("EOS7HBX4f8UknP5NNoX8ixCx4YrA8JcPhGbuQ7Xem8gmWg1nviTqR").unwrap()
         )
     );
     // r1
     let priv_key2 = PrivateKey::from_str(
         "PVT_R1_2dSFGZnA4oFvMHwfjeYCtK2MLLPNYWgYRXrPTcnTaLZFkDSELm", false
     ).unwrap();
-    let pub_key2 = PublicKey::from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu").unwrap();
+    let pub_key2 = PublicKey::new_from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu").unwrap();
     let signature2 = priv_key2.sign_message(&message);
     assert_eq!(signature2.verify_message(&message, &pub_key2), true);
 }
@@ -109,8 +109,8 @@ fn sign_and_recover() {
 fn shared_secrets() {
     let priv1 = PrivateKey::from_str("5KGNiwTYdDWVBc9RCC28hsi7tqHGUsikn9Gs8Yii93fXbkYzxGi", false).unwrap();
     let priv2 = PrivateKey::from_str("5Kik3tbLSn24ScHFsj6GwLkgd1H4Wecxkzt1VX7PBBRDQUCdGFa", false).unwrap();
-    let pub1 = PublicKey::from_str("PUB_K1_7Wp9pzhtTfN3jSyQDCktKLqxdTAcAfgT2RrVpE6KThZraa381H").unwrap();
-    let pub2 = PublicKey::from_str("PUB_K1_6P8aGPEP79815rKGQ1dbc9eDxoEjatX7Lp696ve5tinnfwJ6nt").unwrap();
+    let pub1 = PublicKey::new_from_str("PUB_K1_7Wp9pzhtTfN3jSyQDCktKLqxdTAcAfgT2RrVpE6KThZraa381H").unwrap();
+    let pub2 = PublicKey::new_from_str("PUB_K1_6P8aGPEP79815rKGQ1dbc9eDxoEjatX7Lp696ve5tinnfwJ6nt").unwrap();
     let expected =
         "def2d32f6b849198d71118ef53dbc3b679fe2b2c174ee4242a33e1a3f34c46fcbaa698fb599ca0e36f555dde2ac913a10563de2c33572155487cd8b34523de9e";
     let secret1 = priv1.shared_secret(&pub2);

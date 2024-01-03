@@ -11,7 +11,7 @@ use crate::util::{slice_copy};
 /// # Examples
 ///
 /// ```
-/// use crate::antelope::serializer::serializer::{Encoder, Decoder, Packer};
+/// use crate::antelope::serializer::{Encoder, Decoder, Packer};
 ///
 /// let mut encoder = Encoder::new(4);
 /// let value = 123u32;
@@ -55,7 +55,7 @@ pub trait Packer {
 /// # Examples
 ///
 /// ```
-/// use antelope::serializer::serializer::{Encoder, Packer};
+/// use antelope::serializer::{Encoder, Packer};
 ///
 /// let mut encoder = Encoder::new(4);
 /// let value = 123u32;
@@ -129,7 +129,7 @@ impl Encoder {
     /// # Examples
     ///
     /// ```
-    /// use antelope::serializer::serializer::{Encoder, Packer};
+    /// use antelope::serializer::{Encoder, Packer};
     ///
     /// let data = Encoder::pack(&1234u32);
     /// assert_eq!(data, vec![210, 4, 0, 0]);
@@ -151,7 +151,7 @@ impl Encoder {
 /// # Examples
 ///
 /// ```
-/// use crate::antelope::serializer::serializer::{Decoder, Packer};
+/// use crate::antelope::serializer::{Decoder, Packer};
 ///
 /// let data = &vec![210, 4, 0, 0];
 /// let mut decoder = Decoder::new(&data);
@@ -243,7 +243,7 @@ impl Packer for bool {
         } else if data[0] == 0 {
             *self = false;
         } else {
-            assert!(false, "bool::unpack: invalid raw bool value");
+            panic!("bool::unpack: invalid raw bool value");
         }
         self.size()
     }
@@ -336,7 +336,7 @@ impl Packer for String {
         if let Ok(s) = String::from_utf8(data[size..size+length.value() as usize].to_vec()) {
             *self = s;
         } else {
-            assert!(false, "invalid utf8 string");
+            panic!("invalid utf8 string");
         }
         size + length.value() as usize
     }
@@ -346,13 +346,13 @@ impl Packer for String {
 impl<T> Packer for Vec<T> where T: Packer + Default {
     /// Returns the size of this value in bytes.
     fn size(&self) -> usize {
-        if self.len() == 0 {
+        if self.is_empty() {
             return 1;
         }
 
         let mut size: usize = 0;
-        for i in 0..self.len() {
-            size += self[i].size();
+        for i in self {
+            size += i.size();
         }
         VarUint32::new(size as u32).size() + size
     }

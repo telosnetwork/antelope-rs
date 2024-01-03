@@ -1,5 +1,5 @@
-use serde_json::{from_str, Value};
-use crate::api::v1::structs::{ClientError, EncodingError};
+use serde_json::{Value};
+use crate::api::v1::structs::{EncodingError};
 use crate::util::hex_to_bytes;
 
 pub struct ValueTo {
@@ -64,6 +64,10 @@ impl JSONObject {
         JSONObject {
             value
         }
+    }
+
+    pub fn has(&self, property: &str) -> bool {
+        self.value.get(property).is_some()
     }
 
     pub fn get_value(&self, property: &str) -> Result<Value, EncodingError> {

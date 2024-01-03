@@ -36,7 +36,7 @@ impl Transaction {
         Checksum256::hash(Encoder::pack(self)).data.to_vec()
     }
 
-    pub fn signing_data(&self, chain_id: &Vec<u8>) -> Vec<u8> {
+    pub fn signing_data(&self, chain_id: &[u8]) -> Vec<u8> {
         let mut bytes = chain_id.to_vec();
         let encoded = &mut Encoder::pack(self);
         bytes.append(encoded);
@@ -44,7 +44,7 @@ impl Transaction {
         bytes
     }
 
-    pub fn signing_digest(&self, chain_id: &Vec<u8>) -> Vec<u8> {
+    pub fn signing_digest(&self, chain_id: &[u8]) -> Vec<u8> {
         Checksum256::hash(self.signing_data(chain_id)).data.to_vec()
     }
 }

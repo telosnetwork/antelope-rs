@@ -26,7 +26,7 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
                 let signing_key = k256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(&secret.to_vec())).expect("invalid private key");
 
                 let pers = &attempt.to_be_bytes();
-                let digest = Sha256::new().chain_update(&message);
+                let digest = Sha256::new().chain_update(message);
 
                 let signed: (ecdsa::Signature<Secp256k1>, RecoveryId) = k1_sign_with_pers(signing_key, digest, pers).unwrap();
                 let signature = signed.0;
@@ -40,11 +40,11 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
                 }
 
                 if attempt % 10 == 0 {
-                    println!("Failed {} times to find canonical signature", attempt.to_string());
+                    println!("Failed {} times to find canonical signature", attempt);
                 }
 
                 if attempt > 100 {
-                    return Err(format!("Reached max canonical signature checks: {}", attempt.to_string()));
+                    return Err(format!("Reached max canonical signature checks: {}", attempt));
                 }
 
                 attempt += 1;
@@ -53,7 +53,7 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
         KeyType::R1 => {
             let signing_key = p256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(&secret.to_vec())).expect("invalid private key");
 
-            let digest = Sha256::new().chain_update(&message);
+            let digest = Sha256::new().chain_update(message);
 
             //  TODO: Explore further how to follow more closely the typescript model with canonical flag
             //    and personalization string being passed to sign method:
@@ -63,7 +63,7 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
             let signature = signed.0;
             let recovery = signed.1;
 
-            return Signature::from_r1_signature(signature, recovery);
+            Signature::from_r1_signature(signature, recovery)
         }
     }
 }

@@ -3,7 +3,6 @@ use antelope::chain::checksum::{Checksum160, Checksum256, Checksum512};
 use antelope::chain::{action::Action, asset::Asset, Encoder, Decoder, Packer, action::PermissionLevel};
 use antelope::chain::asset::Symbol;
 use antelope::util::{bytes_to_hex, hex_to_bytes};
-use antelope::chain::blob::{Blob, BlobType};
 use antelope::chain::name::Name;
 use antelope::chain::transaction::{Transaction, TransactionHeader};
 use antelope::name;
@@ -145,7 +144,8 @@ fn block_id() {
     })*/
 
 
-//#[test]
+/*
+#[test]
 fn blob() {
     let expected = Blob::from(BlobType::Bytes(vec![0xbe, 0xef, 0xfa, 0xce])).unwrap();
 
@@ -163,6 +163,7 @@ fn blob() {
     let blob4 = Blob::from(BlobType::String("vu/6zg===".to_string())).unwrap();
     assert_eq!(blob4.array, expected.array);
 }
+*/
 
 
 /*    test('blob', function () {
@@ -420,17 +421,17 @@ fn transaction() {
 #[test]
 fn permission_level() {
     // Create PermissionLevel from 'foo@bar'
-    let perm = PermissionLevel::new(Name::from_str("foo"), Name::from_str("bar"));
+    let perm = PermissionLevel::new(Name::new_from_str("foo"), Name::new_from_str("bar"));
 
     // Test equals with itself
     assert_eq!(perm, perm.clone());
 
     // Test equals with equivalent ActorPermission
-    let other_perm = PermissionLevel::new(Name::from_str("foo"), Name::from_str("bar"));
+    let other_perm = PermissionLevel::new(Name::new_from_str("foo"), Name::new_from_str("bar"));
     assert_eq!(perm, other_perm);
 
     // Test equals with different PermissionLevel
-    let different_perm = PermissionLevel::new(Name::from_str("bar"), Name::from_str("moo"));
+    let different_perm = PermissionLevel::new(Name::new_from_str("bar"), Name::new_from_str("moo"));
     assert_ne!(perm, different_perm);
 }
 
