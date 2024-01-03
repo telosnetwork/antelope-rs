@@ -1,8 +1,8 @@
-use std::fmt::{Display, Formatter};
-use antelope_macros::StructPacker;
 use crate::base58::{decode_public_key, encode_ripemd160_check};
 use crate::chain::{key_type::KeyType, Decoder, Encoder, Packer};
 use crate::util::bytes_to_hex;
+use antelope_macros::StructPacker;
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Eq, PartialEq, Default, StructPacker)]
 pub struct PublicKey {
@@ -11,10 +11,12 @@ pub struct PublicKey {
 }
 
 impl PublicKey {
-
     pub fn as_string(&self) -> String {
         let type_str = self.key_type.to_string();
-        let encoded = encode_ripemd160_check(self.value.to_vec(), Option::from(self.key_type.to_string().as_str()));
+        let encoded = encode_ripemd160_check(
+            self.value.to_vec(),
+            Option::from(self.key_type.to_string().as_str()),
+        );
         format!("PUB_{type_str}_{encoded}")
     }
 
@@ -33,25 +35,17 @@ impl PublicKey {
 
     pub fn new_from_str(value: &str) -> Result<Self, String> {
         match decode_public_key(value) {
-            Ok(decoded) => {
-                Ok(PublicKey {
-                    key_type: decoded.0,
-                    value: decoded.1
-                })
-            }
-            Err(err_string) => {
-                Err(err_string)
-            }
+            Ok(decoded) => Ok(PublicKey {
+                key_type: decoded.0,
+                value: decoded.1,
+            }),
+            Err(err_string) => Err(err_string),
         }
     }
 
     pub fn from_bytes(value: Vec<u8>, key_type: KeyType) -> Self {
-        PublicKey {
-            key_type,
-            value
-        }
+        PublicKey { key_type, value }
     }
-
 }
 
 impl Display for PublicKey {

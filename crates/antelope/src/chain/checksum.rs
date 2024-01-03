@@ -1,8 +1,8 @@
-use std::fmt::{Display, Formatter};
-use ripemd::{Digest as Ripemd160Digest, Ripemd160};
-use sha2::{Sha256, Sha512};
 use crate::chain::{Encoder, Packer};
 use crate::util::{bytes_to_hex, hex_to_bytes, slice_copy};
+use ripemd::{Digest as Ripemd160Digest, Ripemd160};
+use sha2::{Sha256, Sha512};
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Copy, Eq, PartialEq, Default)]
 pub struct Checksum160 {
@@ -11,13 +11,17 @@ pub struct Checksum160 {
 
 impl Checksum160 {
     pub fn from_hex(s: &str) -> Result<Self, String> {
-        if s.len() != 40 { return Err(String::from("Checksum160: bad hex string length")) }
+        if s.len() != 40 {
+            return Err(String::from("Checksum160: bad hex string length"));
+        }
         let data = hex_to_bytes(s);
         Self::from_bytes(data.as_slice())
     }
 
     pub fn from_bytes(b: &[u8]) -> Result<Self, String> {
-        if b.len() != 20 { return Err(String::from("Checksum160: bad byte array length")) }
+        if b.len() != 20 {
+            return Err(String::from("Checksum160: bad byte array length"));
+        }
         let mut ret = Self::default();
         slice_copy(&mut ret.data, b);
         Ok(ret)
@@ -65,13 +69,17 @@ pub struct Checksum256 {
 
 impl Checksum256 {
     pub fn from_hex(s: &str) -> Result<Self, String> {
-        if s.len() != 64 { return Err(String::from("Checksum256: bad hex string length")) }
+        if s.len() != 64 {
+            return Err(String::from("Checksum256: bad hex string length"));
+        }
         let data = hex_to_bytes(s);
         Self::from_bytes(data.as_slice())
     }
 
     pub fn from_bytes(b: &[u8]) -> Result<Self, String> {
-        if b.len() != 32 { return Err(String::from("Checksum256: bad byte array length")) }
+        if b.len() != 32 {
+            return Err(String::from("Checksum256: bad byte array length"));
+        }
         let mut ret = Self::default();
         slice_copy(&mut ret.data, b);
         Ok(ret)
@@ -116,7 +124,9 @@ pub struct Checksum512 {
 
 impl Checksum512 {
     pub fn from_hex(s: &str) -> Result<Self, String> {
-        if s.len() != 128 { return Err(String::from("Checksum512: bad hex string length")) }
+        if s.len() != 128 {
+            return Err(String::from("Checksum512: bad hex string length"));
+        }
         let data = hex_to_bytes(s);
         Ok(Self::from_bytes(data.as_slice()))
     }
@@ -145,7 +155,7 @@ impl Display for Checksum512 {
 
 impl Default for Checksum512 {
     fn default() -> Self {
-        Checksum512 {data: [0; 64]}
+        Checksum512 { data: [0; 64] }
     }
 }
 

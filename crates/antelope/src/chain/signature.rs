@@ -1,25 +1,24 @@
-use std::fmt::{Display, Formatter};
+use crate::base58;
+use crate::base58::encode_ripemd160_check;
+use crate::chain::key_type::KeyType;
+use crate::chain::key_type::KeyTypeTrait;
+use crate::chain::public_key::PublicKey;
+use crate::chain::{Encoder, Packer};
+use crate::crypto::recover::recover_message;
+use crate::crypto::verify::verify_message;
+use crate::util::slice_copy;
 use ecdsa::RecoveryId;
 use k256::Secp256k1;
 use p256::NistP256;
-use crate::base58;
-use crate::base58::encode_ripemd160_check;
-use crate::chain::key_type::KeyTypeTrait;
-use crate::chain::{Encoder, Packer};
-use crate::chain::key_type::KeyType;
-use crate::chain::public_key::PublicKey;
-use crate::crypto::recover::recover_message;
-use crate::crypto::verify::{verify_message};
-use crate::util::slice_copy;
+use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Eq, PartialEq )]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Signature {
     pub key_type: KeyType,
     value: Vec<u8>,
 }
 
 impl Signature {
-
     pub const RECOVERY_ID_ADDITION: u8 = 27;
 
     pub fn recovery_id(&self) -> u8 {
@@ -53,7 +52,10 @@ impl Signature {
 
     pub fn as_string(&self) -> String {
         let type_str = self.key_type.to_string();
-        let encoded = encode_ripemd160_check(self.value.to_vec(), Option::from(self.key_type.to_string().as_str()));
+        let encoded = encode_ripemd160_check(
+            self.value.to_vec(),
+            Option::from(self.key_type.to_string().as_str()),
+        );
         format!("SIG_{type_str}_{encoded}")
     }
 
@@ -71,14 +73,15 @@ impl Signature {
         //     }
         // }
 
-        let value = base58::decode_ripemd160_check(parts[2], size, Option::from(key_type), false).unwrap();
-        Ok(Signature {
-            key_type,
-            value
-        })
+        let value =
+            base58::decode_ripemd160_check(parts[2], size, Option::from(key_type), false).unwrap();
+        Ok(Signature { key_type, value })
     }
 
-    pub fn from_k1_signature(signature: ecdsa::Signature<Secp256k1>, recovery: RecoveryId) -> Result<Self, String> {
+    pub fn from_k1_signature(
+        signature: ecdsa::Signature<Secp256k1>,
+        recovery: RecoveryId,
+    ) -> Result<Self, String> {
         let r = signature.r().to_bytes().to_vec();
         let s = signature.s().to_bytes().to_vec();
         let mut data: Vec<u8> = Vec::new();
@@ -98,11 +101,14 @@ impl Signature {
 
         Ok(Signature {
             key_type: KeyType::K1,
-            value: data
+            value: data,
         })
     }
 
-    pub fn from_r1_signature(signature: ecdsa::Signature<NistP256>, recovery: RecoveryId) -> Result<Self, String> {
+    pub fn from_r1_signature(
+        signature: ecdsa::Signature<NistP256>,
+        recovery: RecoveryId,
+    ) -> Result<Self, String> {
         let r = signature.r().to_bytes().to_vec();
         let s = signature.s().to_bytes().to_vec();
         let mut data: Vec<u8> = Vec::new();
@@ -118,21 +124,23 @@ impl Signature {
 
         Ok(Signature {
             key_type: KeyType::R1,
-            value: data
+            value: data,
         })
     }
 
     pub fn from_bytes(bytes: Vec<u8>, key_type: KeyType) -> Self {
         Signature {
             key_type,
-            value: bytes
+            value: bytes,
         }
     }
 
     pub fn is_canonical(r: &[u8], s: &[u8]) -> bool {
-        !((r[0] & 0x80 != 0) || (s[0] & 0x80 != 0) || r[0] == 0 && r[1] & 0x80 == 0 || s[0] == 0 && s[1] & 0x80 == 0)
+        !((r[0] & 0x80 != 0)
+            || (s[0] & 0x80 != 0)
+            || r[0] == 0 && r[1] & 0x80 == 0
+            || s[0] == 0 && s[1] & 0x80 == 0)
     }
-
 }
 
 impl Display for Signature {
@@ -143,13 +151,16 @@ impl Display for Signature {
 
 impl Default for Signature {
     fn default() -> Self {
-        Self { key_type: KeyType::K1, value: vec![0; 65] }
+        Self {
+            key_type: KeyType::K1,
+            value: vec![0; 65],
+        }
     }
 }
 
 impl Packer for Signature {
     fn size(&self) -> usize {
-       66
+        66
     }
 
     fn pack(&self, enc: &mut Encoder) -> usize {

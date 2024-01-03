@@ -1,7 +1,7 @@
-use std::io::Write;
-use hex::{decode, encode};
-use flate2::Compression;
 use flate2::write::ZlibEncoder;
+use flate2::Compression;
+use hex::{decode, encode};
+use std::io::Write;
 
 pub fn hex_to_bytes(hex: &str) -> Vec<u8> {
     decode(hex).unwrap()

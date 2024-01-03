@@ -1,12 +1,10 @@
-use serde_json::{Value};
-use crate::api::v1::structs::{EncodingError};
+use crate::api::v1::structs::EncodingError;
 use crate::util::hex_to_bytes;
+use serde_json::Value;
 
-pub struct ValueTo {
-}
+pub struct ValueTo {}
 
 impl ValueTo {
-
     pub fn str(v: Option<&Value>) -> Result<&str, EncodingError> {
         check_some(v, "str")?;
         let value = v.unwrap();
@@ -51,19 +49,15 @@ impl ValueTo {
 
         Ok(value.as_number().unwrap().as_u64().unwrap())
     }
-
 }
 
 pub struct JSONObject {
-    value: Value
+    value: Value,
 }
 
 impl JSONObject {
-
     pub fn new(value: Value) -> Self {
-        JSONObject {
-            value
-        }
+        JSONObject { value }
     }
 
     pub fn has(&self, property: &str) -> bool {
@@ -73,7 +67,10 @@ impl JSONObject {
     pub fn get_value(&self, property: &str) -> Result<Value, EncodingError> {
         let value = self.value.get(property);
         if value.is_none() {
-            return Err(EncodingError::new(format!("Unable to get property {}", property)));
+            return Err(EncodingError::new(format!(
+                "Unable to get property {}",
+                property
+            )));
         }
 
         Ok(value.unwrap().clone())
@@ -98,13 +95,14 @@ impl JSONObject {
     pub fn get_u64(&self, property: &str) -> Result<u64, EncodingError> {
         ValueTo::u64(self.value.get(property))
     }
-
-
 }
 
 pub fn check_some(o: Option<&Value>, type_name: &str) -> Result<String, EncodingError> {
     if o.is_none() {
-        return Err(EncodingError::new(format!("Value is None, cannot convert to {}", type_name)));
+        return Err(EncodingError::new(format!(
+            "Value is None, cannot convert to {}",
+            type_name
+        )));
     }
 
     Ok(String::from(""))

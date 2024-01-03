@@ -1,8 +1,8 @@
 use crate::chain::{
+    block_id::BlockId,
     checksum::Checksum256,
     name::Name,
     time::{TimePoint, TimePointSec},
-    block_id::BlockId,
     transaction::TransactionHeader,
     varint::VarUint32,
 };
@@ -12,7 +12,7 @@ pub enum ClientError<T> {
     SIMPLE(SimpleError),
     SERVER(ServerError<T>),
     HTTP(HTTPError),
-    ENCODING(EncodingError)
+    ENCODING(EncodingError),
 }
 
 impl<T> ClientError<T> {
@@ -25,7 +25,7 @@ impl<T> ClientError<T> {
     }
 
     pub fn server(error: T) -> Self {
-        ClientError::SERVER(ServerError { error } )
+        ClientError::SERVER(ServerError { error })
     }
 }
 
@@ -43,23 +43,23 @@ impl<T> From<String> for ClientError<T> {
 
 #[derive(Debug)]
 pub struct SimpleError {
-    pub message: String
+    pub message: String,
 }
 
 #[derive(Debug)]
 pub struct ServerError<T> {
-    pub error: T
+    pub error: T,
 }
 
 #[derive(Debug)]
 pub struct HTTPError {
     pub code: u16,
-    pub message: String
+    pub message: String,
 }
 
 #[derive(Debug)]
 pub struct EncodingError {
-    pub message: String
+    pub message: String,
 }
 
 impl EncodingError {
@@ -97,14 +97,14 @@ pub struct GetInfoResponse {
     pub block_net_limit: u64,
     pub server_version_string: Option<String>,
     pub fork_db_head_block_num: Option<u32>,
-    pub fork_db_head_block_id: Option<BlockId>
+    pub fork_db_head_block_id: Option<BlockId>,
 }
 
 impl GetInfoResponse {
     pub fn get_transaction_header(&self, seconds_ahead: u32) -> TransactionHeader {
         let expiration = TimePointSec {
             // head_block_time.elapsed is microseconds, convert to seconds
-            seconds: (self.head_block_time.elapsed / 1000 / 1000) as u32 + seconds_ahead
+            seconds: (self.head_block_time.elapsed / 1000 / 1000) as u32 + seconds_ahead,
         };
         let id = self.last_irreversible_block_id.bytes.to_vec();
         let prefix_array = &id[8..12];
@@ -115,7 +115,7 @@ impl GetInfoResponse {
             delay_sec: VarUint32::default(),
             expiration,
             ref_block_num: (self.last_irreversible_block_num & 0xffff) as u16,
-            ref_block_prefix: prefix
+            ref_block_prefix: prefix,
         }
     }
 }
@@ -123,7 +123,7 @@ impl GetInfoResponse {
 pub struct ProcessedTransactionReceipt {
     pub status: String,
     pub cpu_usage_us: u32,
-    pub net_usage_words: u32
+    pub net_usage_words: u32,
 }
 
 pub struct ProcessedTransaction {
@@ -135,9 +135,8 @@ pub struct ProcessedTransaction {
     pub except: Option<SendTransactionResponseError>,
     pub net_usage: u32,
     pub scheduled: bool,
-    pub action_traces: String, // TODO: create a type for this?
-    pub account_ram_delta: String // TODO: create a type for this?
-
+    pub action_traces: String,     // TODO: create a type for this?
+    pub account_ram_delta: String, // TODO: create a type for this?
 }
 
 #[derive(Debug)]
@@ -148,14 +147,14 @@ pub struct SendTransactionResponseExceptionStackContext {
     pub method: String,
     pub hostname: String,
     pub thread_name: String,
-    pub timestamp: String
+    pub timestamp: String,
 }
 
 #[derive(Debug)]
 pub struct SendTransactionResponseExceptionStack {
     pub context: SendTransactionResponseExceptionStackContext,
     pub format: String,
-    pub data: String // TODO: create a type for this?
+    pub data: String, // TODO: create a type for this?
 }
 
 #[derive(Debug)]
@@ -163,10 +162,10 @@ pub struct SendTransactionResponseError {
     pub code: u32,
     pub name: String,
     pub message: String,
-    pub stack: Vec<SendTransactionResponseExceptionStack>
+    pub stack: Vec<SendTransactionResponseExceptionStack>,
 }
 
 pub struct SendTransactionResponse {
     pub transaction_id: String,
-    pub processed: ProcessedTransaction
+    pub processed: ProcessedTransaction,
 }

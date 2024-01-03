@@ -1,7 +1,7 @@
 use crate::util::array_equals;
-use base64::{alphabet, Engine as _};
 use base64::engine::general_purpose::PAD;
 use base64::engine::GeneralPurpose;
+use base64::{alphabet, Engine as _};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BlobType {
@@ -26,14 +26,13 @@ impl Blob {
     pub fn from_string(value: &str) -> Result<Blob, &'static str> {
         // Remove padding characters '=' from the end of the string
         let value_without_padding: String = value.trim_end_matches('=').to_string();
-    
+
         // Convert base64 string to bytes
         match STANDARD.decode(value_without_padding) {
             Ok(bytes) => Ok(Blob { array: bytes }),
             Err(_) => Err("Invalid base64 string"),
         }
     }
-    
 
     pub fn equals(&self, other: &BlobType) -> bool {
         if let BlobType::Bytes(bytes) = other {

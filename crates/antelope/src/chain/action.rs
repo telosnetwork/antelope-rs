@@ -1,14 +1,7 @@
-use crate::chain::{
-    varint::VarUint32,
-    name::Name,
-};
 use crate::chain::checksum::Checksum256;
+use crate::chain::{name::Name, varint::VarUint32};
 
-use crate::serializer::{
-    Packer,
-    Encoder,
-    Decoder,
-};
+use crate::serializer::{Decoder, Encoder, Packer};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
 pub struct PermissionLevel {
@@ -42,7 +35,10 @@ impl Packer for PermissionLevel {
 
     /// Unpacks the PermissionLevel structure from the provided data slice.
     fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(data.len() >= self.size(), "PermissionLevel.unpack: buffer overflow");
+        assert!(
+            data.len() >= self.size(),
+            "PermissionLevel.unpack: buffer overflow"
+        );
         let mut dec = Decoder::new(data);
         dec.unpack(&mut self.actor);
         dec.unpack(&mut self.permission);
@@ -64,34 +60,48 @@ pub struct Action {
 
 impl Action {
     /// Creates an action by specifying contract account, action name, authorization and data.
-    pub fn new(account: Name, name: Name, authorization: PermissionLevel, data: &dyn Packer) -> Self {
+    pub fn new(
+        account: Name,
+        name: Name,
+        authorization: PermissionLevel,
+        data: &dyn Packer,
+    ) -> Self {
         let mut enc = Encoder::new(data.size());
         data.pack(&mut enc);
         Self {
             account,
             name,
             authorization: vec![authorization],
-            data: enc.get_bytes().to_vec()
+            data: enc.get_bytes().to_vec(),
         }
     }
 
-    pub fn new_ex(account: Name, name: Name, authorizations: Vec<PermissionLevel>, data: &dyn Packer) -> Self {
+    pub fn new_ex(
+        account: Name,
+        name: Name,
+        authorizations: Vec<PermissionLevel>,
+        data: &dyn Packer,
+    ) -> Self {
         let mut enc = Encoder::new(data.size());
         data.pack(&mut enc);
         Self {
             account,
             name,
             authorization: authorizations,
-            data: enc.get_bytes().to_vec()
+            data: enc.get_bytes().to_vec(),
         }
     }
-
 }
 
 /// Implements the Default trait for Action.
 impl Default for Action {
     fn default() -> Self {
-        Self { account: Name{n: 0}, name: Name{n: 0}, authorization: Vec::new(), data: Vec::new() }
+        Self {
+            account: Name { n: 0 },
+            name: Name { n: 0 },
+            authorization: Vec::new(),
+            data: Vec::new(),
+        }
     }
 }
 
@@ -101,7 +111,8 @@ impl Packer for Action {
     fn size(&self) -> usize {
         let mut size: usize;
         size = 16;
-        size += VarUint32::new(self.authorization.len() as u32).size()+ self.authorization.len() * 16;
+        size +=
+            VarUint32::new(self.authorization.len() as u32).size() + self.authorization.len() * 16;
         size += VarUint32::new(self.data.len() as u32).size() + self.data.len();
         size
     }

@@ -1,7 +1,4 @@
-use crate::serializer::{
-    Packer,
-    Encoder,
-};
+use crate::serializer::{Encoder, Packer};
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Debug)]
 pub struct VarUint32 {
@@ -80,8 +77,8 @@ impl Packer for VarUint32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::chain::Encoder;
     use super::*;
+    use crate::chain::Encoder;
 
     #[test]
     fn test_varuint32_pack_unpack() {

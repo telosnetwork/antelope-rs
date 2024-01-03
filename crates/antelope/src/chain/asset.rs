@@ -1,15 +1,11 @@
 use core::ops;
 use std::fmt::{Display, Formatter};
 
-use crate::chain::{
-    Packer,
-    Encoder,
-    Decoder,
-};
 use crate::chain::name::Name;
+use crate::chain::{Decoder, Encoder, Packer};
 
 const MAX_AMOUNT: i64 = (1 << 62) - 1;
-const MAX_PRECISION: u8  = 18;
+const MAX_PRECISION: u8 = 18;
 
 /// Check if the given symbol code is valid.
 pub fn is_valid_symbol_code(sym: u64) -> bool {
@@ -60,7 +56,7 @@ impl SymbolCode {
             value <<= 8;
             value |= c as u64;
         }
-        Self{value}
+        Self { value }
     }
 
     pub fn value(&self) -> u64 {
@@ -103,7 +99,10 @@ impl Packer for SymbolCode {
     }
 
     fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(data.len() >= self.size(), "SymbolCode.unpack: buffer overflow");
+        assert!(
+            data.len() >= self.size(),
+            "SymbolCode.unpack: buffer overflow"
+        );
         self.value.unpack(data);
         assert!(self.is_valid(), "SymbolCode.unpack:: bad symbol code");
         8
@@ -130,7 +129,7 @@ impl Symbol {
 
         value <<= 8;
         value |= precision as u64;
-        Self{value}
+        Self { value }
     }
 
     pub fn value(&self) -> u64 {
@@ -138,7 +137,9 @@ impl Symbol {
     }
 
     pub fn code(&self) -> SymbolCode {
-        SymbolCode{value: self.value >> 8}
+        SymbolCode {
+            value: self.value >> 8,
+        }
     }
 
     pub fn precision(&self) -> usize {
@@ -196,9 +197,12 @@ fn is_amount_within_range(amount: i64) -> bool {
 
 impl Asset {
     pub fn new(amount: i64, symbol: Symbol) -> Self {
-        assert!(is_amount_within_range(amount), "magnitude of asset amount must be less than 2^62");
+        assert!(
+            is_amount_within_range(amount),
+            "magnitude of asset amount must be less than 2^62"
+        );
         assert!(symbol.is_valid(), "invalid symbol name");
-        Self{amount, symbol}
+        Self { amount, symbol }
     }
 
     pub fn from_string(s: &str) -> Self {
@@ -219,11 +223,18 @@ impl Asset {
 
         for &c in raw {
             if c == b'.' {
-                assert!(status == AssetStringParseStatus::Initial, "Asset.from_string: invalid dot character");
+                assert!(
+                    status == AssetStringParseStatus::Initial,
+                    "Asset.from_string: invalid dot character"
+                );
                 status = AssetStringParseStatus::FoundDot;
                 continue;
             } else if c == b' ' {
-                assert!(status == AssetStringParseStatus::Initial || status == AssetStringParseStatus::FoundDot, "Asset.from_string: invalid space character");
+                assert!(
+                    status == AssetStringParseStatus::Initial
+                        || status == AssetStringParseStatus::FoundDot,
+                    "Asset.from_string: invalid space character"
+                );
                 // if status == AssetStringParseStatus::FoundDot {
                 //     assert!(precision > 0, "Asset.from_string: invalid precision");
                 // }
@@ -243,7 +254,10 @@ impl Asset {
                     amount *= 10;
                     amount += (c - b'0') as i64;
                     precision += 1;
-                    assert!(precision <= MAX_PRECISION, "Asset.from_string: bad precision");
+                    assert!(
+                        precision <= MAX_PRECISION,
+                        "Asset.from_string: bad precision"
+                    );
                     assert!(is_amount_within_range(amount), "bad amount");
                 }
                 AssetStringParseStatus::FoundSpace => {
@@ -269,9 +283,9 @@ impl Asset {
         symbol <<= 8;
         symbol |= precision as u64;
 
-        Self{
+        Self {
             amount,
-            symbol: Symbol{value: symbol}
+            symbol: Symbol { value: symbol },
         }
     }
 
@@ -291,7 +305,6 @@ impl Asset {
         }
 
         let mut part2: Vec<u8> = vec![0u8; self.symbol.precision()];
-
 
         let mut tmp: i64 = self.amount;
         for i in (0..self.symbol.precision()).rev() {
@@ -333,7 +346,7 @@ impl ops::Add for Asset {
         assert!(amount <= MAX_AMOUNT, "addition overflow");
         Self {
             amount,
-            symbol: self.symbol
+            symbol: self.symbol,
         }
     }
 }
@@ -354,7 +367,7 @@ impl ops::Sub for Asset {
         assert!(amount <= MAX_AMOUNT, "subtraction overflow");
         Self {
             amount,
-            symbol: self.symbol
+            symbol: self.symbol,
         }
     }
 }
@@ -384,7 +397,10 @@ impl Packer for Asset {
 
         let mut dec = Decoder::new(data);
         dec.unpack(&mut self.amount);
-        assert!(self.amount >= -MAX_AMOUNT && self.amount <= MAX_AMOUNT, "Asset.unpack: bad asset amount");
+        assert!(
+            self.amount >= -MAX_AMOUNT && self.amount <= MAX_AMOUNT,
+            "Asset.unpack: bad asset amount"
+        );
         dec.unpack(&mut self.symbol);
         dec.get_pos()
     }
@@ -398,7 +414,7 @@ pub struct ExtendedAsset {
 
 impl ExtendedAsset {
     pub fn new(quantity: Asset, contract: Name) -> Self {
-        Self{quantity, contract}
+        Self { quantity, contract }
     }
 
     pub fn quantity(&self) -> Asset {
@@ -425,7 +441,10 @@ impl Packer for ExtendedAsset {
     }
 
     fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(data.len() >= self.size(), "ExtendedAsset.unpack: buffer overflow");
+        assert!(
+            data.len() >= self.size(),
+            "ExtendedAsset.unpack: buffer overflow"
+        );
 
         let mut dec = Decoder::new(data);
         dec.unpack(&mut self.quantity);

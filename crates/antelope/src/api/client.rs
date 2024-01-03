@@ -1,16 +1,21 @@
-use std::fmt::{Display, Formatter};
 use crate::api::default_provider::DefaultProvider;
 use crate::api::v1::chain::ChainAPI;
+use std::fmt::{Display, Formatter};
 
 pub enum HTTPMethod {
-    GET, POST
+    GET,
+    POST,
 }
 
 impl Display for HTTPMethod {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            HTTPMethod::GET => { write!(f, "GET") }
-            HTTPMethod::POST => { write!(f, "POST") }
+            HTTPMethod::GET => {
+                write!(f, "GET")
+            }
+            HTTPMethod::POST => {
+                write!(f, "POST")
+            }
         }
     }
 }
@@ -22,7 +27,7 @@ pub trait Provider {
 }
 
 pub struct APIClient {
-    pub v1_chain: ChainAPI
+    pub v1_chain: ChainAPI,
 }
 
 impl APIClient {
@@ -33,7 +38,7 @@ impl APIClient {
 
     pub fn custom_provider(provider: Box<dyn Provider>) -> Result<Self, String> {
         Ok(APIClient {
-            v1_chain: ChainAPI::new(provider)
+            v1_chain: ChainAPI::new(provider),
         })
     }
 }

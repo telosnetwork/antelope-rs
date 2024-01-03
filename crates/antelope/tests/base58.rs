@@ -1,11 +1,17 @@
-use antelope::{base58, util};
 use antelope::chain::key_type::KeyType;
 use antelope::util::hex_to_bytes;
+use antelope::{base58, util};
 
 #[test]
-fn decode () {
-    assert_eq!(base58::decode("StV1DL6CwTryKyV", None).unwrap(), hex::decode("68656c6c6f20776f726c64").unwrap());
-    assert_eq!(base58::decode("1111", None).unwrap(), hex::decode("00000000").unwrap());
+fn decode() {
+    assert_eq!(
+        base58::decode("StV1DL6CwTryKyV", None).unwrap(),
+        hex::decode("68656c6c6f20776f726c64").unwrap()
+    );
+    assert_eq!(
+        base58::decode("1111", None).unwrap(),
+        hex::decode("00000000").unwrap()
+    );
     let d1 = base58::decode("000", None);
     assert!(d1.is_err());
     let d2 = base58::decode("0", Some(1));
@@ -16,8 +22,14 @@ fn decode () {
 
 #[test]
 fn encode() {
-    assert_eq!(base58::encode(String::from("hello world").into_bytes()), String::from("StV1DL6CwTryKyV"));
-    assert_eq!(base58::encode(util::hex_to_bytes("0000")), String::from("11"));
+    assert_eq!(
+        base58::encode(String::from("hello world").into_bytes()),
+        String::from("StV1DL6CwTryKyV")
+    );
+    assert_eq!(
+        base58::encode(util::hex_to_bytes("0000")),
+        String::from("11")
+    );
 }
 
 #[test]
@@ -26,17 +38,29 @@ fn decode_check() {
         base58::decode_check("5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu", false).unwrap(),
         hex_to_bytes("80d25968ebfce6e617bdb839b5a66cfc1fdd051d79a91094f7baceded449f84333")
     );
-    let decode_result = base58::decode_check("5KQVfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu", false);
+    let decode_result =
+        base58::decode_check("5KQVfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu", false);
     assert!(decode_result.is_err());
 }
 
 #[test]
 fn decode_ripemd160_check() {
     assert_eq!(
-        base58::decode_ripemd160_check("6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin", None, None, false).unwrap(),
+        base58::decode_ripemd160_check(
+            "6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin",
+            None,
+            None,
+            false
+        )
+        .unwrap(),
         hex_to_bytes("02caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc"),
     );
-    let decode_result_1 = base58::decode_ripemd160_check("6RrVujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin", None, None, false);
+    let decode_result_1 = base58::decode_ripemd160_check(
+        "6RrVujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin",
+        None,
+        None,
+        false,
+    );
     assert!(decode_result_1.is_err());
     assert_eq!(
         base58::decode_ripemd160_check(
@@ -44,7 +68,8 @@ fn decode_ripemd160_check() {
             Some(33),
             Some(KeyType::K1),
             false
-        ).unwrap(),
+        )
+        .unwrap(),
         hex_to_bytes("02caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc")
     );
     assert_eq!(
@@ -53,24 +78,25 @@ fn decode_ripemd160_check() {
             Some(33),
             Some(KeyType::K1),
             false
-        ).unwrap(),
+        )
+        .unwrap(),
         hex_to_bytes("02caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc")
     );
     let decode_result_2 = base58::decode_ripemd160_check(
         "6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeACcSRFs",
         None,
         None,
-        false
+        false,
     );
 
     assert!(decode_result_2.is_err());
 }
 #[test]
-fn encode_check () {
+fn encode_check() {
     assert_eq!(
-        base58::encode_check(
-            hex_to_bytes("80d25968ebfce6e617bdb839b5a66cfc1fdd051d79a91094f7baceded449f84333")
-        ),
+        base58::encode_check(hex_to_bytes(
+            "80d25968ebfce6e617bdb839b5a66cfc1fdd051d79a91094f7baceded449f84333"
+        )),
         "5KQvfsPJ9YvGuVbLRLXVWPNubed6FWvV8yax6cNSJEzB4co3zFu"
     );
 }

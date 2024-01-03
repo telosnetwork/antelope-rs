@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter};
 use crate::chain::{Encoder, Packer};
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Copy, Eq, PartialEq, Default)]
 pub enum KeyType {
@@ -41,8 +41,8 @@ impl KeyTypeTrait for KeyType {
 
     fn to_index(&self) -> u8 {
         match self {
-            KeyType::K1 => { 0 }
-            KeyType::R1 => { 1 }
+            KeyType::K1 => 0,
+            KeyType::R1 => 1,
         }
     }
 }
@@ -50,12 +50,15 @@ impl KeyTypeTrait for KeyType {
 impl Display for KeyType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            KeyType::K1 => { write!(f, "K1") }
-            KeyType::R1 => { write!(f, "R1") }
+            KeyType::K1 => {
+                write!(f, "K1")
+            }
+            KeyType::R1 => {
+                write!(f, "R1")
+            }
         }
     }
 }
-
 
 impl Packer for KeyType {
     fn size(&self) -> usize {
@@ -65,16 +68,18 @@ impl Packer for KeyType {
     fn pack(&self, enc: &mut Encoder) -> usize {
         let data = enc.alloc(self.size());
         match self {
-            KeyType::K1 => { data[0] = 0u8 }
-            KeyType::R1 => { data[0] = 1u8 }
+            KeyType::K1 => data[0] = 0u8,
+            KeyType::R1 => data[0] = 1u8,
         }
         self.size()
     }
 
     fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(data.len() >= self.size(), "KeyType::unpack: buffer overflow");
+        assert!(
+            data.len() >= self.size(),
+            "KeyType::unpack: buffer overflow"
+        );
         *self = KeyType::from_index(data[0]).unwrap();
         self.size()
     }
 }
-

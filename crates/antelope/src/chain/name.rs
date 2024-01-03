@@ -1,8 +1,5 @@
+use crate::serializer::{Encoder, Packer};
 use std::fmt::{Display, Formatter};
-use crate::serializer::{
-    Packer,
-    Encoder,
-};
 
 const INVALID_NAME_CHAR: u8 = 0xffu8;
 
@@ -11,23 +8,14 @@ const INVALID_NAME_CHAR: u8 = 0xffu8;
 /// ".12345abcdefghijklmnopqrstuvwxyz"
 pub const fn char_to_index(c: u8) -> u8 {
     match c as char {
-        'a'..='z' => {
-            (c - b'a') + 6
-        }
-        '1'..='5' => {
-            (c - b'1') + 1
-        }
-        '.' => {
-            0
-        }
-        _ => {
-            INVALID_NAME_CHAR
-        }
+        'a'..='z' => (c - b'a') + 6,
+        '1'..='5' => (c - b'1') + 1,
+        '.' => 0,
+        _ => INVALID_NAME_CHAR,
     }
 }
 
 const INVALID_NAME: u64 = 0xFFFF_FFFF_FFFF_FFFFu64;
-
 
 // converts a static string to an `name` object.
 pub const fn static_str_to_name(s: &'static str) -> u64 {
@@ -62,7 +50,7 @@ pub const fn static_str_to_name(s: &'static str) -> u64 {
 
         i += 1;
     }
-    value <<=  4 + 5*(12 - n);
+    value <<= 4 + 5 * (12 - n);
 
     if _s.len() == 13 {
         let tmp = char_to_index(_s[12]) as u64;
@@ -78,7 +66,6 @@ pub const fn static_str_to_name(s: &'static str) -> u64 {
     value
 }
 
-
 /// similar to static_str_to_name,
 /// but also checks the validity of the resulting `name` object.
 pub fn static_str_to_name_checked(s: &'static str) -> u64 {
@@ -87,14 +74,16 @@ pub fn static_str_to_name_checked(s: &'static str) -> u64 {
     n
 }
 
-
 // a shorthand for static_str_to_name_checked.
 pub fn s2n(s: &'static str) -> u64 {
     static_str_to_name_checked(s)
 }
 
 // ".12345abcdefghijklmnopqrstuvwxyz"
-pub const CHAR_MAP: [u8; 32] = [46,49,50,51,52,53,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122];
+pub const CHAR_MAP: [u8; 32] = [
+    46, 49, 50, 51, 52, 53, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
+    112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,
+];
 
 /// converts an `name` object to a string.
 pub fn n2s(value: u64) -> String {
@@ -103,11 +92,11 @@ pub fn n2s(value: u64) -> String {
     let mut tmp = value;
     for i in 0..13 {
         let c: u8 = if i == 0 {
-            CHAR_MAP[(tmp&0x0f) as usize]
+            CHAR_MAP[(tmp & 0x0f) as usize]
         } else {
-            CHAR_MAP[(tmp&0x1f) as usize]
+            CHAR_MAP[(tmp & 0x1f) as usize]
         };
-        s[12-i] = c;
+        s[12 - i] = c;
         if i == 0 {
             tmp >>= 4
         } else {
@@ -118,13 +107,12 @@ pub fn n2s(value: u64) -> String {
     let mut i = s.len() - 1;
     while i != 0 {
         if s[i] != b'.' {
-            break
+            break;
         }
         i -= 1;
     }
-    String::from_utf8(s[0..i+1].to_vec()).unwrap()
+    String::from_utf8(s[0..i + 1].to_vec()).unwrap()
 }
-
 
 ///
 fn str_to_name(s: &str) -> u64 {
@@ -159,7 +147,7 @@ fn str_to_name(s: &str) -> u64 {
 
         i += 1;
     }
-    value <<=  4 + 5*(12 - n);
+    value <<= 4 + 5 * (12 - n);
 
     if _s.len() == 13 {
         let tmp = char_to_index(_s[12]) as u64;
@@ -203,7 +191,9 @@ impl Name {
     }
 
     pub fn new_from_str(s: &str) -> Self {
-        Name{ n: str_to_name_checked(s) }
+        Name {
+            n: str_to_name_checked(s),
+        }
     }
 
     pub fn as_string(&self) -> String {
@@ -233,7 +223,13 @@ impl Packer for Name {
     }
 }
 
-pub const SAME_PAYER: Name = Name{n: 0};
-pub const ACTIVE: Name = Name{n: static_str_to_name("active")};
-pub const OWNER: Name = Name{n: static_str_to_name("owner")};
-pub const CODE: Name = Name{n: static_str_to_name("eosio.code")};
+pub const SAME_PAYER: Name = Name { n: 0 };
+pub const ACTIVE: Name = Name {
+    n: static_str_to_name("active"),
+};
+pub const OWNER: Name = Name {
+    n: static_str_to_name("owner"),
+};
+pub const CODE: Name = Name {
+    n: static_str_to_name("eosio.code"),
+};

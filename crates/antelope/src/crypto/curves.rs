@@ -1,4 +1,3 @@
-
 pub fn create_k1_field_bytes(bytes: &[u8]) -> k256::elliptic_curve::FieldBytes<k256::Secp256k1> {
     return *k256::elliptic_curve::FieldBytes::<k256::Secp256k1>::from_slice(bytes);
 }

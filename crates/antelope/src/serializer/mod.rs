@@ -1,4 +1,4 @@
 pub mod formatter;
 pub mod packer;
 
-pub use packer::{Encoder, Decoder, Packer};
+pub use packer::{Decoder, Encoder, Packer};

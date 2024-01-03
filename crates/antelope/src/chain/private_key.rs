@@ -1,4 +1,3 @@
-use std::fmt::{Display, Formatter};
 use crate::base58::{decode_key, encode_check, encode_ripemd160_check};
 use crate::chain::checksum::Checksum512;
 use crate::chain::key_type::KeyType;
@@ -8,7 +7,7 @@ use crate::crypto::generate::generate;
 use crate::crypto::get_public::get_public;
 use crate::crypto::shared_secrets::shared_secret;
 use crate::crypto::sign::sign;
-
+use std::fmt::{Display, Formatter};
 
 pub struct PrivateKey {
     pub key_type: KeyType,
@@ -16,13 +15,15 @@ pub struct PrivateKey {
 }
 
 impl PrivateKey {
-
     // TODO: should this be done via the ToString trait?
     //   If so, should other structs also do that?
     //   Also if so, should from on this and other structs use the From trait?
     pub fn as_string(&self) -> String {
         let type_str = self.key_type.to_string();
-        let encoded = encode_ripemd160_check(self.value.to_vec(), Option::from(self.key_type.to_string().as_str()));
+        let encoded = encode_ripemd160_check(
+            self.value.to_vec(),
+            Option::from(self.key_type.to_string().as_str()),
+        );
         format!("PVT_{type_str}_{encoded}")
     }
 
@@ -53,7 +54,7 @@ impl PrivateKey {
     pub fn from_bytes(bytes: Vec<u8>, key_type: KeyType) -> Self {
         PrivateKey {
             key_type,
-            value: bytes
+            value: bytes,
         }
     }
 
@@ -83,7 +84,6 @@ impl PrivateKey {
         let secret_bytes = generate(key_type);
         Ok(Self::from_bytes(secret_bytes.unwrap(), key_type))
     }
-
 }
 
 impl Display for PrivateKey {

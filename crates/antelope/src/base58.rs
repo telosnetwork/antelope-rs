@@ -1,7 +1,7 @@
-use ripemd::{Digest as RipeDigest, Ripemd160};
-use sha2::Sha256;
 use crate::base58;
 use crate::chain::key_type::KeyType;
+use ripemd::{Digest as RipeDigest, Ripemd160};
+use sha2::Sha256;
 
 pub fn encode(data: Vec<u8>) -> String {
     bs58::encode(data).into_string()
@@ -21,8 +21,15 @@ pub fn decode(encoded: &str, size: Option<usize>) -> Result<Vec<u8>, String> {
     Ok(decoded)
 }
 
-pub fn decode_ripemd160_check(encoded: &str, size: Option<usize>, key_type: Option<KeyType>, ignore_checksum: bool) -> Result<Vec<u8>, String> {
-    let decoded = bs58::decode(encoded).into_vec().map_err(|e| e.to_string())?;
+pub fn decode_ripemd160_check(
+    encoded: &str,
+    size: Option<usize>,
+    key_type: Option<KeyType>,
+    ignore_checksum: bool,
+) -> Result<Vec<u8>, String> {
+    let decoded = bs58::decode(encoded)
+        .into_vec()
+        .map_err(|e| e.to_string())?;
 
     if decoded.len() < 5 {
         return Err("Data is too short".to_string());
@@ -47,7 +54,9 @@ pub fn decode_ripemd160_check(encoded: &str, size: Option<usize>, key_type: Opti
 }
 
 pub fn decode_check(encoded: &str, ignore_checksum: bool) -> Result<Vec<u8>, String> {
-    let decoded = bs58::decode(encoded).into_vec().map_err(|e| e.to_string())?;
+    let decoded = bs58::decode(encoded)
+        .into_vec()
+        .map_err(|e| e.to_string())?;
 
     if decoded.len() < 4 {
         return Err("Data too short for checksum".to_string());
@@ -72,12 +81,12 @@ pub fn decode_public_key(value: &str) -> Result<(KeyType, Vec<u8>), String> {
         let key_type = match parts[1] {
             "K1" => KeyType::K1,
             "R1" => KeyType::R1,
-// ... handle other key types ...
+            // ... handle other key types ...
             _ => return Err("Invalid key type".to_string()),
         };
         let size = match key_type {
             KeyType::K1 | KeyType::R1 => Some(32),
-// ... other cases ...
+            // ... other cases ...
         };
         let data = decode_ripemd160_check(parts[2], size, Option::from(key_type), false).unwrap();
         Ok((key_type, data))
@@ -108,7 +117,9 @@ pub fn decode_key(value: &str, ignore_checksum: bool) -> Result<(KeyType, Vec<u8
         };
         let data_result = decode_ripemd160_check(parts[2], size, Some(key_type), ignore_checksum);
         if data_result.is_err() {
-            let data_result_err = data_result.err().unwrap_or(String::from("Unknown decode_ripemd160_check error"));
+            let data_result_err = data_result
+                .err()
+                .unwrap_or(String::from("Unknown decode_ripemd160_check error"));
             return Err(data_result_err);
         }
 
@@ -118,7 +129,9 @@ pub fn decode_key(value: &str, ignore_checksum: bool) -> Result<(KeyType, Vec<u8
         let key_type = KeyType::K1;
         let data_result = decode_check(value, ignore_checksum);
         if data_result.is_err() {
-            let data_result_err = data_result.err().unwrap_or(String::from("Unknown decode_check error"));
+            let data_result_err = data_result
+                .err()
+                .unwrap_or(String::from("Unknown decode_check error"));
             return Err(data_result_err);
         }
 
