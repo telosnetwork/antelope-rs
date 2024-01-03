@@ -1,5 +1,5 @@
 [package]
-name = "antelope"
+name = "antelope-client"
 description = "Rust client for Antelope blockchains"
 
 version.workspace = true

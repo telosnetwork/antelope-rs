@@ -1,5 +1,5 @@
 [package]
-name = "antelope_macros"
+name = "antelope-client-macros"
 description = "A proc-macro crate for StructPacker"
 version = "0.1.0"
 

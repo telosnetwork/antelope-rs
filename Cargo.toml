@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "crates/antelope",
-    "crates/antelope_macros",
+    "crates/macros",
 ]
 
 [workspace.package]
