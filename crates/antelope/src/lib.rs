@@ -4,3 +4,5 @@ pub mod chain;
 pub mod crypto;
 pub mod serializer;
 pub mod util;
+
+pub use antelope_macros::StructPacker;
