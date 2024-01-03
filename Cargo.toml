@@ -4,3 +4,14 @@ members = [
     "crates/antelope",
     "crates/antelope_macros",
 ]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Jesse Schulman <jesse@telos.net>"]
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/telosnetwork/antelope-rs"
+repository = "https://github.com/telosnetwork/antelope-rs"
+keywords = ["blockchain", "antelope"]
+categories = ["cryptography::cryptocurrencies", "encoding"]
