@@ -3,6 +3,9 @@
 ## Description
 A Rust library for interacting with Antelope blockchains.  Currently a work in progress, interfaces may change before the `1.0.0` release is cut.
 
+## Documentation
+https://docs.rs/antelope-client
+
 ## License
 Licensed under either of
 
