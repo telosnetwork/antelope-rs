@@ -4,7 +4,7 @@ use antelope::chain::asset::Asset;
 use antelope::chain::block_id::BlockId;
 use antelope::chain::name::Name;
 use antelope::name;
-use antelope::util::{bytes_to_hex, hex_to_bytes};
+use antelope::util::{hex_to_bytes};
 mod utils;
 use crate::utils::mock_provider;
 use utils::mock_provider::MockProvider;

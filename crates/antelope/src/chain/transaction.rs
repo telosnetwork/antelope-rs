@@ -4,7 +4,7 @@ use crate::chain::{
     action::Action, time::TimePointSec, varint::VarUint32, Decoder, Encoder, Packer,
 };
 use crate::util::{bytes_to_hex, zlib_compress};
-use antelope_macros::StructPacker;
+use antelope_client_macros::StructPacker;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 

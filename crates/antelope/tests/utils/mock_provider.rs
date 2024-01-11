@@ -8,7 +8,7 @@ use antelope::chain::private_key::PrivateKey;
 use antelope::chain::transaction::{SignedTransaction, Transaction};
 use antelope::chain::{Decoder, Encoder, Packer};
 use antelope::name;
-use antelope_macros::StructPacker;
+use antelope_client_macros::StructPacker;
 use std::fs;
 use std::path::PathBuf;
 

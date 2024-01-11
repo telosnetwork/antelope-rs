@@ -8,7 +8,7 @@ use antelope::chain::{
 };
 use antelope::name;
 use antelope::util::{bytes_to_hex, hex_to_bytes};
-use antelope_macros::StructPacker;
+use antelope_client_macros::StructPacker;
 
 #[test]
 fn asset() {

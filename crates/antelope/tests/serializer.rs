@@ -4,7 +4,7 @@ use antelope::chain::{Decoder, Encoder};
 use antelope::serializer::Packer;
 use antelope::util;
 use antelope::util::{bytes_to_hex, hex_to_bytes};
-use antelope_macros::StructPacker;
+use antelope_client_macros::StructPacker;
 
 #[test]
 fn array() {
