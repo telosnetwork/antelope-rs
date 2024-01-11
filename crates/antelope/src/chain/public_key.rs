@@ -1,7 +1,7 @@
 use crate::base58::{decode_public_key, encode_ripemd160_check};
 use crate::chain::{key_type::KeyType, Decoder, Encoder, Packer};
 use crate::util::bytes_to_hex;
-use antelope_macros::StructPacker;
+use antelope_client_macros::StructPacker;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Eq, PartialEq, Default, StructPacker)]

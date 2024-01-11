@@ -1,5 +1,5 @@
 use crate::chain::{Decoder, Encoder, Packer};
-use antelope_macros::StructPacker;
+use antelope_client_macros::StructPacker;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Eq, PartialEq, StructPacker)]

@@ -34,9 +34,9 @@ dependencies = [
 
 [[package]]
 name = "antelope-client"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
- "antelope_macros",
+ "antelope-client-macros 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64",
  "bs58",
  "chrono",
@@ -69,10 +69,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "antelope_macros"
+name = "antelope-client-macros"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49bc99e10705cfcf11bdce7689e6be92a07b706bf7b85cf19902c239103614ce"
+checksum = "878d5dc6a37c3f74e6a101fb07ce8c5979e5ed596d88b16f9a4674e40debab81"
 dependencies = [
  "quote",
  "syn 1.0.109",
