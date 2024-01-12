@@ -1,10 +1,12 @@
 use antelope::api::client::APIClient;
-use antelope::api::v1::structs::ClientError;
+use antelope::api::v1::structs::{ClientError, GetTableRowsParams};
 use antelope::chain::asset::Asset;
 use antelope::chain::block_id::BlockId;
 use antelope::chain::name::Name;
 use antelope::name;
+use antelope::serializer::{Decoder, Encoder, Packer};
 use antelope::util::hex_to_bytes;
+use antelope::StructPacker;
 mod utils;
 use crate::utils::mock_provider;
 use utils::mock_provider::MockProvider;
@@ -81,4 +83,58 @@ fn chain_send_transaction() {
             )
         }
     }
+}
+
+#[test]
+pub fn chain_get_table_rows() {
+    #[derive(StructPacker, Default)]
+    struct UserRow {
+        balance: Asset,
+    }
+
+    let mock_provider = MockProvider {};
+    let client = APIClient::custom_provider(Box::new(mock_provider)).unwrap();
+    //let client = APIClient::default_provider(String::from("https://testnet.telos.caleos.io")).unwrap();
+
+    let res1 = client
+        .v1_chain
+        .get_table_rows::<UserRow>(GetTableRowsParams {
+            code: name!("eosio.token"),
+            table: name!("accounts"),
+            scope: Some(name!("corecorecore")),
+            lower_bound: None,
+            upper_bound: None,
+            limit: None,
+            reverse: None,
+            index_position: None,
+            show_payer: None,
+        })
+        .unwrap();
+
+    assert_eq!(res1.rows.len(), 1, "Should get 1 row back");
+    assert_eq!(
+        res1.rows[0].balance.symbol().code().to_string(),
+        "TLOS",
+        "Should get TLOS symbol back"
+    );
+
+    // const res1 = await eos.v1.chain.get_table_rows({
+    //     code: 'fuel.gm',
+    //     table: 'users',
+    //     type: User,
+    //     limit: 1,
+    // })
+    // assert.equal(res1.rows[0].account instanceof Name, true)
+    // assert.equal(res1.more, true)
+    // assert.equal(String(res1.rows[0].account), 'aaaa')
+    // const res2 = await eos.v1.chain.get_table_rows({
+    //     code: 'fuel.gm',
+    //     table: 'users',
+    //     type: User,
+    //     limit: 2,
+    //     lower_bound: res1.next_key,
+    // })
+    // assert.equal(String(res2.rows[0].account), 'atomichub')
+    // assert.equal(String(res2.next_key), 'boidservices')
+    // assert.equal(Number(res2.rows[1].balance).toFixed(6), (0.02566).toFixed(6))
 }
