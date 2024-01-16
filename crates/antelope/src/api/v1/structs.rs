@@ -1,3 +1,4 @@
+use crate::chain::checksum::Checksum160;
 use crate::chain::{
     block_id::BlockId,
     checksum::Checksum256,
@@ -6,6 +7,8 @@ use crate::chain::{
     transaction::TransactionHeader,
     varint::VarUint32,
 };
+use serde_json::{json, Value};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum ClientError<T> {
@@ -168,4 +171,59 @@ pub struct SendTransactionResponseError {
 pub struct SendTransactionResponse {
     pub transaction_id: String,
     pub processed: ProcessedTransaction,
+}
+
+pub enum IndexPosition {
+    PRIMARY,
+    SECONDARY,
+    TERTIARY,
+    FOURTH,
+    FIFTH,
+    SIXTH,
+    SEVENTH,
+    EIGHTH,
+    NINTH,
+    TENTH,
+}
+
+pub enum TableIndexType {
+    NAME(Name),
+    UINT64(u64),
+    UINT128(u128),
+    FLOAT64(f64),
+    CHECKSUM256(Checksum256),
+    CHECKSUM160(Checksum160),
+}
+
+pub struct GetTableRowsParams {
+    pub code: Name,
+    pub table: Name,
+    pub scope: Option<Name>,
+    pub lower_bound: Option<TableIndexType>,
+    pub upper_bound: Option<TableIndexType>,
+    pub limit: Option<u32>,
+    pub reverse: Option<bool>,
+    pub index_position: Option<IndexPosition>,
+    pub show_payer: Option<bool>,
+}
+
+impl GetTableRowsParams {
+    pub fn to_json(&self) -> String {
+        let mut req: HashMap<&str, Value> = HashMap::new();
+        req.insert("json", Value::Bool(false));
+        req.insert("code", Value::String(self.code.to_string()));
+        req.insert("table", Value::String(self.table.to_string()));
+
+        let scope = self.scope.unwrap_or(self.code);
+        req.insert("scope", Value::String(scope.to_string()));
+
+        json!(req).to_string()
+    }
+}
+
+pub struct GetTableRowsResponse<T> {
+    pub rows: Vec<T>,
+    pub more: bool,
+    pub ram_payers: Option<Vec<Name>>,
+    pub next_key: Option<TableIndexType>,
 }

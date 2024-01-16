@@ -25,6 +25,26 @@ impl ValueTo {
         Ok(value.as_str().unwrap().to_string())
     }
 
+    pub fn bool(v: Option<&Value>) -> Result<bool, EncodingError> {
+        check_some(v, "bool")?;
+        let value = v.unwrap();
+        if !value.is_boolean() {
+            return Err(EncodingError::new("Value is not bool".into()));
+        }
+
+        Ok(value.as_bool().unwrap())
+    }
+
+    pub fn vec(v: Option<&Value>) -> Result<&Vec<Value>, EncodingError> {
+        check_some(v, "Vec")?;
+        let value = v.unwrap();
+        if !value.is_array() {
+            return Err(EncodingError::new("Value is not Vec".into()));
+        }
+
+        Ok(value.as_array().unwrap())
+    }
+
     pub fn hex_bytes(v: Option<&Value>) -> Result<Vec<u8>, EncodingError> {
         let value = Self::string(v)?;
         return Ok(hex_to_bytes(value.as_str()));
@@ -82,6 +102,14 @@ impl JSONObject {
 
     pub fn get_string(&self, property: &str) -> Result<String, EncodingError> {
         ValueTo::string(self.value.get(property))
+    }
+
+    pub fn get_bool(&self, property: &str) -> Result<bool, EncodingError> {
+        ValueTo::bool(self.value.get(property))
+    }
+
+    pub fn get_vec(&self, property: &str) -> Result<&Vec<Value>, EncodingError> {
+        ValueTo::vec(self.value.get(property))
     }
 
     pub fn get_hex_bytes(&self, property: &str) -> Result<Vec<u8>, EncodingError> {

@@ -1,15 +1,18 @@
 use crate::api::client::Provider;
 use crate::api::v1::structs::{
-    ClientError, GetInfoResponse, ProcessedTransaction, ProcessedTransactionReceipt,
-    SendTransactionResponse, SendTransactionResponseError,
+    ClientError, GetInfoResponse, GetTableRowsParams, GetTableRowsResponse, ProcessedTransaction,
+    ProcessedTransactionReceipt, SendTransactionResponse, SendTransactionResponseError,
+    TableIndexType,
 };
 use crate::chain::block_id::BlockId;
 use crate::chain::checksum::Checksum256;
 use crate::chain::name::Name;
 use crate::chain::time::TimePoint;
 use crate::chain::transaction::{CompressionType, PackedTransaction, SignedTransaction};
+use crate::chain::{Decoder, Packer};
 use crate::name;
-use crate::serializer::formatter::JSONObject;
+use crate::serializer::formatter::{JSONObject, ValueTo};
+use crate::util::hex_to_bytes;
 use serde_json::Value;
 
 pub struct ChainAPI {
@@ -101,6 +104,40 @@ impl ChainAPI {
                 action_traces: "".to_string(), // TODO: Properly encode this
                 account_ram_delta: "".to_string(), // TODO: Properly encode this
             },
+        })
+    }
+
+    pub fn get_table_rows<T: Packer + Default>(
+        &self,
+        params: GetTableRowsParams,
+    ) -> Result<GetTableRowsResponse<T>, ClientError<()>> {
+        let result = self.provider.post(
+            String::from("/v1/chain/get_table_rows"),
+            Some(params.to_json()),
+        );
+
+        let json: Value = serde_json::from_str(result.unwrap().as_str()).unwrap();
+        let response_obj = JSONObject::new(json);
+        let more = response_obj.get_bool("more")?;
+        let next_key_str = response_obj.get_string("next_key")?;
+        let rows_value = response_obj.get_vec("rows")?;
+        let mut rows: Vec<T> = Vec::with_capacity(rows_value.len());
+        for encoded_row in rows_value {
+            let row_bytes_hex = &ValueTo::string(Some(encoded_row))?;
+            let row_bytes = hex_to_bytes(row_bytes_hex);
+            let mut decoder = Decoder::new(&row_bytes);
+            let mut row = T::default();
+            decoder.unpack(&mut row);
+            rows.push(row);
+        }
+
+        let next_key = TableIndexType::NAME(name!(next_key_str.as_str()));
+
+        Ok(GetTableRowsResponse {
+            rows,
+            more,
+            ram_payers: None,
+            next_key: Some(next_key),
         })
     }
 }
