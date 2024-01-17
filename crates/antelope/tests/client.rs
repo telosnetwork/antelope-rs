@@ -66,7 +66,10 @@ async fn chain_send_transaction() {
         mock_provider::make_mock_transaction(&info, Asset::from_string("0.0420 NUNYA"));
     let signed_invalid_transaction =
         mock_provider::sign_mock_transaction(&invalid_transaction, &info);
-    let failed_result = client.v1_chain.send_transaction(signed_invalid_transaction).await;
+    let failed_result = client
+        .v1_chain
+        .send_transaction(signed_invalid_transaction)
+        .await;
     assert!(
         failed_result.is_err(),
         "Failed transaction result should be err"
@@ -108,7 +111,8 @@ pub async fn chain_get_table_rows() {
             reverse: None,
             index_position: None,
             show_payer: None,
-        }).await
+        })
+        .await
         .unwrap();
 
     assert_eq!(res1.rows.len(), 1, "Should get 1 row back");
