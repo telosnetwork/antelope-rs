@@ -23,8 +23,8 @@ impl Display for HTTPMethod {
 
 // TODO: Make this return an APIResponse with status code, timing, etc..
 pub trait Provider: Debug + Default + Sync + Send {
-    fn post(&self, path: String, body: Option<String>) -> Result<String, String>;
-    fn get(&self, path: String) -> Result<String, String>;
+    fn post(&self, path: String, body: Option<String>) -> impl std::future::Future<Output = Result<String, String>> + Send;
+    fn get(&self, path: String) -> impl std::future::Future<Output = Result<String, String>> + Send;
 }
 
 #[derive(Debug, Default, Clone)]

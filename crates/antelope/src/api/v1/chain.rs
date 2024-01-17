@@ -26,9 +26,9 @@ impl<T: Provider> ChainAPI<T> {
         ChainAPI { provider }
     }
 
-    pub fn get_info(&self) -> Result<GetInfoResponse, ClientError<()>> {
+    pub async fn get_info(&self) -> Result<GetInfoResponse, ClientError<()>> {
         let result = self.provider.get(String::from("/v1/chain/get_info"));
-        let json = serde_json::from_str(result.unwrap().as_str());
+        let json = serde_json::from_str(result.await.unwrap().as_str());
         if json.is_err() {
             return Err(ClientError::encoding("Failed to parse JSON".into()));
         }
@@ -59,7 +59,7 @@ impl<T: Provider> ChainAPI<T> {
         })
     }
 
-    pub fn send_transaction(
+    pub async fn send_transaction(
         &self,
         trx: SignedTransaction,
     ) -> Result<SendTransactionResponse, ClientError<SendTransactionResponseError>> {
@@ -72,7 +72,7 @@ impl<T: Provider> ChainAPI<T> {
         let result = self
             .provider
             .post(String::from("/v1/chain/send_transaction"), Some(trx_json));
-        let json: Value = serde_json::from_str(result.unwrap().as_str()).unwrap();
+        let json: Value = serde_json::from_str(result.await.unwrap().as_str()).unwrap();
         let response_obj = JSONObject::new(json);
         if response_obj.has("code") {
             let error_value = response_obj.get_value("error").unwrap();
@@ -109,7 +109,7 @@ impl<T: Provider> ChainAPI<T> {
         })
     }
 
-    pub fn get_table_rows<P: Packer + Default>(
+    pub async fn get_table_rows<P: Packer + Default>(
         &self,
         params: GetTableRowsParams,
     ) -> Result<GetTableRowsResponse<P>, ClientError<()>> {
@@ -118,7 +118,7 @@ impl<T: Provider> ChainAPI<T> {
             Some(params.to_json()),
         );
 
-        let json: Value = serde_json::from_str(result.unwrap().as_str()).unwrap();
+        let json: Value = serde_json::from_str(result.await.unwrap().as_str()).unwrap();
         let response_obj = JSONObject::new(json);
         let more = response_obj.get_bool("more")?;
         let next_key_str = response_obj.get_string("next_key")?;

@@ -11,12 +11,12 @@ mod utils;
 use crate::utils::mock_provider;
 use utils::mock_provider::MockProvider;
 
-#[test]
-fn chain_get_info() {
+#[tokio::test]
+async fn chain_get_info() {
     let mock_provider = MockProvider {};
     let client = APIClient::custom_provider(mock_provider);
     //let client = APIClient::default_provider(String::from("https://telos.caleos.io"));
-    let info = client.unwrap().v1_chain.get_info().unwrap();
+    let info = client.unwrap().v1_chain.get_info().await.unwrap();
     assert_eq!(info.head_block_producer, name!("bp.boid"));
     assert_eq!(
         info.last_irreversible_block_id.bytes,
@@ -29,16 +29,16 @@ fn chain_get_info() {
     assert_eq!(info.last_irreversible_block_num, 315556072);
 }
 
-#[test]
-fn chain_send_transaction() {
+#[tokio::test]
+async fn chain_send_transaction() {
     let mock_provider = MockProvider {};
     let client = APIClient::custom_provider(mock_provider).unwrap();
     //let client = APIClient::default_provider(String::from("https://testnet.telos.caleos.io")).unwrap();
-    let info = client.v1_chain.get_info().unwrap();
+    let info = client.v1_chain.get_info().await.unwrap();
     let transaction =
         mock_provider::make_mock_transaction(&info, Asset::from_string("0.0420 TLOS"));
     let signed_transaction = mock_provider::sign_mock_transaction(&transaction, &info);
-    let result = client.v1_chain.send_transaction(signed_transaction);
+    let result = client.v1_chain.send_transaction(signed_transaction).await;
     assert!(result.is_ok(), "Transaction result should be ok");
     let send_trx_response = result.unwrap();
 
@@ -66,7 +66,7 @@ fn chain_send_transaction() {
         mock_provider::make_mock_transaction(&info, Asset::from_string("0.0420 NUNYA"));
     let signed_invalid_transaction =
         mock_provider::sign_mock_transaction(&invalid_transaction, &info);
-    let failed_result = client.v1_chain.send_transaction(signed_invalid_transaction);
+    let failed_result = client.v1_chain.send_transaction(signed_invalid_transaction).await;
     assert!(
         failed_result.is_err(),
         "Failed transaction result should be err"
@@ -85,8 +85,8 @@ fn chain_send_transaction() {
     }
 }
 
-#[test]
-pub fn chain_get_table_rows() {
+#[tokio::test]
+pub async fn chain_get_table_rows() {
     #[derive(StructPacker, Default)]
     struct UserRow {
         balance: Asset,
@@ -108,7 +108,7 @@ pub fn chain_get_table_rows() {
             reverse: None,
             index_position: None,
             show_payer: None,
-        })
+        }).await
         .unwrap();
 
     assert_eq!(res1.rows.len(), 1, "Should get 1 row back");

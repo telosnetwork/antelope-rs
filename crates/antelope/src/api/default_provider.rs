@@ -1,6 +1,6 @@
 use crate::api::client::Provider;
-use reqwest::blocking::Client;
 use std::fmt::{Debug, Formatter};
+use reqwest::Client;
 
 #[derive(Default, Clone)]
 pub struct DefaultProvider {
@@ -36,25 +36,25 @@ impl Debug for DefaultProvider {
 }
 
 impl Provider for DefaultProvider {
-    fn get(&self, path: String) -> Result<String, String> {
-        let res = self.client.get(self.base_url.to_string() + &path).send();
+    async fn get(&self, path: String) -> Result<String, String> {
+        let res = self.client.get(self.base_url.to_string() + &path).send().await;
         if res.is_err() {
             return Err(res.err().unwrap().to_string());
         }
 
-        Ok(res.unwrap().text().unwrap())
+        Ok(res.unwrap().text().await.unwrap())
     }
 
-    fn post(&self, path: String, body: Option<String>) -> Result<String, String> {
+    async fn post(&self, path: String, body: Option<String>) -> Result<String, String> {
         let mut builder = self.client.post(self.base_url.to_string() + &path);
         if body.is_some() {
             builder = builder.body(body.unwrap());
         }
-        let res = builder.send();
+        let res = builder.send().await;
         if res.is_err() {
             return Err(res.err().unwrap().to_string());
         }
 
-        Ok(res.unwrap().text().unwrap())
+        Ok(res.unwrap().text().await.unwrap())
     }
 }
