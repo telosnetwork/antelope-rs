@@ -1,6 +1,8 @@
 use crate::api::client::Provider;
 use reqwest::blocking::Client;
+use std::fmt::{Debug, Formatter};
 
+#[derive(Default, Clone)]
 pub struct DefaultProvider {
     base_url: String,
     client: Client,
@@ -24,6 +26,12 @@ impl DefaultProvider {
             base_url: String::from(url),
             client: client.unwrap(),
         })
+    }
+}
+
+impl Debug for DefaultProvider {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "DefaultProvider<{}>", self.base_url)
     }
 }
 

@@ -7,8 +7,9 @@ use crate::crypto::generate::generate;
 use crate::crypto::get_public::get_public;
 use crate::crypto::shared_secrets::shared_secret;
 use crate::crypto::sign::sign;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 
+#[derive(Default, Clone)]
 pub struct PrivateKey {
     pub key_type: KeyType,
     value: Vec<u8>,
@@ -87,6 +88,12 @@ impl PrivateKey {
 }
 
 impl Display for PrivateKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_string())
+    }
+}
+
+impl Debug for PrivateKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_string())
     }

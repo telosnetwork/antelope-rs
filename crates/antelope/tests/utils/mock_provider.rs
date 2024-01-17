@@ -9,9 +9,11 @@ use antelope::chain::transaction::{SignedTransaction, Transaction};
 use antelope::chain::{Decoder, Encoder, Packer};
 use antelope::name;
 use antelope_client_macros::StructPacker;
+use std::fmt::{Debug, Formatter};
 use std::fs;
 use std::path::PathBuf;
 
+#[derive(Default)]
 pub struct MockProvider {}
 
 impl MockProvider {
@@ -31,6 +33,12 @@ impl MockProvider {
         d.push("tests/utils/mock_provider_data/");
         d.push(filename + ".json");
         Ok(fs::read_to_string(&d).unwrap())
+    }
+}
+
+impl Debug for MockProvider {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MockProvider")
     }
 }
 
