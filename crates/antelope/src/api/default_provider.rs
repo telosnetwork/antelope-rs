@@ -1,6 +1,6 @@
-use std::fmt::{Debug, Formatter};
 use crate::api::client::Provider;
 use reqwest::blocking::Client;
+use std::fmt::{Debug, Formatter};
 
 #[derive(Default, Clone)]
 pub struct DefaultProvider {
@@ -57,5 +57,4 @@ impl Provider for DefaultProvider {
 
         Ok(res.unwrap().text().unwrap())
     }
-
 }

@@ -1,4 +1,3 @@
-use std::fmt::{Debug};
 use crate::api::client::Provider;
 use crate::api::v1::structs::{
     ClientError, GetInfoResponse, GetTableRowsParams, GetTableRowsResponse, ProcessedTransaction,
@@ -15,6 +14,7 @@ use crate::name;
 use crate::serializer::formatter::{JSONObject, ValueTo};
 use crate::util::hex_to_bytes;
 use serde_json::Value;
+use std::fmt::Debug;
 
 #[derive(Debug, Default, Clone)]
 pub struct ChainAPI<T: Provider> {
