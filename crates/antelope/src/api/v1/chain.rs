@@ -1,3 +1,4 @@
+use std::fmt::{Debug};
 use crate::api::client::Provider;
 use crate::api::v1::structs::{
     ClientError, GetInfoResponse, GetTableRowsParams, GetTableRowsResponse, ProcessedTransaction,
@@ -15,12 +16,13 @@ use crate::serializer::formatter::{JSONObject, ValueTo};
 use crate::util::hex_to_bytes;
 use serde_json::Value;
 
-pub struct ChainAPI {
-    provider: Box<dyn Provider>,
+#[derive(Debug, Default, Clone)]
+pub struct ChainAPI<T: Provider> {
+    provider: T,
 }
 
-impl ChainAPI {
-    pub fn new(provider: Box<dyn Provider>) -> Self {
+impl<T: Provider> ChainAPI<T> {
+    pub fn new(provider: T) -> Self {
         ChainAPI { provider }
     }
 
@@ -107,10 +109,10 @@ impl ChainAPI {
         })
     }
 
-    pub fn get_table_rows<T: Packer + Default>(
+    pub fn get_table_rows<P: Packer + Default>(
         &self,
         params: GetTableRowsParams,
-    ) -> Result<GetTableRowsResponse<T>, ClientError<()>> {
+    ) -> Result<GetTableRowsResponse<P>, ClientError<()>> {
         let result = self.provider.post(
             String::from("/v1/chain/get_table_rows"),
             Some(params.to_json()),
@@ -121,12 +123,12 @@ impl ChainAPI {
         let more = response_obj.get_bool("more")?;
         let next_key_str = response_obj.get_string("next_key")?;
         let rows_value = response_obj.get_vec("rows")?;
-        let mut rows: Vec<T> = Vec::with_capacity(rows_value.len());
+        let mut rows: Vec<P> = Vec::with_capacity(rows_value.len());
         for encoded_row in rows_value {
             let row_bytes_hex = &ValueTo::string(Some(encoded_row))?;
             let row_bytes = hex_to_bytes(row_bytes_hex);
             let mut decoder = Decoder::new(&row_bytes);
-            let mut row = T::default();
+            let mut row = P::default();
             decoder.unpack(&mut row);
             rows.push(row);
         }

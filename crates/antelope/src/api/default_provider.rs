@@ -1,6 +1,8 @@
+use std::fmt::{Debug, Formatter};
 use crate::api::client::Provider;
 use reqwest::blocking::Client;
 
+#[derive(Default, Clone)]
 pub struct DefaultProvider {
     base_url: String,
     client: Client,
@@ -27,6 +29,12 @@ impl DefaultProvider {
     }
 }
 
+impl Debug for DefaultProvider {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "DefaultProvider<{}>", self.base_url)
+    }
+}
+
 impl Provider for DefaultProvider {
     fn get(&self, path: String) -> Result<String, String> {
         let res = self.client.get(self.base_url.to_string() + &path).send();
@@ -49,4 +57,5 @@ impl Provider for DefaultProvider {
 
         Ok(res.unwrap().text().unwrap())
     }
+
 }

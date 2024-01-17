@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use antelope::api::client::{HTTPMethod, Provider};
 use antelope::api::v1::structs::GetInfoResponse;
 use antelope::chain::action::{Action, PermissionLevel};
@@ -12,6 +13,7 @@ use antelope_client_macros::StructPacker;
 use std::fs;
 use std::path::PathBuf;
 
+#[derive(Default)]
 pub struct MockProvider {}
 
 impl MockProvider {
@@ -34,6 +36,12 @@ impl MockProvider {
     }
 }
 
+impl Debug for MockProvider {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MockProvider")
+    }
+}
+
 impl Provider for MockProvider {
     fn post(&self, path: String, body: Option<String>) -> Result<String, String> {
         self.call(HTTPMethod::POST, path, body)
@@ -42,6 +50,7 @@ impl Provider for MockProvider {
     fn get(&self, path: String) -> Result<String, String> {
         self.call(HTTPMethod::GET, path, None)
     }
+
 }
 
 pub fn make_mock_transaction(info: &GetInfoResponse, asset_to_transfer: Asset) -> Transaction {

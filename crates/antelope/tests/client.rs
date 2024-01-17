@@ -14,7 +14,7 @@ use utils::mock_provider::MockProvider;
 #[test]
 fn chain_get_info() {
     let mock_provider = MockProvider {};
-    let client = APIClient::custom_provider(Box::new(mock_provider));
+    let client = APIClient::custom_provider(mock_provider);
     //let client = APIClient::default_provider(String::from("https://telos.caleos.io"));
     let info = client.unwrap().v1_chain.get_info().unwrap();
     assert_eq!(info.head_block_producer, name!("bp.boid"));
@@ -32,7 +32,7 @@ fn chain_get_info() {
 #[test]
 fn chain_send_transaction() {
     let mock_provider = MockProvider {};
-    let client = APIClient::custom_provider(Box::new(mock_provider)).unwrap();
+    let client = APIClient::custom_provider(mock_provider).unwrap();
     //let client = APIClient::default_provider(String::from("https://testnet.telos.caleos.io")).unwrap();
     let info = client.v1_chain.get_info().unwrap();
     let transaction =
@@ -93,7 +93,7 @@ pub fn chain_get_table_rows() {
     }
 
     let mock_provider = MockProvider {};
-    let client = APIClient::custom_provider(Box::new(mock_provider)).unwrap();
+    let client = APIClient::custom_provider(mock_provider).unwrap();
     //let client = APIClient::default_provider(String::from("https://testnet.telos.caleos.io")).unwrap();
 
     let res1 = client

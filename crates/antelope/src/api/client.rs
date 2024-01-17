@@ -1,6 +1,7 @@
-use crate::api::default_provider::DefaultProvider;
 use crate::api::v1::chain::ChainAPI;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
+
+pub use crate::api::default_provider::DefaultProvider;
 
 pub enum HTTPMethod {
     GET,
@@ -21,22 +22,23 @@ impl Display for HTTPMethod {
 }
 
 // TODO: Make this return an APIResponse with status code, timing, etc..
-pub trait Provider {
+pub trait Provider: Debug + Default + Sync + Send {
     fn post(&self, path: String, body: Option<String>) -> Result<String, String>;
     fn get(&self, path: String) -> Result<String, String>;
 }
 
-pub struct APIClient {
-    pub v1_chain: ChainAPI,
+#[derive(Debug, Default, Clone)]
+pub struct APIClient<P: Provider> {
+    pub v1_chain: ChainAPI<P>,
 }
 
-impl APIClient {
-    pub fn default_provider(base_url: String) -> Result<Self, String> {
-        let provider = Box::new(DefaultProvider::new(base_url).unwrap());
+impl<P: Provider> APIClient<P> {
+    pub fn default_provider(base_url: String) -> Result<APIClient<DefaultProvider>, String> {
+        let provider = DefaultProvider::new(base_url).unwrap();
         APIClient::custom_provider(provider)
     }
 
-    pub fn custom_provider(provider: Box<dyn Provider>) -> Result<Self, String> {
+    pub fn custom_provider(provider: P) -> Result<Self, String> {
         Ok(APIClient {
             v1_chain: ChainAPI::new(provider),
         })
