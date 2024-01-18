@@ -6,6 +6,7 @@ use crate::chain::{
     time::{TimePoint, TimePointSec},
     transaction::TransactionHeader,
     varint::VarUint32,
+    action::Action,
 };
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -123,12 +124,14 @@ impl GetInfoResponse {
     }
 }
 
+#[derive(Debug)]
 pub struct ProcessedTransactionReceipt {
     pub status: String,
     pub cpu_usage_us: u32,
     pub net_usage_words: u32,
 }
 
+#[derive(Debug)]
 pub struct ProcessedTransaction {
     pub id: String,
     pub block_num: u64,
@@ -138,7 +141,7 @@ pub struct ProcessedTransaction {
     pub except: Option<SendTransactionResponseError>,
     pub net_usage: u32,
     pub scheduled: bool,
-    pub action_traces: String,     // TODO: create a type for this?
+    pub action_traces: Vec<ActionTrace>,
     pub account_ram_delta: String, // TODO: create a type for this?
 }
 
@@ -168,9 +171,48 @@ pub struct SendTransactionResponseError {
     pub stack: Vec<SendTransactionResponseExceptionStack>,
 }
 
+#[derive(Debug)]
 pub struct SendTransactionResponse {
     pub transaction_id: String,
     pub processed: ProcessedTransaction,
+}
+
+#[derive(Debug)]
+pub struct ActionTrace {
+    pub action_ordinal: u32,
+    pub creator_action_ordinal: u32,
+    pub closest_unnotified_ancestor_action_ordinal: u32,
+    pub receipt: ActionReceipt,
+    pub receiver: Name,
+    pub act: Action,
+    pub context_free: bool,
+    pub elapsed: u64,
+    pub console: String,
+    pub trx_id: String,
+    pub block_num: u64,
+    pub block_time: String,
+    pub producer_block_id: Option<String>,
+    pub account_ram_deltas: String, //TODO
+    pub except: Option<String>, // Adjust type as needed
+    pub error_code: Option<u32>,
+    pub return_value_hex_data: String,
+}
+
+#[derive(Debug)]
+pub struct ActionReceipt {
+    pub receiver: Name,
+    pub act_digest: String,
+    pub global_sequence: u64,
+    pub recv_sequence: u64,
+    pub auth_sequence: Vec<AuthSequence>,
+    pub code_sequence: u64,
+    pub abi_sequence: u64,
+}
+
+#[derive(Debug)]
+pub struct AuthSequence {
+    pub account: String,
+    pub sequence: u64,
 }
 
 pub enum IndexPosition {
