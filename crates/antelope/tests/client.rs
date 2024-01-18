@@ -4,7 +4,10 @@ use antelope::chain::asset::Asset;
 use antelope::chain::block_id::BlockId;
 use antelope::chain::name::Name;
 use antelope::name;
-use antelope::util::{bytes_to_hex, hex_to_bytes};
+use antelope::serializer::formatter::JSONObject;
+use antelope::util::hex_to_bytes;
+use antelope::api::v1::utils::parse_action_trace;
+use serde::{Serialize, Deserialize};
 mod utils;
 use crate::utils::mock_provider;
 use utils::mock_provider::MockProvider;
@@ -59,6 +62,8 @@ fn chain_send_transaction() {
     assert_eq!(send_trx_response.processed.receipt.cpu_usage_us, 185);
     assert_eq!(send_trx_response.processed.elapsed, 185);
 
+
+
     // TODO: Create a failed send_transaction response in the mock_data, properly detect errors in v1_chain.send_transaction and test for the error struct values
     let invalid_transaction =
         mock_provider::make_mock_transaction(&info, Asset::from_string("0.0420 NUNYA"));
@@ -81,4 +86,107 @@ fn chain_send_transaction() {
             )
         }
     }
+}
+
+#[test]
+fn test_parse_action_trace() {
+    // Setup a complete mock JSON object representing an action trace
+    let mock_json = r#"
+    {
+        "action_ordinal": 1,
+        "creator_action_ordinal": 0,
+        "closest_unnotified_ancestor_action_ordinal": 0,
+        "receipt": {
+          "receiver": "eosio.token",
+          "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
+          "global_sequence": 383003514,
+          "recv_sequence": 1837548,
+          "auth_sequence": [
+            [
+              "corecorecore",
+              13
+            ]
+          ],
+          "code_sequence": 7,
+          "abi_sequence": 8
+        },
+        "receiver": "eosio.token",
+        "act": {
+          "account": "eosio.token",
+          "name": "transfer",
+          "authorization": [
+            {
+              "actor": "corecorecore",
+              "permission": "active"
+            }
+          ],
+          "data": {
+            "from": "corecorecore",
+            "to": "teamgreymass",
+            "quantity": "0.0420 TLOS",
+            "memo": "Testing antelope-rs"
+          },
+          "hex_data": "a02e45ea52a42e4580b1915e5d268dcaa40100000000000004544c4f530000001354657374696e6720616e74656c6f70652d7273"
+        },
+        "context_free": false,
+        "elapsed": 74,
+        "console": "",
+        "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
+        "block_num": 275003381,
+        "block_time": "2024-01-02T19:01:00.000",
+        "producer_block_id": null,
+        "account_ram_deltas": [],
+        "except": null,
+        "error_code": null,
+        "return_value_hex_data": ""
+      }
+    "#;
+
+    let json_value: serde_json::Value = serde_json::from_str(mock_json).unwrap();
+    let json_object = JSONObject::new(json_value);
+
+    let result = parse_action_trace(json_object);
+
+
+    assert!(result.is_ok());
+
+    let action_trace = result.unwrap();
+
+    // Assert individual fields of action_trace
+    assert_eq!(action_trace.action_ordinal, 1);
+    assert_eq!(action_trace.creator_action_ordinal, 0);
+    assert_eq!(action_trace.closest_unnotified_ancestor_action_ordinal, 0);
+
+    // Asserting fields inside receipt
+    assert_eq!(action_trace.receipt.receiver, name!("eosio.token"));
+    assert_eq!(action_trace.receipt.act_digest, "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530");
+    assert_eq!(action_trace.receipt.global_sequence, 383003514);
+    assert_eq!(action_trace.receipt.recv_sequence, 1837548);
+    // Add more asserts for auth_sequence, code_sequence, and abi_sequence
+
+    // Asserting fields inside act
+    assert_eq!(action_trace.act.account, name!("eosio.token"));
+    assert_eq!(action_trace.act.name, name!("transfer"));
+
+    assert_eq!(action_trace.elapsed, 74);
+    assert_eq!(action_trace.context_free, false);
+    assert_eq!(action_trace.console, "");
+    assert_eq!(action_trace.trx_id, "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49");
+    assert_eq!(action_trace.block_num, 275003381);
+    assert_eq!(action_trace.block_time, "2024-01-02T19:01:00.000");
+
+    // Since producer_block_id, account_ram_deltas, except, error_code, and return_value_hex_data are optional and null in the mock, they should be None or empty
+    assert!(action_trace.producer_block_id.is_none());
+    assert!(action_trace.account_ram_deltas.is_empty());
+    assert!(action_trace.except.is_none());
+    assert!(action_trace.error_code.is_none());
+    assert_eq!(action_trace.return_value_hex_data, "");
+}
+
+#[derive(Serialize, Deserialize)]
+struct ActionData {
+    from: String,
+    to: String,
+    quantity: String,
+    memo: String,
 }

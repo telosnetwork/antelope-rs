@@ -1,8 +1,7 @@
 use crate::api::client::Provider;
 use crate::api::v1::structs::{
     ClientError, GetInfoResponse, ProcessedTransaction, ProcessedTransactionReceipt,
-    SendTransactionResponse, SendTransactionResponseError,
-};
+    SendTransactionResponse, SendTransactionResponseError};
 use crate::chain::block_id::BlockId;
 use crate::chain::checksum::Checksum256;
 use crate::chain::name::Name;
@@ -11,6 +10,7 @@ use crate::chain::transaction::{CompressionType, PackedTransaction, SignedTransa
 use crate::name;
 use crate::serializer::formatter::JSONObject;
 use serde_json::Value;
+use crate::api::v1::utils::parse_action_traces;
 
 pub struct ChainAPI {
     provider: Box<dyn Provider>,
@@ -82,6 +82,8 @@ impl ChainAPI {
         }
         let processed_obj = JSONObject::new(response_obj.get_value("processed").unwrap());
         let receipt_obj = JSONObject::new(processed_obj.get_value("receipt").unwrap());
+        let action_traces_json = processed_obj.get_value("action_traces");
+        let action_traces = parse_action_traces(action_traces_json.unwrap_or(Value::Null))?;
 
         Ok(SendTransactionResponse {
             transaction_id: response_obj.get_string("transaction_id")?,
@@ -98,7 +100,7 @@ impl ChainAPI {
                 except: None,
                 net_usage: processed_obj.get_u32("net_usage")?,
                 scheduled: false,
-                action_traces: "".to_string(), // TODO: Properly encode this
+                action_traces,
                 account_ram_delta: "".to_string(), // TODO: Properly encode this
             },
         })
