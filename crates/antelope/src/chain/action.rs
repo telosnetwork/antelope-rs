@@ -46,7 +46,7 @@ impl Packer for PermissionLevel {
     }
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Action {
     /// The account on which the action is executed.
     pub account: Name,
