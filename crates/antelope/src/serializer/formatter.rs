@@ -119,11 +119,9 @@ impl JSONObject {
 
     pub fn get_optional_string(&self, property: &str) -> Result<Option<String>, EncodingError> {
         match self.value.get(property) {
-            Some(v) => {
-                match v.as_str() {
-                    Some(s) => Ok(Some(s.to_string())),
-                    None => Ok(None),
-                }
+            Some(v) => match v.as_str() {
+                Some(s) => Ok(Some(s.to_string())),
+                None => Ok(None),
             },
             None => Ok(None),
         }
@@ -131,11 +129,9 @@ impl JSONObject {
 
     pub fn get_optional_u32(&self, property: &str) -> Result<Option<u32>, EncodingError> {
         match self.value.get(property) {
-            Some(v) => {
-                match v.as_u64() {
-                    Some(n) => Ok(Some(n as u32)),
-                    None => Ok(None),
-                }
+            Some(v) => match v.as_u64() {
+                Some(n) => Ok(Some(n as u32)),
+                None => Ok(None),
             },
             None => Ok(None),
         }

@@ -1,10 +1,12 @@
 use crate::api::client::Provider;
 use crate::api::v1::structs::{
     ClientError, GetInfoResponse, ProcessedTransaction, ProcessedTransactionReceipt,
-    SendTransactionResponse, SendTransactionResponseError, ClientError, GetInfoResponse, GetTableRowsParams, GetTableRowsResponse, ProcessedTransaction,
+    SendTransactionResponse, SendTransactionResponseError,
+    ClientError, GetInfoResponse, GetTableRowsParams, GetTableRowsResponse, ProcessedTransaction,
     ProcessedTransactionReceipt, SendTransactionResponse, SendTransactionResponseError,
     TableIndexType,
 };
+use crate::api::v1::utils::parse_action_traces;
 use crate::chain::block_id::BlockId;
 use crate::chain::checksum::Checksum256;
 use crate::chain::name::Name;

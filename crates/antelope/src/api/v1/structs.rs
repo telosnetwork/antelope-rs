@@ -1,12 +1,12 @@
 use crate::chain::checksum::Checksum160;
 use crate::chain::{
+    action::Action,
     block_id::BlockId,
     checksum::Checksum256,
     name::Name,
     time::{TimePoint, TimePointSec},
     transaction::TransactionHeader,
     varint::VarUint32,
-    action::Action,
 };
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -193,7 +193,7 @@ pub struct ActionTrace {
     pub block_time: String,
     pub producer_block_id: Option<String>,
     pub account_ram_deltas: String, //TODO
-    pub except: Option<String>, // Adjust type as needed
+    pub except: Option<String>,     // Adjust type as needed
     pub error_code: Option<u32>,
     pub return_value_hex_data: String,
 }

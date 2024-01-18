@@ -1,9 +1,9 @@
-use crate::api::v1::structs::{ActionTrace, ActionReceipt, AuthSequence, EncodingError};
+use crate::api::v1::structs::{ActionReceipt, ActionTrace, AuthSequence, EncodingError};
+use crate::chain::action::{Action, PermissionLevel};
 use crate::chain::name::Name;
+use crate::name;
 use crate::serializer::formatter::JSONObject;
 use serde_json::Value;
-use crate::chain::action::{Action, PermissionLevel};
-use crate::name;
 
 pub fn parse_action_traces(action_traces_json: Value) -> Result<Vec<ActionTrace>, EncodingError> {
     let action_traces_array = action_traces_json
@@ -22,7 +22,8 @@ pub fn parse_action_traces(action_traces_json: Value) -> Result<Vec<ActionTrace>
 pub fn parse_action_trace(json: JSONObject) -> Result<ActionTrace, EncodingError> {
     let action_ordinal = json.get_u32("action_ordinal")?;
     let creator_action_ordinal = json.get_u32("creator_action_ordinal")?;
-    let closest_unnotified_ancestor_action_ordinal = json.get_u32("closest_unnotified_ancestor_action_ordinal")?;
+    let closest_unnotified_ancestor_action_ordinal =
+        json.get_u32("closest_unnotified_ancestor_action_ordinal")?;
 
     let act_json = json.get_value("act")?;
     let act = parse_action(Some(act_json))?;
@@ -70,7 +71,9 @@ fn parse_action_receipt(json: Value) -> Result<ActionReceipt, EncodingError> {
     let act_digest = json_obj.get_string("act_digest")?;
     let global_sequence = json_obj.get_u64("global_sequence")?;
     let recv_sequence = json_obj.get_u64("recv_sequence")?;
-    let auth_sequence_json = json.get("auth_sequence").ok_or(EncodingError::new("Missing 'auth_sequence' in action receipt".into()))?;
+    let auth_sequence_json = json.get("auth_sequence").ok_or(EncodingError::new(
+        "Missing 'auth_sequence' in action receipt".into(),
+    ))?;
     let auth_sequence = parse_auth_sequence(Some(auth_sequence_json.clone()))?;
     let code_sequence = json_obj.get_u64("code_sequence")?;
     let abi_sequence = json_obj.get_u64("abi_sequence")?;
@@ -112,18 +115,25 @@ fn parse_action(json: Option<Value>) -> Result<Action, EncodingError> {
     }
 }
 
-
 fn parse_auth_sequence(json: Option<Value>) -> Result<Vec<AuthSequence>, EncodingError> {
     if let Some(json) = json {
-        let auth_sequence_array = json.as_array().ok_or(EncodingError::new("Invalid auth sequence array".into()))?;
+        let auth_sequence_array = json
+            .as_array()
+            .ok_or(EncodingError::new("Invalid auth sequence array".into()))?;
         let mut result = Vec::new();
         for auth_sequence_json in auth_sequence_array {
-            let auth_sequence_vec = auth_sequence_json.as_array().ok_or(EncodingError::new("Invalid auth sequence".into()))?;
+            let auth_sequence_vec = auth_sequence_json
+                .as_array()
+                .ok_or(EncodingError::new("Invalid auth sequence".into()))?;
             if auth_sequence_vec.len() != 2 {
                 return Err(EncodingError::new("Invalid auth sequence".into()));
             }
-            let account = auth_sequence_vec[0].as_str().ok_or(EncodingError::new("Invalid account in auth sequence".into()))?;
-            let sequence = auth_sequence_vec[1].as_u64().ok_or(EncodingError::new("Invalid sequence in auth sequence".into()))?;
+            let account = auth_sequence_vec[0].as_str().ok_or(EncodingError::new(
+                "Invalid account in auth sequence".into(),
+            ))?;
+            let sequence = auth_sequence_vec[1].as_u64().ok_or(EncodingError::new(
+                "Invalid sequence in auth sequence".into(),
+            ))?;
             result.push(AuthSequence {
                 account: account.to_string(),
                 sequence,
@@ -131,12 +141,16 @@ fn parse_auth_sequence(json: Option<Value>) -> Result<Vec<AuthSequence>, Encodin
         }
         Ok(result)
     } else {
-        Err(EncodingError::new("Missing 'auth_sequence' in action receipt".into()))
+        Err(EncodingError::new(
+            "Missing 'auth_sequence' in action receipt".into(),
+        ))
     }
 }
 
 fn parse_authorization(json: Value) -> Result<Vec<PermissionLevel>, EncodingError> {
-    let authorization_array = json.as_array().ok_or(EncodingError::new("Invalid authorization array".into()))?;
+    let authorization_array = json
+        .as_array()
+        .ok_or(EncodingError::new("Invalid authorization array".into()))?;
     let mut result = Vec::new();
 
     for authorization_json in authorization_array {
@@ -151,4 +165,3 @@ fn parse_authorization(json: Value) -> Result<Vec<PermissionLevel>, EncodingErro
 
     Ok(result)
 }
-
