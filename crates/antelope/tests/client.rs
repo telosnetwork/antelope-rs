@@ -1,13 +1,13 @@
 use antelope::api::client::APIClient;
 use antelope::api::v1::structs::ClientError;
+use antelope::api::v1::utils::parse_action_trace;
 use antelope::chain::asset::Asset;
 use antelope::chain::block_id::BlockId;
 use antelope::chain::name::Name;
 use antelope::name;
 use antelope::serializer::formatter::JSONObject;
 use antelope::util::hex_to_bytes;
-use antelope::api::v1::utils::parse_action_trace;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 mod utils;
 use crate::utils::mock_provider;
 use utils::mock_provider::MockProvider;
@@ -61,8 +61,6 @@ fn chain_send_transaction() {
     );
     assert_eq!(send_trx_response.processed.receipt.cpu_usage_us, 185);
     assert_eq!(send_trx_response.processed.elapsed, 185);
-
-
 
     // TODO: Create a failed send_transaction response in the mock_data, properly detect errors in v1_chain.send_transaction and test for the error struct values
     let invalid_transaction =
@@ -147,7 +145,6 @@ fn test_parse_action_trace() {
 
     let result = parse_action_trace(json_object);
 
-
     assert!(result.is_ok());
 
     let action_trace = result.unwrap();
@@ -159,7 +156,10 @@ fn test_parse_action_trace() {
 
     // Asserting fields inside receipt
     assert_eq!(action_trace.receipt.receiver, name!("eosio.token"));
-    assert_eq!(action_trace.receipt.act_digest, "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530");
+    assert_eq!(
+        action_trace.receipt.act_digest,
+        "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530"
+    );
     assert_eq!(action_trace.receipt.global_sequence, 383003514);
     assert_eq!(action_trace.receipt.recv_sequence, 1837548);
     // Add more asserts for auth_sequence, code_sequence, and abi_sequence
@@ -171,7 +171,10 @@ fn test_parse_action_trace() {
     assert_eq!(action_trace.elapsed, 74);
     assert_eq!(action_trace.context_free, false);
     assert_eq!(action_trace.console, "");
-    assert_eq!(action_trace.trx_id, "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49");
+    assert_eq!(
+        action_trace.trx_id,
+        "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49"
+    );
     assert_eq!(action_trace.block_num, 275003381);
     assert_eq!(action_trace.block_time, "2024-01-02T19:01:00.000");
 

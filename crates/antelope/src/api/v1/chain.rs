@@ -1,7 +1,9 @@
 use crate::api::client::Provider;
 use crate::api::v1::structs::{
     ClientError, GetInfoResponse, ProcessedTransaction, ProcessedTransactionReceipt,
-    SendTransactionResponse, SendTransactionResponseError};
+    SendTransactionResponse, SendTransactionResponseError,
+};
+use crate::api::v1::utils::parse_action_traces;
 use crate::chain::block_id::BlockId;
 use crate::chain::checksum::Checksum256;
 use crate::chain::name::Name;
@@ -10,7 +12,6 @@ use crate::chain::transaction::{CompressionType, PackedTransaction, SignedTransa
 use crate::name;
 use crate::serializer::formatter::JSONObject;
 use serde_json::Value;
-use crate::api::v1::utils::parse_action_traces;
 
 pub struct ChainAPI {
     provider: Box<dyn Provider>,
