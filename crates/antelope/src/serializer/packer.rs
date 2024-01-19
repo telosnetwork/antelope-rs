@@ -407,6 +407,10 @@ where
 
     /// Unpacks this value from the given data.
     fn unpack(&mut self, data: &[u8]) -> usize {
+        if data.is_empty() {
+            *self = None;
+            return 0;
+        }
         let mut dec = Decoder::new(data);
         let mut ty: u8 = 0;
         let mut value: T = Default::default();
