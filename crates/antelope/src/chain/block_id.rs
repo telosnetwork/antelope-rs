@@ -8,7 +8,7 @@ pub struct BlockId {
 }
 
 impl BlockId {
-    pub fn from_bytes(bytes: &Vec<u8>) -> Result<Self, String> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
         if bytes.len() != 32 {
             return Err(String::from(
                 "BlockId.from_bytes expected bytes length of 32",

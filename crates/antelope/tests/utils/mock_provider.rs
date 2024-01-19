@@ -43,11 +43,11 @@ impl Debug for MockProvider {
 }
 
 impl Provider for MockProvider {
-    fn post(&self, path: String, body: Option<String>) -> Result<String, String> {
+    async fn post(&self, path: String, body: Option<String>) -> Result<String, String> {
         self.call(HTTPMethod::POST, path, body)
     }
 
-    fn get(&self, path: String) -> Result<String, String> {
+    async fn get(&self, path: String) -> Result<String, String> {
         self.call(HTTPMethod::GET, path, None)
     }
 }
