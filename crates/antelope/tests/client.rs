@@ -67,7 +67,10 @@ async fn chain_send_transaction() {
         mock_provider::make_mock_transaction(&info, Asset::from_string("0.0420 NUNYA"));
     let signed_invalid_transaction =
         mock_provider::sign_mock_transaction(&invalid_transaction, &info);
-    let failed_result = client.v1_chain.send_transaction(signed_invalid_transaction).await;
+    let failed_result = client
+        .v1_chain
+        .send_transaction(signed_invalid_transaction)
+        .await;
     assert!(
         failed_result.is_err(),
         "Failed transaction result should be err"
@@ -109,7 +112,8 @@ pub async fn chain_get_table_rows() {
             reverse: None,
             index_position: None,
             show_payer: None,
-        }).await
+        })
+        .await
         .unwrap();
 
     assert_eq!(res1.rows.len(), 1, "Should get 1 row back");
@@ -128,7 +132,6 @@ pub async fn chain_get_table_rows() {
         revision: Option<u32>,
     }
 
-;
     let res2 = client
         .v1_chain
         .get_table_rows::<TelosEVMConfig>(GetTableRowsParams {
@@ -146,7 +149,10 @@ pub async fn chain_get_table_rows() {
         .unwrap();
 
     assert_eq!(res2.rows.len(), 1, "Should get 1 config row back");
-    assert!(res2.rows[0].revision.is_none(), "Empty binary extension should be None");
+    assert!(
+        res2.rows[0].revision.is_none(),
+        "Empty binary extension should be None"
+    );
 
     // const res1 = await eos.v1.chain.get_table_rows({
     //     code: 'fuel.gm',
