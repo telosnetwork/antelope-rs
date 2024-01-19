@@ -2,6 +2,7 @@ use antelope::api::client::APIClient;
 use antelope::api::v1::structs::{ClientError, GetTableRowsParams};
 use antelope::chain::asset::Asset;
 use antelope::chain::block_id::BlockId;
+use antelope::chain::checksum::Checksum256;
 use antelope::chain::name::Name;
 use antelope::name;
 use antelope::serializer::{Decoder, Encoder, Packer};
@@ -120,6 +121,37 @@ pub async fn chain_get_table_rows() {
         res1.rows[0].balance.symbol().code().to_string(),
         "TLOS",
         "Should get TLOS symbol back"
+    );
+
+    #[derive(StructPacker, Default)]
+    struct TelosEVMConfig {
+        trx_index: u32,
+        last_block: u32,
+        gas_used_block: Checksum256,
+        gas_price: Checksum256,
+        revision: Option<u32>,
+    }
+
+    let res2 = client
+        .v1_chain
+        .get_table_rows::<TelosEVMConfig>(GetTableRowsParams {
+            code: name!("eosio.evm"),
+            table: name!("config"),
+            scope: Some(name!("eosio.evm")),
+            lower_bound: None,
+            upper_bound: None,
+            limit: Some(1),
+            reverse: None,
+            index_position: None,
+            show_payer: None,
+        })
+        .await
+        .unwrap();
+
+    assert_eq!(res2.rows.len(), 1, "Should get 1 config row back");
+    assert!(
+        res2.rows[0].revision.is_none(),
+        "Empty binary extension should be None"
     );
 
     // const res1 = await eos.v1.chain.get_table_rows({
