@@ -1,6 +1,7 @@
 use crate::serializer::{Encoder, Packer};
+use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, Eq, PartialEq, Default, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Default, Debug, Serialize, Deserialize)]
 pub struct VarUint32 {
     /// The unsigned integer value.
     pub n: u32,

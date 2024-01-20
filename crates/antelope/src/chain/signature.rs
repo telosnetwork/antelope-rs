@@ -10,9 +10,10 @@ use crate::util::slice_copy;
 use ecdsa::RecoveryId;
 use k256::Secp256k1;
 use p256::NistP256;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Signature {
     pub key_type: KeyType,
     value: Vec<u8>,

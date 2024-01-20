@@ -1,8 +1,9 @@
 use crate::chain::{Decoder, Encoder, Packer};
 use antelope_client_macros::StructPacker;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Eq, PartialEq, StructPacker)]
+#[derive(Clone, Eq, PartialEq, StructPacker, Serialize, Deserialize)]
 pub struct BlockId {
     pub bytes: Vec<u8>,
 }

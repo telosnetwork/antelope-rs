@@ -1,7 +1,8 @@
 use crate::chain::{Encoder, Packer};
 use chrono::{NaiveDateTime, TimeZone, Utc};
+use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, Default, PartialEq)]
+#[derive(Copy, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct TimePoint {
     /// elapsed in microseconds
     pub elapsed: u64,
@@ -42,7 +43,7 @@ impl Packer for TimePoint {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct TimePointSec {
     ///
     pub seconds: u32,
