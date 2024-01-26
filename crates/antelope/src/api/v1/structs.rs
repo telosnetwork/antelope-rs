@@ -142,7 +142,7 @@ pub struct ProcessedTransaction {
     pub net_usage: u32,
     pub scheduled: bool,
     pub action_traces: Vec<ActionTrace>,
-    pub account_ram_delta: String, // TODO: create a type for this?
+    pub account_ram_delta: Option<AccountRamDelta>,
 }
 
 #[derive(Debug)]
@@ -192,8 +192,8 @@ pub struct ActionTrace {
     pub block_num: u64,
     pub block_time: String,
     pub producer_block_id: Option<String>,
-    pub account_ram_deltas: String, //TODO
-    pub except: Option<String>,     // Adjust type as needed
+    pub account_ram_deltas: Vec<AccountRamDelta>,
+    pub except: Option<String>,
     pub error_code: Option<u32>,
     pub return_value_hex_data: String,
 }
@@ -211,9 +211,16 @@ pub struct ActionReceipt {
 
 #[derive(Debug)]
 pub struct AuthSequence {
-    pub account: String,
+    pub account: Name,
     pub sequence: u64,
 }
+
+#[derive(Debug)]
+pub struct AccountRamDelta {
+    pub account: Name,
+    pub delta: i64,
+}
+
 
 pub enum IndexPosition {
     PRIMARY,

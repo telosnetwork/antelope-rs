@@ -1,4 +1,4 @@
-use crate::api::v1::structs::{ActionReceipt, ActionTrace, AuthSequence, EncodingError};
+use crate::api::v1::structs::{ActionReceipt, ActionTrace, AuthSequence, AccountRamDelta, EncodingError};
 use crate::chain::action::{Action, PermissionLevel};
 use crate::chain::name::Name;
 use crate::name;
@@ -33,6 +33,9 @@ pub fn parse_action_trace(json: JSONObject) -> Result<ActionTrace, EncodingError
 
     let receiver = json.get_string("receiver")?;
 
+    let account_ram_deltas_json = json.get_value("account_ram_deltas").unwrap_or(Value::Array(vec![]));
+    let account_ram_deltas = parse_account_ram_deltas(account_ram_deltas_json)?;
+
     let elapsed = json.get_u64("elapsed")?;
     let context_free = json.get_bool("context_free")?;
     let console = json.get_string("console")?;
@@ -58,7 +61,7 @@ pub fn parse_action_trace(json: JSONObject) -> Result<ActionTrace, EncodingError
         block_num,
         block_time,
         producer_block_id,
-        account_ram_deltas: "".into(),
+        account_ram_deltas,
         except,
         error_code,
         return_value_hex_data,
@@ -135,7 +138,7 @@ fn parse_auth_sequence(json: Option<Value>) -> Result<Vec<AuthSequence>, Encodin
                 "Invalid sequence in auth sequence".into(),
             ))?;
             result.push(AuthSequence {
-                account: account.to_string(),
+                account: name!(account),
                 sequence,
             });
         }
@@ -164,4 +167,31 @@ fn parse_authorization(json: Value) -> Result<Vec<PermissionLevel>, EncodingErro
     }
 
     Ok(result)
+}
+
+fn parse_account_ram_deltas(json: Value) -> Result<Vec<AccountRamDelta>, EncodingError> {
+    let deltas_array = json
+        .as_array()
+        .ok_or(EncodingError::new("Invalid account_ram_deltas array".into()))?;
+
+    let mut deltas = Vec::new();
+    for delta_json in deltas_array {
+        let delta_obj = JSONObject::new(delta_json.clone());
+        let delta = parse_account_ram_delta(delta_obj)?;
+        deltas.push(delta);
+    }
+
+    Ok(deltas)
+}
+
+pub fn parse_account_ram_delta(json: JSONObject) -> Result<AccountRamDelta, EncodingError> {
+    let account = json.get_string("account")?;
+    let delta = json.get_string("delta")?
+        .parse::<i64>()
+        .map_err(|_| EncodingError::new("Invalid delta value".into()))?;
+
+    Ok(AccountRamDelta {
+        account: name!(account.as_str()),
+        delta,
+    })
 }

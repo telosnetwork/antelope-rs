@@ -1,5 +1,4 @@
 use antelope::api::client::APIClient;
-use antelope::api::v1::structs::ClientError;
 use antelope::api::v1::utils::parse_action_trace;
 use antelope::api::v1::structs::{ClientError, GetTableRowsParams};
 use antelope::chain::asset::Asset;
@@ -8,7 +7,6 @@ use antelope::chain::checksum::Checksum256;
 use antelope::chain::name::Name;
 use antelope::name;
 use antelope::serializer::{Decoder, Encoder, Packer};
-use antelope::util::hex_to_bytes;
 use antelope::StructPacker;
 use antelope::serializer::formatter::JSONObject;
 use antelope::util::hex_to_bytes;

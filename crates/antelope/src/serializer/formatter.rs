@@ -70,16 +70,6 @@ impl ValueTo {
         Ok(value.as_number().unwrap().as_u64().unwrap())
     }
 
-    pub fn bool(v: Option<&Value>) -> Result<bool, EncodingError> {
-        check_some(v, "bool")?;
-        let value = v.unwrap();
-        if !value.is_boolean() {
-            return Err(EncodingError::new("Value is not a boolean".into()));
-        }
-
-        Ok(value.as_bool().unwrap())
-    }
-
     pub fn json_object(v: Option<&Value>) -> Result<JSONObject, EncodingError> {
         check_some(v, "JSON object")?;
         let value = v.unwrap();
@@ -163,10 +153,6 @@ impl JSONObject {
 
     pub fn get_u64(&self, property: &str) -> Result<u64, EncodingError> {
         ValueTo::u64(self.value.get(property))
-    }
-
-    pub fn get_bool(&self, property: &str) -> Result<bool, EncodingError> {
-        ValueTo::bool(self.value.get(property))
     }
 
     pub fn get_json_object(&self, property: &str) -> Result<JSONObject, EncodingError> {

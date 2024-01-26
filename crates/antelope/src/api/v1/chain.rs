@@ -2,11 +2,8 @@ use crate::api::client::Provider;
 use crate::api::v1::structs::{
     ClientError, GetInfoResponse, ProcessedTransaction, ProcessedTransactionReceipt,
     SendTransactionResponse, SendTransactionResponseError,
-    ClientError, GetInfoResponse, GetTableRowsParams, GetTableRowsResponse, ProcessedTransaction,
-    ProcessedTransactionReceipt, SendTransactionResponse, SendTransactionResponseError,
-    TableIndexType,
+    GetTableRowsParams, GetTableRowsResponse, TableIndexType,
 };
-use crate::api::v1::utils::parse_action_traces;
 use crate::chain::block_id::BlockId;
 use crate::chain::checksum::Checksum256;
 use crate::chain::name::Name;
@@ -17,7 +14,7 @@ use crate::name;
 use crate::serializer::formatter::{JSONObject, ValueTo};
 use crate::util::hex_to_bytes;
 use serde_json::Value;
-use crate::api::v1::utils::parse_action_traces;
+use crate::api::v1::utils::{parse_action_traces, parse_account_ram_delta};
 use std::fmt::Debug;
 
 #[derive(Debug, Default, Clone)]
@@ -93,6 +90,13 @@ impl<T: Provider> ChainAPI<T> {
         let receipt_obj = JSONObject::new(processed_obj.get_value("receipt").unwrap());
         let action_traces_json = processed_obj.get_value("action_traces");
         let action_traces = parse_action_traces(action_traces_json.unwrap_or(Value::Null))?;
+        let account_ram_delta_json = processed_obj.get_value("account_ram_delta").unwrap_or(Value::Null);
+        let account_ram_delta = if account_ram_delta_json != Value::Null {
+            let delta_obj = JSONObject::new(account_ram_delta_json);
+            Some(parse_account_ram_delta(delta_obj)?)
+        } else {
+            None
+        };
 
         Ok(SendTransactionResponse {
             transaction_id: response_obj.get_string("transaction_id")?,
@@ -110,7 +114,7 @@ impl<T: Provider> ChainAPI<T> {
                 net_usage: processed_obj.get_u32("net_usage")?,
                 scheduled: false,
                 action_traces,
-                account_ram_delta: "".to_string(), // TODO: Properly encode this
+                account_ram_delta,
             },
         })
     }
