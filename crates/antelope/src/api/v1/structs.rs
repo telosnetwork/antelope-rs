@@ -221,7 +221,6 @@ pub struct AccountRamDelta {
     pub delta: i64,
 }
 
-
 pub enum IndexPosition {
     PRIMARY,
     SECONDARY,
