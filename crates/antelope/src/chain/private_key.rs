@@ -7,9 +7,10 @@ use crate::crypto::generate::generate;
 use crate::crypto::get_public::get_public;
 use crate::crypto::shared_secrets::shared_secret;
 use crate::crypto::sign::sign;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct PrivateKey {
     pub key_type: KeyType,
     value: Vec<u8>,

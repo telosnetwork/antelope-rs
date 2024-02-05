@@ -1,4 +1,5 @@
 use core::ops;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 use crate::chain::name::Name;
@@ -38,7 +39,7 @@ pub fn is_valid_symbol_code(sym: u64) -> bool {
     true
 }
 
-#[derive(Copy, Clone, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SymbolCode {
     ///
     pub value: u64,
@@ -109,7 +110,7 @@ impl Packer for SymbolCode {
     }
 }
 
-#[derive(Copy, Clone, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Symbol {
     value: u64,
 }
@@ -178,7 +179,7 @@ impl Packer for Symbol {
     }
 }
 
-#[derive(Copy, Clone, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Asset {
     amount: i64,
     symbol: Symbol,
@@ -406,7 +407,7 @@ impl Packer for Asset {
     }
 }
 
-#[derive(Copy, Clone, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ExtendedAsset {
     quantity: Asset,
     contract: Name,
