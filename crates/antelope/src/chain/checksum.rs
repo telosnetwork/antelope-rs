@@ -1,10 +1,12 @@
 use crate::chain::{Encoder, Packer};
 use crate::util::{bytes_to_hex, hex_to_bytes, slice_copy};
 use ripemd::{Digest as Ripemd160Digest, Ripemd160};
+use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
 use sha2::{Sha256, Sha512};
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Copy, Eq, PartialEq, Default)]
+#[derive(Clone, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct Checksum160 {
     pub data: [u8; 20],
 }
@@ -62,7 +64,7 @@ impl Packer for Checksum160 {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Default)]
+#[derive(Clone, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct Checksum256 {
     pub data: [u8; 32],
 }
@@ -117,8 +119,9 @@ impl Packer for Checksum256 {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Checksum512 {
+    #[serde(with = "BigArray")]
     pub data: [u8; 64],
 }
 

@@ -5,16 +5,17 @@ use crate::chain::{
 };
 use crate::util::{bytes_to_hex, zlib_compress};
 use antelope_client_macros::StructPacker;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
-#[derive(Clone, Eq, PartialEq, Default, StructPacker)]
+#[derive(Clone, Eq, PartialEq, Default, StructPacker, Serialize, Deserialize)]
 pub struct TransactionExtension {
     pub ty: u16,
     pub data: Vec<u8>,
 }
 
-#[derive(Clone, Eq, PartialEq, Default, StructPacker)]
+#[derive(Clone, Eq, PartialEq, Default, StructPacker, Serialize, Deserialize)]
 pub struct TransactionHeader {
     pub expiration: TimePointSec,
     pub ref_block_num: u16,
@@ -24,7 +25,7 @@ pub struct TransactionHeader {
     pub delay_sec: VarUint32,
 }
 
-#[derive(Clone, Eq, PartialEq, Default, StructPacker)]
+#[derive(Clone, Eq, PartialEq, Default, StructPacker, Serialize, Deserialize)]
 pub struct Transaction {
     pub header: TransactionHeader,
     pub context_free_actions: Vec<Action>,
@@ -50,7 +51,7 @@ impl Transaction {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Default, StructPacker)]
+#[derive(Clone, Eq, PartialEq, Default, StructPacker, Serialize, Deserialize)]
 pub struct SignedTransaction {
     pub transaction: Transaction,
     pub signatures: Vec<Signature>,
@@ -72,7 +73,7 @@ impl CompressionType {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Default, StructPacker)]
+#[derive(Clone, Eq, PartialEq, Default, StructPacker, Serialize, Deserialize)]
 pub struct PackedTransaction {
     signatures: Vec<Signature>,
     compression: Option<u8>,

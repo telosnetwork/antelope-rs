@@ -74,7 +74,7 @@ pub fn make_mock_transaction(info: &GetInfoResponse, asset_to_transfer: Asset) -
         name!("eosio.token"),
         name!("transfer"),
         vec![PermissionLevel::new(name!("corecorecore"), name!("active"))],
-        &transfer_data,
+        transfer_data,
     );
 
     Transaction {

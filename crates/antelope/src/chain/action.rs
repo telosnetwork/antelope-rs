@@ -1,9 +1,10 @@
 use crate::chain::checksum::Checksum256;
 use crate::chain::{name::Name, varint::VarUint32};
+use serde::{Deserialize, Serialize};
 
 use crate::serializer::{Decoder, Encoder, Packer};
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct PermissionLevel {
     /// The account holding the permission.
     pub actor: Name,
@@ -46,7 +47,7 @@ impl Packer for PermissionLevel {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Action {
     /// The account on which the action is executed.
     pub account: Name,
@@ -60,12 +61,10 @@ pub struct Action {
 
 impl Action {
     /// Creates an action by specifying contract account, action name, authorization and data.
-    pub fn new(
-        account: Name,
-        name: Name,
-        authorization: PermissionLevel,
-        data: &dyn Packer,
-    ) -> Self {
+    pub fn new<T>(account: Name, name: Name, authorization: PermissionLevel, data: T) -> Self
+    where
+        T: Packer,
+    {
         let mut enc = Encoder::new(data.size());
         data.pack(&mut enc);
         Self {
@@ -76,12 +75,15 @@ impl Action {
         }
     }
 
-    pub fn new_ex(
+    pub fn new_ex<T>(
         account: Name,
         name: Name,
         authorizations: Vec<PermissionLevel>,
-        data: &dyn Packer,
-    ) -> Self {
+        data: T,
+    ) -> Self
+    where
+        T: Packer,
+    {
         let mut enc = Encoder::new(data.size());
         data.pack(&mut enc);
         Self {
@@ -142,7 +144,7 @@ impl Packer for Action {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct GetCodeHashResult {
     struct_version: VarUint32,
     code_sequence: u64,

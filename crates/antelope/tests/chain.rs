@@ -269,7 +269,7 @@ fn transaction() {
         name!("eosio.token"),
         name!("transfer"),
         vec![],
-        &transfer_data,
+        transfer_data,
     );
 
     let action_packed = Encoder::pack(&action);

@@ -1,4 +1,5 @@
 use crate::serializer::{Encoder, Packer};
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 const INVALID_NAME_CHAR: u8 = 0xffu8;
@@ -171,7 +172,7 @@ fn str_to_name_checked(s: &str) -> u64 {
 
 /// a wrapper around a 64-bit unsigned integer that represents a name in the Antelope blockchain
 #[repr(C, align(8))]
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Name {
     pub n: u64,
 }
