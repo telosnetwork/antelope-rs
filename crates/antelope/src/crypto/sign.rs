@@ -1,6 +1,6 @@
 use crate::chain::key_type::KeyType;
 use crate::chain::signature::Signature;
-use crate::crypto::curves::create_k1_field_bytes;
+use crate::crypto::curves::{create_k1_field_bytes, create_r1_field_bytes};
 use digest::consts::U32;
 use digest::core_api::{CoreWrapper, CtVariableCoreWrapper};
 use digest::generic_array::ArrayLength;
@@ -55,7 +55,7 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
         }
         KeyType::R1 => {
             let signing_key =
-                p256::ecdsa::SigningKey::from_bytes(&create_k1_field_bytes(&secret.to_vec()))
+                p256::ecdsa::SigningKey::from_bytes(&create_r1_field_bytes(&secret.to_vec()))
                     .expect("invalid private key");
 
             let digest = Sha256::new().chain_update(message);
