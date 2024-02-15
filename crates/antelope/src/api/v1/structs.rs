@@ -10,6 +10,9 @@ use crate::chain::{
 };
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize,Deserializer};
+use serde::de::{self, SeqAccess, Visitor};
+use std::fmt;
 
 #[derive(Debug)]
 pub enum ClientError<T> {
@@ -124,14 +127,14 @@ impl GetInfoResponse {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessedTransactionReceipt {
     pub status: String,
     pub cpu_usage_us: u32,
     pub net_usage_words: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessedTransaction {
     pub id: String,
     pub block_num: u64,
@@ -145,7 +148,7 @@ pub struct ProcessedTransaction {
     pub account_ram_delta: Option<AccountRamDelta>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponseExceptionStackContext {
     pub level: String,
     pub file: String,
@@ -156,14 +159,14 @@ pub struct SendTransactionResponseExceptionStackContext {
     pub timestamp: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponseExceptionStack {
     pub context: SendTransactionResponseExceptionStackContext,
     pub format: String,
     pub data: String, // TODO: create a type for this?
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponseError {
     pub code: u32,
     pub name: String,
@@ -171,13 +174,13 @@ pub struct SendTransactionResponseError {
     pub stack: Vec<SendTransactionResponseExceptionStack>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponse {
     pub transaction_id: String,
     pub processed: ProcessedTransaction,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ActionTrace {
     pub action_ordinal: u32,
     pub creator_action_ordinal: u32,
@@ -198,7 +201,7 @@ pub struct ActionTrace {
     pub return_value_hex_data: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ActionReceipt {
     pub receiver: Name,
     pub act_digest: String,
@@ -209,13 +212,46 @@ pub struct ActionReceipt {
     pub abi_sequence: u64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct AuthSequence {
     pub account: Name,
     pub sequence: u64,
 }
 
-#[derive(Debug)]
+impl<'de> Deserialize<'de> for AuthSequence {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+    {
+        struct AuthSequenceVisitor;
+
+        impl<'de> Visitor<'de> for AuthSequenceVisitor {
+            type Value = AuthSequence;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("an array of [account, sequence]")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+                where
+                    A: SeqAccess<'de>,
+            {
+                let account: Name = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let sequence: u64 = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                Ok(AuthSequence { account, sequence })
+            }
+        }
+
+        let visitor = AuthSequenceVisitor;
+        deserializer.deserialize_any(visitor)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AccountRamDelta {
     pub account: Name,
     pub delta: i64,

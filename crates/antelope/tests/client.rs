@@ -1,16 +1,16 @@
 use antelope::api::client::APIClient;
-use antelope::api::v1::structs::{ClientError, GetTableRowsParams};
-use antelope::api::v1::utils::parse_action_trace;
+use antelope::api::v1::structs::{AccountRamDelta, ActionTrace, ClientError, GetTableRowsParams};
 use antelope::chain::asset::Asset;
 use antelope::chain::block_id::BlockId;
 use antelope::chain::checksum::Checksum256;
 use antelope::chain::name::Name;
 use antelope::name;
-use antelope::serializer::formatter::JSONObject;
 use antelope::serializer::{Decoder, Encoder, Packer};
 use antelope::util::hex_to_bytes;
 use antelope::StructPacker;
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use antelope::api::v1::structs::EncodingError;
 mod utils;
 use crate::utils::mock_provider;
 use utils::mock_provider::MockProvider;
@@ -92,104 +92,270 @@ async fn chain_send_transaction() {
     }
 }
 
+pub fn parse_action_traces(action_traces_json: Value) -> Result<Vec<ActionTrace>, EncodingError> {
+    serde_json::from_value(action_traces_json)
+        .map_err(|e| EncodingError::new(format!("Failed to deserialize 'Vec<ActionTrace>': {}", e)))
+}
+
 #[test]
-fn test_parse_action_trace() {
-    // Setup a complete mock JSON object representing an action trace
-    let mock_json = r#"
-    {
-        "action_ordinal": 1,
-        "creator_action_ordinal": 0,
-        "closest_unnotified_ancestor_action_ordinal": 0,
-        "receipt": {
-          "receiver": "eosio.token",
-          "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
-          "global_sequence": 383003514,
-          "recv_sequence": 1837548,
-          "auth_sequence": [
-            [
-              "corecorecore",
-              13
-            ]
-          ],
-          "code_sequence": 7,
-          "abi_sequence": 8
-        },
-        "receiver": "eosio.token",
-        "act": {
-          "account": "eosio.token",
-          "name": "transfer",
-          "authorization": [
+fn test_parse_action_traces() {
+    // Mock JSON structure for action traces, reflecting the provided mock data.
+    let mock_action_traces_json = json!([
             {
-              "actor": "corecorecore",
-              "permission": "active"
+                "action_ordinal": 1,
+                "creator_action_ordinal": 0,
+                "closest_unnotified_ancestor_action_ordinal": 0,
+                "receipt": {
+                    "receiver": "eosio.token",
+                    "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
+                    "global_sequence": 383003514,
+                    "recv_sequence": 1837548,
+                    "auth_sequence": [["corecorecore", 13]],
+                    "code_sequence": 7,
+                    "abi_sequence": 8
+                },
+                "receiver": "eosio.token",
+                "act": {
+                    "account": "eosio.token",
+                    "name": "transfer",
+                    "authorization": [
+                        {
+                            "actor": "corecorecore",
+                            "permission": "active"
+                        }
+                    ],
+                    "data": {
+                        "from": "corecorecore",
+                        "to": "teamgreymass",
+                        "quantity": "0.0420 TLOS",
+                        "memo": "Testing antelope-rs"
+                    }
+                },
+                "context_free": false,
+                "elapsed": 74,
+                "console": "",
+                "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
+                "block_num": 275003381,
+                "block_time": "2024-01-02T19:01:00.000",
+                "producer_block_id": null,
+                "account_ram_deltas": [],
+                "except": null,
+                "error_code": null,
+                "return_value_hex_data": ""
+            },
+            {
+                "action_ordinal": 2,
+                "creator_action_ordinal": 1,
+                "closest_unnotified_ancestor_action_ordinal": 1,
+                "receipt": {
+                    "receiver": "corecorecore",
+                    "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
+                    "global_sequence": 383003515,
+                    "recv_sequence": 6,
+                    "auth_sequence": [["corecorecore", 14]],
+                    "code_sequence": 7,
+                    "abi_sequence": 8
+                },
+                "receiver": "corecorecore",
+                "act": {
+                    "account": "eosio.token",
+                    "name": "transfer",
+                    "authorization": [{"actor": "corecorecore", "permission": "active"}],
+                    "data": {"from": "corecorecore", "to": "teamgreymass", "quantity": "0.0420 TLOS", "memo": "Testing antelope-rs"}
+                },
+                "context_free": false,
+                "elapsed": 3,
+                "console": "",
+                "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
+                "block_num": 275003381,
+                "block_time": "2024-01-02T19:01:00.000",
+                "producer_block_id": null,
+                "account_ram_deltas": [],
+                "except": null,
+                "error_code": null,
+                "return_value_hex_data": ""
+            },
+            {
+                "action_ordinal": 3,
+                "creator_action_ordinal": 1,
+                "closest_unnotified_ancestor_action_ordinal": 1,
+                "receipt": {
+                    "receiver": "teamgreymass",
+                    "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
+                    "global_sequence": 383003516,
+                    "recv_sequence": 23,
+                    "auth_sequence": [["corecorecore", 15]],
+                    "code_sequence": 7,
+                    "abi_sequence": 8
+                },
+                "receiver": "teamgreymass",
+                "act": {
+                    "account": "eosio.token",
+                    "name": "transfer",
+                    "authorization": [{"actor": "corecorecore", "permission": "active"}],
+                    "data": {"from": "corecorecore", "to": "teamgreymass", "quantity": "0.0420 TLOS", "memo": "Testing antelope-rs"}
+                },
+                "context_free": false,
+                "elapsed": 6,
+                "console": "",
+                "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
+                "block_num": 275003381,
+                "block_time": "2024-01-02T19:01:00.000",
+                "producer_block_id": null,
+                "account_ram_deltas": [],
+                "except": null,
+                "error_code": null,
+                "return_value_hex_data": ""
             }
-          ],
-          "data": {
-            "from": "corecorecore",
-            "to": "teamgreymass",
-            "quantity": "0.0420 TLOS",
-            "memo": "Testing antelope-rs"
-          },
-          "hex_data": "a02e45ea52a42e4580b1915e5d268dcaa40100000000000004544c4f530000001354657374696e6720616e74656c6f70652d7273"
-        },
-        "context_free": false,
-        "elapsed": 74,
-        "console": "",
-        "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
-        "block_num": 275003381,
-        "block_time": "2024-01-02T19:01:00.000",
-        "producer_block_id": null,
-        "account_ram_deltas": [],
-        "except": null,
-        "error_code": null,
-        "return_value_hex_data": ""
-      }
-    "#;
+        ]);
 
-    let json_value: serde_json::Value = serde_json::from_str(mock_json).unwrap();
-    let json_object = JSONObject::new(json_value);
+    let action_traces_result: Result<Vec<ActionTrace>, EncodingError> = parse_action_traces(mock_action_traces_json);
 
-    let result = parse_action_trace(json_object);
+    assert!(action_traces_result.is_ok(), "Parsing action traces should succeed");
 
-    assert!(result.is_ok());
+    let action_traces = action_traces_result.expect("Failed to parse Vec<ActionTrace> from result");
 
-    let action_trace = result.unwrap();
+    // Assert the correct number of action traces parsed
+    assert_eq!(action_traces.len(), 3, "There should be exactly 3 action traces parsed.");
 
-    // Assert individual fields of action_trace
-    assert_eq!(action_trace.action_ordinal, 1);
-    assert_eq!(action_trace.creator_action_ordinal, 0);
-    assert_eq!(action_trace.closest_unnotified_ancestor_action_ordinal, 0);
+    // Now, assert details for each action trace based on the provided data
+    for (index, action_trace) in action_traces.iter().enumerate() {
+        // Generic assertions applicable to all traces
+        assert_eq!(action_trace.context_free, false, "Context free flag should match for trace {}", index + 1);
+        assert_eq!(action_trace.console, "", "Console output should match for trace {}", index + 1);
+        assert_eq!(action_trace.trx_id, "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49", "Transaction ID should match for trace {}", index + 1);
+        assert_eq!(action_trace.block_num, 275003381, "Block number should match for trace {}", index + 1);
+        assert_eq!(action_trace.block_time, "2024-01-02T19:01:00.000", "Block time should match for trace {}", index + 1);
 
-    // Asserting fields inside receipt
-    assert_eq!(action_trace.receipt.receiver, name!("eosio.token"));
+        // Specific assertions for each trace based on unique values
+        match index {
+            0 => {
+                // Assertions for the first action trace
+                assert_eq!(action_trace.action_ordinal, 1, "Action ordinal should match for the first trace.");
+                assert_eq!(action_trace.creator_action_ordinal, 0, "Creator action ordinal should match for the first trace.");
+                assert_eq!(action_trace.closest_unnotified_ancestor_action_ordinal, 0, "Closest unnotified ancestor action ordinal should match for the first trace.");
+
+                // Receipt assertions for the first trace
+                let receipt = &action_trace.receipt;
+                assert_eq!(receipt.receiver, Name::new("eosio.token"), "Receipt receiver should match for the first trace.");
+                assert_eq!(receipt.act_digest, "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530", "Act digest should match for the first trace.");
+                assert_eq!(receipt.global_sequence, 383003514, "Global sequence should match for the first trace.");
+                assert_eq!(receipt.recv_sequence, 1837548, "Recv sequence should match for the first trace.");
+
+                // Auth sequence within receipt for the first trace
+                assert_eq!(receipt.auth_sequence.len(), 1, "Auth sequence should contain one entry for the first trace.");
+                let first_auth_sequence = &receipt.auth_sequence[0];
+                assert_eq!(first_auth_sequence.account, Name::new("corecorecore"), "Auth sequence account should match for the first trace.");
+                assert_eq!(first_auth_sequence.sequence, 13, "Auth sequence number should match for the first trace.");
+
+                assert_eq!(receipt.code_sequence, 7, "Code sequence should match for the first trace.");
+                assert_eq!(receipt.abi_sequence, 8, "ABI sequence should match for the first trace.");
+
+                // Act assertions for the first trace
+                let act = &action_trace.act;
+                assert_eq!(act.account, Name::new("eosio.token"), "Act account should match for the first trace.");
+                assert_eq!(act.name, Name::new("transfer"), "Act name should match for the first trace.");
+
+                // Authorization within act for the first trace
+                assert_eq!(act.authorization.len(), 1, "Authorization should contain one entry for the first trace.");
+                let first_authorization = &act.authorization[0];
+                assert_eq!(first_authorization.actor, Name::new("corecorecore"), "Authorization actor should match for the first trace.");
+                assert_eq!(first_authorization.permission, Name::new("active"), "Authorization permission should match for the first trace.");
+
+                // Additional fields for the first trace
+                assert!(!action_trace.context_free, "Context free flag should match for the first trace.");
+                assert_eq!(action_trace.elapsed, 74, "Elapsed time should match for the first trace.");
+                assert_eq!(action_trace.console, "", "Console output should match for the first trace.");
+                assert_eq!(action_trace.trx_id, "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49", "Transaction ID should match for the first trace.");
+                assert_eq!(action_trace.block_num, 275003381, "Block number should match for the first trace.");
+                assert_eq!(action_trace.block_time, "2024-01-02T19:01:00.000", "Block time should match for the first trace.");
+                assert!(action_trace.producer_block_id.is_none(), "Producer block ID should be None for the first trace.");
+                assert!(action_trace.account_ram_deltas.is_empty(), "Account RAM deltas should be empty for the first trace.");
+                assert!(action_trace.except.is_none(), "Except should be None for the first trace.");
+                assert!(action_trace.error_code.is_none(), "Error code should be None for the first trace.");
+                assert_eq!(action_trace.return_value_hex_data, "", "Return value hex data should match for the first trace.");
+            },
+            1 => {
+                assert_eq!(action_trace.action_ordinal, 2, "Action ordinal should match for the second trace");
+                assert_eq!(action_trace.elapsed, 3, "Elapsed time should match for the second trace");
+                // Add more specific assertions for the second trace here...
+            },
+            2 => {
+                assert_eq!(action_trace.action_ordinal, 3, "Action ordinal should match for the third trace.");
+                assert_eq!(action_trace.creator_action_ordinal, 1, "Creator action ordinal should match for the third trace.");
+                assert_eq!(action_trace.closest_unnotified_ancestor_action_ordinal, 1, "Closest unnotified ancestor action ordinal should match for the third trace.");
+
+                // Receipt assertions for the third trace
+                let receipt = &action_trace.receipt;
+                assert_eq!(receipt.receiver, Name::new("teamgreymass"), "Receipt receiver should match for the third trace.");
+                assert_eq!(receipt.act_digest, "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530", "Act digest should match for the third trace.");
+                assert_eq!(receipt.global_sequence, 383003516, "Global sequence should match for the third trace.");
+                assert_eq!(receipt.recv_sequence, 23, "Recv sequence should match for the third trace.");
+
+                // Auth sequence within receipt for the third trace
+                assert_eq!(receipt.auth_sequence.len(), 1, "Auth sequence should contain one entry for the third trace.");
+                let first_auth_sequence = &receipt.auth_sequence[0];
+                assert_eq!(first_auth_sequence.account, Name::new("corecorecore"), "Auth sequence account should match for the third trace.");
+                assert_eq!(first_auth_sequence.sequence, 15, "Auth sequence number should match for the third trace.");
+
+                assert_eq!(receipt.code_sequence, 7, "Code sequence should match for the third trace.");
+                assert_eq!(receipt.abi_sequence, 8, "ABI sequence should match for the third trace.");
+
+                // Act assertions for the third trace
+                let act = &action_trace.act;
+                assert_eq!(act.account, Name::new("eosio.token"), "Act account should match for the third trace.");
+                assert_eq!(act.name, Name::new("transfer"), "Act name should match for the third trace.");
+
+                // Authorization within act for the third trace
+                assert_eq!(act.authorization.len(), 1, "Authorization should contain one entry for the third trace.");
+                let first_authorization = &act.authorization[0];
+                assert_eq!(first_authorization.actor, Name::new("corecorecore"), "Authorization actor should match for the third trace.");
+                assert_eq!(first_authorization.permission, Name::new("active"), "Authorization permission should match for the third trace.");
+
+                // Data within act for the third trace
+                // Assuming `data` parsing and comparison logic is already implemented elsewhere or not directly compared due to its binary format
+
+                assert_eq!(action_trace.elapsed, 6, "Elapsed time should match for the third trace.");
+                assert!(!action_trace.context_free, "Context free flag should match for the third trace.");
+                assert_eq!(action_trace.console, "", "Console output should match for the third trace.");
+                assert_eq!(action_trace.trx_id, "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49", "Transaction ID should match for the third trace.");
+                assert_eq!(action_trace.block_num, 275003381, "Block number should match for the third trace.");
+                assert_eq!(action_trace.block_time, "2024-01-02T19:01:00.000", "Block time should match for the third trace.");
+                assert!(action_trace.producer_block_id.is_none(), "Producer block ID should be None for the third trace.");
+                assert!(action_trace.account_ram_deltas.is_empty(), "Account RAM deltas should be empty for the third trace.");
+                assert!(action_trace.except.is_none(), "Except should be None for the third trace.");
+                assert!(action_trace.error_code.is_none(), "Error code should be None for the third trace.");
+                assert_eq!(action_trace.return_value_hex_data, "", "Return value hex data should match for the third trace.");
+            },
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[test]
+fn test_account_ram_delta_deserialization() {
+    // Scenario 1: account_ram_delta is present
+    let mock_json_present = json!({
+            "account": "testaccount",
+            "delta": 42
+        });
+
+    let account_ram_delta_present: Result<Option<AccountRamDelta>, serde_json::error::Error> =
+        serde_json::from_value(mock_json_present)
+            .map(Some);
+
+    assert!(account_ram_delta_present.is_ok(), "Deserialization should succeed when data is present");
     assert_eq!(
-        action_trace.receipt.act_digest,
-        "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530"
+        account_ram_delta_present.unwrap(),
+        Some(AccountRamDelta { account: Name::new_from_str("testaccount"), delta: 42 }),
+        "Deserialized data does not match expected value"
     );
-    assert_eq!(action_trace.receipt.global_sequence, 383003514);
-    assert_eq!(action_trace.receipt.recv_sequence, 1837548);
-    // Add more asserts for auth_sequence, code_sequence, and abi_sequence
 
-    // Asserting fields inside act
-    assert_eq!(action_trace.act.account, name!("eosio.token"));
-    assert_eq!(action_trace.act.name, name!("transfer"));
+    // Scenario 2: account_ram_delta is absent (represented as null in JSON)
+    let mock_json_absent = json!(null);
+    let account_ram_delta_absent: Option<AccountRamDelta> = serde_json::from_value(mock_json_absent).ok();
 
-    assert_eq!(action_trace.elapsed, 74);
-    assert_eq!(action_trace.context_free, false);
-    assert_eq!(action_trace.console, "");
-    assert_eq!(
-        action_trace.trx_id,
-        "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49"
-    );
-    assert_eq!(action_trace.block_num, 275003381);
-    assert_eq!(action_trace.block_time, "2024-01-02T19:01:00.000");
-
-    // Since producer_block_id, account_ram_deltas, except, error_code, and return_value_hex_data are optional and null in the mock, they should be None or empty
-    assert!(action_trace.producer_block_id.is_none());
-    assert!(action_trace.account_ram_deltas.is_empty());
-    assert!(action_trace.except.is_none());
-    assert!(action_trace.error_code.is_none());
-    assert_eq!(action_trace.return_value_hex_data, "");
+    assert!(account_ram_delta_absent.is_none(), "Should be None when absent");
 }
 
 #[derive(Serialize, Deserialize)]

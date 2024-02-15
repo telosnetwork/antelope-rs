@@ -1,10 +1,5 @@
 use crate::api::client::Provider;
-use crate::api::v1::structs::{
-    ClientError, GetInfoResponse, GetTableRowsParams, GetTableRowsResponse, ProcessedTransaction,
-    ProcessedTransactionReceipt, SendTransactionResponse, SendTransactionResponseError,
-    TableIndexType,
-};
-use crate::api::v1::utils::{parse_account_ram_delta, parse_action_traces};
+use crate::api::v1::structs::{AccountRamDelta, ActionTrace, ClientError, EncodingError, GetInfoResponse, GetTableRowsParams, GetTableRowsResponse, ProcessedTransaction, ProcessedTransactionReceipt, SendTransactionResponse, SendTransactionResponseError, TableIndexType};
 use crate::chain::block_id::BlockId;
 use crate::chain::checksum::Checksum256;
 use crate::chain::name::Name;
@@ -14,8 +9,9 @@ use crate::chain::{Decoder, Packer};
 use crate::name;
 use crate::serializer::formatter::{JSONObject, ValueTo};
 use crate::util::hex_to_bytes;
-use serde_json::Value;
+use serde_json::{self, Value};
 use std::fmt::Debug;
+
 
 #[derive(Debug, Default, Clone)]
 pub struct ChainAPI<T: Provider> {
@@ -88,14 +84,17 @@ impl<T: Provider> ChainAPI<T> {
         }
         let processed_obj = JSONObject::new(response_obj.get_value("processed").unwrap());
         let receipt_obj = JSONObject::new(processed_obj.get_value("receipt").unwrap());
-        let action_traces_json = processed_obj.get_value("action_traces");
-        let action_traces = parse_action_traces(action_traces_json.unwrap_or(Value::Null))?;
+        let action_traces_json = processed_obj.get_value("action_traces").unwrap_or(Value::Null);
+        let action_traces: Vec<ActionTrace> = serde_json::from_value(action_traces_json)
+            .map_err(|e| ClientError::encoding(format!("Failed to deserialize 'Vec<ActionTrace>': {}", e)))?;
         let account_ram_delta_json = processed_obj
             .get_value("account_ram_delta")
             .unwrap_or(Value::Null);
-        let account_ram_delta = if account_ram_delta_json != Value::Null {
-            let delta_obj = JSONObject::new(account_ram_delta_json);
-            Some(parse_account_ram_delta(delta_obj)?)
+
+        let account_ram_delta: Option<AccountRamDelta> = if account_ram_delta_json != Value::Null {
+            serde_json::from_value(account_ram_delta_json)
+                .map_err(|e| EncodingError::new(format!("Failed to deserialize AccountRamDelta: {}", e)))
+                .ok()
         } else {
             None
         };
@@ -120,6 +119,7 @@ impl<T: Provider> ChainAPI<T> {
             },
         })
     }
+
 
     pub async fn get_table_rows<P: Packer + Default>(
         &self,

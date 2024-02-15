@@ -1,6 +1,7 @@
 use crate::serializer::{Encoder, Packer};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Deserializer};
 use std::fmt::{Display, Formatter};
+use std::fmt;
 
 const INVALID_NAME_CHAR: u8 = 0xffu8;
 
@@ -172,7 +173,7 @@ fn str_to_name_checked(s: &str) -> u64 {
 
 /// a wrapper around a 64-bit unsigned integer that represents a name in the Antelope blockchain
 #[repr(C, align(8))]
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize)]
 pub struct Name {
     pub n: u64,
 }
@@ -223,6 +224,34 @@ impl Packer for Name {
         8
     }
 }
+
+impl<'de> Deserialize<'de> for Name {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+    {
+        struct NameVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for NameVisitor {
+            type Value = Name;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string for Name")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Name, E>
+                where
+                    E: serde::de::Error,
+            {
+                // Correctly use the new_from_str method to instantiate Name
+                Ok(Name::new_from_str(v))
+            }
+        }
+
+        deserializer.deserialize_str(NameVisitor)
+    }
+}
+
 
 pub const SAME_PAYER: Name = Name { n: 0 };
 pub const ACTIVE: Name = Name {

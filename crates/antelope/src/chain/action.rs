@@ -1,6 +1,8 @@
 use crate::chain::checksum::Checksum256;
 use crate::chain::{name::Name, varint::VarUint32};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Deserializer};
+use serde::de::{self, Visitor, MapAccess};
+use std::fmt;
 
 use crate::serializer::{Decoder, Encoder, Packer};
 
@@ -47,7 +49,7 @@ impl Packer for PermissionLevel {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize)]
 pub struct Action {
     /// The account on which the action is executed.
     pub account: Name,
@@ -141,6 +143,57 @@ impl Packer for Action {
         dec.unpack(&mut self.authorization);
         dec.unpack(&mut self.data);
         dec.get_pos()
+    }
+}
+
+impl<'de> Deserialize<'de> for Action {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+    {
+        struct ActionVisitor;
+
+        impl<'de> Visitor<'de> for ActionVisitor {
+            type Value = Action;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct Action")
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Action, V::Error>
+                where
+                    V: MapAccess<'de>,
+            {
+                let mut account = None;
+                let mut name = None;
+                let mut authorization = None;
+                let mut data = None;
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "account" => account = Some(map.next_value()?),
+                        "name" => name = Some(map.next_value()?),
+                        "authorization" => authorization = Some(map.next_value()?),
+                        "data" => {
+                            let data_obj: serde_json::Value = map.next_value()?; // Temporarily holds the JSON object
+                            let data_str = serde_json::to_string(&data_obj).map_err(de::Error::custom)?; // Serialize the JSON object to a string
+                            data = Some(data_str.into_bytes()); // Convert the serialized string to Vec<u8>
+                        },
+                        _ => { let _: de::IgnoredAny = map.next_value()?; },
+                    }
+                }
+
+                let account = account.ok_or_else(|| de::Error::missing_field("account"))?;
+                let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
+                let authorization = authorization.ok_or_else(|| de::Error::missing_field("authorization"))?;
+                let data = data.ok_or_else(|| de::Error::missing_field("data"))?;
+
+                Ok(Action { account, name, authorization, data })
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["account", "name", "authorization", "data"];
+        deserializer.deserialize_struct("Action", FIELDS, ActionVisitor)
     }
 }
 
