@@ -8,10 +8,10 @@ use crate::chain::{
     transaction::TransactionHeader,
     varint::VarUint32,
 };
+use serde::de::{self, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use serde::{Deserialize, Serialize,Deserializer};
-use serde::de::{self, SeqAccess, Visitor};
 use std::fmt;
 
 #[derive(Debug)]
@@ -220,8 +220,8 @@ pub struct AuthSequence {
 
 impl<'de> Deserialize<'de> for AuthSequence {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         struct AuthSequenceVisitor;
 
@@ -233,8 +233,8 @@ impl<'de> Deserialize<'de> for AuthSequence {
             }
 
             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-                where
-                    A: SeqAccess<'de>,
+            where
+                A: SeqAccess<'de>,
             {
                 let account: Name = seq
                     .next_element()?

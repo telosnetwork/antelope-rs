@@ -1,7 +1,7 @@
 use crate::chain::checksum::Checksum256;
 use crate::chain::{name::Name, varint::VarUint32};
-use serde::{Deserialize, Serialize, Deserializer};
-use serde::de::{self, Visitor, MapAccess};
+use serde::de::{self, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
 
 use crate::serializer::{Decoder, Encoder, Packer};
@@ -148,8 +148,8 @@ impl Packer for Action {
 
 impl<'de> Deserialize<'de> for Action {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         struct ActionVisitor;
 
@@ -161,8 +161,8 @@ impl<'de> Deserialize<'de> for Action {
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Action, V::Error>
-                where
-                    V: MapAccess<'de>,
+            where
+                V: MapAccess<'de>,
             {
                 let mut account = None;
                 let mut name = None;
@@ -176,23 +176,32 @@ impl<'de> Deserialize<'de> for Action {
                         "authorization" => authorization = Some(map.next_value()?),
                         "data" => {
                             let data_obj: serde_json::Value = map.next_value()?; // Temporarily holds the JSON object
-                            let data_str = serde_json::to_string(&data_obj).map_err(de::Error::custom)?; // Serialize the JSON object to a string
+                            let data_str =
+                                serde_json::to_string(&data_obj).map_err(de::Error::custom)?; // Serialize the JSON object to a string
                             data = Some(data_str.into_bytes()); // Convert the serialized string to Vec<u8>
-                        },
-                        _ => { let _: de::IgnoredAny = map.next_value()?; },
+                        }
+                        _ => {
+                            let _: de::IgnoredAny = map.next_value()?;
+                        }
                     }
                 }
 
                 let account = account.ok_or_else(|| de::Error::missing_field("account"))?;
                 let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
-                let authorization = authorization.ok_or_else(|| de::Error::missing_field("authorization"))?;
+                let authorization =
+                    authorization.ok_or_else(|| de::Error::missing_field("authorization"))?;
                 let data = data.ok_or_else(|| de::Error::missing_field("data"))?;
 
-                Ok(Action { account, name, authorization, data })
+                Ok(Action {
+                    account,
+                    name,
+                    authorization,
+                    data,
+                })
             }
         }
 
-        const FIELDS: &'static [&'static str] = &["account", "name", "authorization", "data"];
+        const FIELDS: &[&'static str] = &["account", "name", "authorization", "data"];
         deserializer.deserialize_struct("Action", FIELDS, ActionVisitor)
     }
 }

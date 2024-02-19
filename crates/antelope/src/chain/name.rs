@@ -1,7 +1,7 @@
 use crate::serializer::{Encoder, Packer};
-use serde::{Deserialize, Serialize, Deserializer};
-use std::fmt::{Display, Formatter};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
+use std::fmt::{Display, Formatter};
 
 const INVALID_NAME_CHAR: u8 = 0xffu8;
 
@@ -227,8 +227,8 @@ impl Packer for Name {
 
 impl<'de> Deserialize<'de> for Name {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         struct NameVisitor;
 
@@ -240,8 +240,8 @@ impl<'de> Deserialize<'de> for Name {
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Name, E>
-                where
-                    E: serde::de::Error,
+            where
+                E: serde::de::Error,
             {
                 // Correctly use the new_from_str method to instantiate Name
                 Ok(Name::new_from_str(v))
@@ -251,7 +251,6 @@ impl<'de> Deserialize<'de> for Name {
         deserializer.deserialize_str(NameVisitor)
     }
 }
-
 
 pub const SAME_PAYER: Name = Name { n: 0 };
 pub const ACTIVE: Name = Name {
