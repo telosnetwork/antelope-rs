@@ -201,7 +201,7 @@ impl<'de> Deserialize<'de> for Action {
             }
         }
 
-        const FIELDS: &[&'static str] = &["account", "name", "authorization", "data"];
+        const FIELDS: &[&str] = &["account", "name", "authorization", "data"];
         deserializer.deserialize_struct("Action", FIELDS, ActionVisitor)
     }
 }
