@@ -1,5 +1,6 @@
-use crate::serializer::{Encoder, Packer};
 use serde::{Deserialize, Serialize};
+
+use crate::serializer::{Encoder, Packer};
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Debug, Serialize, Deserialize)]
 pub struct VarUint32 {

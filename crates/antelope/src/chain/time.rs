@@ -1,8 +1,10 @@
-use crate::chain::{Encoder, Packer};
 use chrono::{NaiveDateTime, TimeZone, Utc};
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
+use std::fmt;
 
-#[derive(Copy, Clone, Default, PartialEq, Serialize, Deserialize)]
+use crate::chain::{Encoder, Packer};
+
+#[derive(Copy, Clone, Default, PartialEq, Serialize, Deserialize, Debug)]
 pub struct TimePoint {
     /// elapsed in microseconds
     pub elapsed: u64,
@@ -75,4 +77,70 @@ impl Packer for TimePointSec {
         );
         self.seconds.unpack(raw)
     }
+}
+
+pub(crate) fn deserialize_timepoint<'de, D>(deserializer: D) -> Result<TimePoint, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct TimePointVisitor;
+
+    impl<'de> de::Visitor<'de> for TimePointVisitor {
+        type Value = TimePoint;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string representing a datetime")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            TimePoint::from_timestamp(value).map_err(de::Error::custom)
+        }
+    }
+
+    deserializer.deserialize_str(TimePointVisitor)
+}
+
+pub(crate) fn deserialize_optional_timepoint<'de, D>(
+    deserializer: D,
+) -> Result<Option<TimePoint>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct OptionalTimePointVisitor;
+
+    impl<'de> de::Visitor<'de> for OptionalTimePointVisitor {
+        type Value = Option<TimePoint>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("an optional string representing a datetime or null")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            TimePoint::from_timestamp(value)
+                .map(Some)
+                .map_err(de::Error::custom)
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+    }
+
+    deserializer.deserialize_option(OptionalTimePointVisitor)
 }

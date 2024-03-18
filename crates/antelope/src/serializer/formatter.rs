@@ -1,6 +1,6 @@
-use crate::api::v1::structs::EncodingError;
-use crate::util::hex_to_bytes;
 use serde_json::Value;
+
+use crate::{api::v1::structs::EncodingError, util::hex_to_bytes};
 
 pub struct ValueTo {}
 

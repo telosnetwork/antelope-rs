@@ -1,18 +1,18 @@
-use crate::chain::checksum::Checksum160;
+use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+
+use crate::chain::asset::Asset;
 use crate::chain::{
     action::Action,
-    block_id::BlockId,
-    checksum::Checksum256,
-    name::Name,
-    time::{TimePoint, TimePointSec},
+    block_id::{deserialize_block_id, deserialize_optional_block_id, BlockId},
+    checksum::{deserialize_checksum256, Checksum160, Checksum256},
+    name::{deserialize_name, deserialize_optional_name, Name},
+    time::{deserialize_optional_timepoint, deserialize_timepoint, TimePoint, TimePointSec},
     transaction::TransactionHeader,
     varint::VarUint32,
 };
-use serde::de::{self, SeqAccess, Visitor};
-use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{json, Value};
-use std::collections::HashMap;
-use std::fmt;
 
 #[derive(Debug)]
 pub enum ClientError<T> {
@@ -20,6 +20,7 @@ pub enum ClientError<T> {
     SERVER(ServerError<T>),
     HTTP(HTTPError),
     ENCODING(EncodingError),
+    NETWORK(String),
 }
 
 impl<T> ClientError<T> {
@@ -89,14 +90,20 @@ impl EncodingError {
 //     }
 // }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetInfoResponse {
     pub server_version: String,
+    #[serde(deserialize_with = "deserialize_checksum256")]
     pub chain_id: Checksum256,
     pub head_block_num: u32,
     pub last_irreversible_block_num: u32,
+    #[serde(deserialize_with = "deserialize_block_id")]
     pub last_irreversible_block_id: BlockId,
+    #[serde(deserialize_with = "deserialize_block_id")]
     pub head_block_id: BlockId,
+    #[serde(deserialize_with = "deserialize_timepoint")]
     pub head_block_time: TimePoint,
+    #[serde(deserialize_with = "deserialize_name")]
     pub head_block_producer: Name,
     pub virtual_block_cpu_limit: u64,
     pub virtual_block_net_limit: u64,
@@ -104,7 +111,43 @@ pub struct GetInfoResponse {
     pub block_net_limit: u64,
     pub server_version_string: Option<String>,
     pub fork_db_head_block_num: Option<u32>,
+    #[serde(deserialize_with = "deserialize_optional_block_id")]
     pub fork_db_head_block_id: Option<BlockId>,
+    pub server_full_version_string: String,
+    pub total_cpu_weight: String,
+    pub total_net_weight: String,
+    pub earliest_available_block_num: u32,
+    pub last_irreversible_block_time: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TESTGetInfoResponse {
+    pub server_version: String,
+    #[serde(deserialize_with = "deserialize_checksum256")]
+    pub chain_id: Checksum256,
+    pub head_block_num: u32,
+    pub last_irreversible_block_num: u32,
+    #[serde(deserialize_with = "deserialize_block_id")]
+    pub last_irreversible_block_id: BlockId,
+    #[serde(deserialize_with = "deserialize_block_id")]
+    pub head_block_id: BlockId,
+    #[serde(deserialize_with = "deserialize_timepoint")]
+    pub head_block_time: TimePoint,
+    #[serde(deserialize_with = "deserialize_name")]
+    pub head_block_producer: Name,
+    pub virtual_block_cpu_limit: u64,
+    pub virtual_block_net_limit: u64,
+    pub block_cpu_limit: u64,
+    pub block_net_limit: u64,
+    pub server_version_string: Option<String>,
+    pub fork_db_head_block_num: Option<u32>,
+    #[serde(deserialize_with = "deserialize_optional_block_id")]
+    pub fork_db_head_block_id: Option<BlockId>,
+    pub server_full_version_string: String,
+    pub total_cpu_weight: String,
+    pub total_net_weight: String,
+    pub earliest_available_block_num: u32,
+    pub last_irreversible_block_time: String,
 }
 
 impl GetInfoResponse {
@@ -174,6 +217,11 @@ pub struct SendTransactionResponseError {
     pub stack: Vec<SendTransactionResponseExceptionStack>,
 }
 
+#[derive(Deserialize)]
+pub struct ErrorResponse {
+    pub error: SendTransactionResponseError,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponse {
     pub transaction_id: String,
@@ -186,6 +234,7 @@ pub struct ActionTrace {
     pub creator_action_ordinal: u32,
     pub closest_unnotified_ancestor_action_ordinal: u32,
     pub receipt: ActionReceipt,
+    #[serde(deserialize_with = "deserialize_name")]
     pub receiver: Name,
     pub act: Action,
     pub context_free: bool,
@@ -203,6 +252,7 @@ pub struct ActionTrace {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ActionReceipt {
+    #[serde(deserialize_with = "deserialize_name")]
     pub receiver: Name,
     pub act_digest: String,
     pub global_sequence: u64,
@@ -212,51 +262,21 @@ pub struct ActionReceipt {
     pub abi_sequence: u64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AuthSequence {
+    #[serde(deserialize_with = "deserialize_name")]
     pub account: Name,
     pub sequence: u64,
 }
 
-impl<'de> Deserialize<'de> for AuthSequence {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct AuthSequenceVisitor;
-
-        impl<'de> Visitor<'de> for AuthSequenceVisitor {
-            type Value = AuthSequence;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("an array of [account, sequence]")
-            }
-
-            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-            where
-                A: SeqAccess<'de>,
-            {
-                let account: Name = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                let sequence: u64 = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                Ok(AuthSequence { account, sequence })
-            }
-        }
-
-        let visitor = AuthSequenceVisitor;
-        deserializer.deserialize_any(visitor)
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AccountRamDelta {
+    #[serde(deserialize_with = "deserialize_name")]
     pub account: Name,
     pub delta: i64,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub enum IndexPosition {
     PRIMARY,
     SECONDARY,
@@ -270,6 +290,7 @@ pub enum IndexPosition {
     TENTH,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub enum TableIndexType {
     NAME(Name),
     UINT64(u64),
@@ -279,9 +300,13 @@ pub enum TableIndexType {
     CHECKSUM160(Checksum160),
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetTableRowsParams {
+    #[serde(deserialize_with = "deserialize_name")]
     pub code: Name,
+    #[serde(deserialize_with = "deserialize_name")]
     pub table: Name,
+    #[serde(deserialize_with = "deserialize_optional_name")]
     pub scope: Option<Name>,
     pub lower_bound: Option<TableIndexType>,
     pub upper_bound: Option<TableIndexType>,
@@ -310,4 +335,182 @@ pub struct GetTableRowsResponse<T> {
     pub more: bool,
     pub ram_payers: Option<Vec<Name>>,
     pub next_key: Option<TableIndexType>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AccountObject {
+    account_name: Name,
+    head_block_num: u32,
+    #[serde(deserialize_with = "deserialize_timepoint")]
+    head_block_time: TimePoint,
+    privileged: bool,
+    #[serde(deserialize_with = "deserialize_timepoint")]
+    last_code_update: TimePoint,
+    #[serde(deserialize_with = "deserialize_timepoint")]
+    created: TimePoint,
+    core_liquid_balance: Asset,
+    ram_quota: i64,
+    net_weight: i64,
+    cpu_weight: i64,
+    net_limit: AccountResourceLimit,
+    cpu_limit: AccountResourceLimit,
+    subjective_cpu_bill_limit: Option<AccountResourceLimit>,
+    ram_usage: u64,
+    permissions: Vec<AccountPermission>,
+    total_resources: Option<AccountTotalResources>,
+    self_delegated_bandwidth: Option<SelfDelegatedBandwidth>,
+    refund_request: Option<AccountRefundRequest>,
+    voter_info: VoterInfo,
+    rex_info: AccountRexInfo,
+    eosio_any_linked_actions: Option<Vec<AccountLinkedAction>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AccountRexInfo {
+    version: u32,
+    owner: Name,
+    vote_stakes: Asset,
+    rex_balance: Asset,
+    matured_rex: i64,
+    rex_maturities: Vec<AccountRexInfoMaturities>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AccountRexInfoMaturities {
+    #[serde(deserialize_with = "deserialize_optional_timepoint")]
+    key: Option<TimePoint>,
+    value: Option<i64>,
+    #[serde(deserialize_with = "deserialize_optional_timepoint")]
+    first: Option<TimePoint>,
+    second: Option<i64>,
+}
+
+//export class AccountResourceLimit extends Struct {
+//     @Struct.field('int64') declare used: Int64
+//     @Struct.field('int64') declare available: Int64
+//     @Struct.field('int64') declare max: Int64
+//     @Struct.field('time_point', {optional: true}) declare last_usage_update_time: TimePoint
+//     @Struct.field('int64', {optional: true}) declare current_used: Int64
+// }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AccountResourceLimit {
+    used: i64,
+    available: i64,
+    max: i64,
+    #[serde(deserialize_with = "deserialize_optional_timepoint")]
+    last_usage_update_time: Option<TimePoint>,
+    current_used: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AccountRefundRequest {
+    #[serde(deserialize_with = "deserialize_name")]
+    owner: Name,
+    #[serde(deserialize_with = "deserialize_timepoint")]
+    request_time: TimePoint,
+    net_amount: Asset,
+    cpu_amount: Asset,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResourceLimit {
+    max: String,
+    available: String,
+    used: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AccountTotalResources {
+    #[serde(deserialize_with = "deserialize_name")]
+    owner: Name,
+    net_weight: Asset,
+    cpu_weight: Asset,
+    ram_bytes: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SelfDelegatedBandwidth {
+    #[serde(deserialize_with = "deserialize_name")]
+    from: Name,
+    #[serde(deserialize_with = "deserialize_name")]
+    to: Name,
+    net_weight: Asset,
+    cpu_weight: Asset,
+}
+
+//@Struct.type('account_permission')
+// export class AccountPermission extends Struct {
+//     @Struct.field('name') declare perm_name: Name
+//     @Struct.field('name') declare parent: Name
+//     @Struct.field(Authority) declare required_auth: Authority
+//     @Struct.field(AccountLinkedAction, {optional: true, array: true})
+//     declare linked_actions: AccountLinkedAction[]
+// }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AccountPermission {
+    #[serde(deserialize_with = "deserialize_name")]
+    parent: Name,
+    #[serde(deserialize_with = "deserialize_name")]
+    perm_name: Name,
+    //required_auth: Authority, TODO: Create Authority type
+    linked_actions: AccountLinkedAction,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AccountLinkedAction {
+    #[serde(deserialize_with = "deserialize_name")]
+    account: Name,
+    #[serde(deserialize_with = "deserialize_optional_name")]
+    action: Option<Name>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RequiredAuth {
+    threshold: u32,
+    keys: Vec<Key>,
+    accounts: Vec<Account>,
+    waits: Vec<Wait>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Wait {
+    wait_sec: u32,
+    weight: u16,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Key {
+    key: String,
+    weight: u16,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Account {
+    weight: u16,
+    permission: PermissionLevel,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PermissionLevel {
+    #[serde(deserialize_with = "deserialize_name")]
+    actor: Name,
+    #[serde(deserialize_with = "deserialize_name")]
+    permission: Name,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VoterInfo {
+    #[serde(deserialize_with = "deserialize_name")]
+    owner: Name,
+    #[serde(deserialize_with = "deserialize_name")]
+    proxy: Name,
+    producers: Option<Vec<Name>>,
+    staked: Option<i64>,
+    last_vote_weight: f64,
+    proxied_vote_weight: f64,
+    is_proxy: bool,
+    flags1: Option<u32>,
+    reserved2: u32,
+    reserved3: String,
 }

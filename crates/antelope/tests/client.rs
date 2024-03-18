@@ -1,19 +1,24 @@
-use antelope::api::client::APIClient;
-use antelope::api::v1::structs::EncodingError;
-use antelope::api::v1::structs::{AccountRamDelta, ActionTrace, ClientError, GetTableRowsParams};
-use antelope::chain::asset::Asset;
-use antelope::chain::block_id::BlockId;
-use antelope::chain::checksum::Checksum256;
-use antelope::chain::name::Name;
-use antelope::name;
-use antelope::serializer::{Decoder, Encoder, Packer};
-use antelope::util::hex_to_bytes;
-use antelope::StructPacker;
+use antelope::api::v1::structs::TESTGetInfoResponse;
+use antelope::{
+    api::{
+        client::APIClient,
+        v1::structs::{
+            AccountRamDelta, ActionTrace, ClientError, EncodingError, GetTableRowsParams,
+        },
+    },
+    chain::{asset::Asset, block_id::BlockId, checksum::Checksum256, name::Name},
+    name,
+    serializer::{Decoder, Encoder, Packer},
+    util::hex_to_bytes,
+    StructPacker,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+
 mod utils;
-use crate::utils::mock_provider;
 use utils::mock_provider::MockProvider;
+
+use crate::utils::mock_provider;
 
 #[tokio::test]
 async fn chain_get_info() {
@@ -46,9 +51,11 @@ async fn chain_send_transaction() {
     assert!(result.is_ok(), "Transaction result should be ok");
     let send_trx_response = result.unwrap();
 
-    // NOTE: Don't bother testing the transaction id from the mock transaction, it will not match because the
-    // get_info that was mocked isn't the same get_info used for the mocked response value from send_transaction
-    //assert_eq!(send_trx_response.transaction_id, bytes_to_hex(&transaction.id()));
+    // NOTE: Don't bother testing the transaction id from the mock transaction, it
+    // will not match because the get_info that was mocked isn't the same
+    // get_info used for the mocked response value from send_transaction
+    // assert_eq!(send_trx_response.transaction_id,
+    // bytes_to_hex(&transaction.id()));
 
     assert_eq!(
         send_trx_response.transaction_id,
@@ -65,7 +72,9 @@ async fn chain_send_transaction() {
     assert_eq!(send_trx_response.processed.receipt.cpu_usage_us, 185);
     assert_eq!(send_trx_response.processed.elapsed, 185);
 
-    // TODO: Create a failed send_transaction response in the mock_data, properly detect errors in v1_chain.send_transaction and test for the error struct values
+    // TODO: Create a failed send_transaction response in the mock_data, properly
+    // detect errors in v1_chain.send_transaction and test for the error struct
+    // values
     let invalid_transaction =
         mock_provider::make_mock_transaction(&info, Asset::from_string("0.0420 NUNYA"));
     let signed_invalid_transaction =
@@ -97,466 +106,184 @@ pub fn parse_action_traces(action_traces_json: Value) -> Result<Vec<ActionTrace>
         .map_err(|e| EncodingError::new(format!("Failed to deserialize 'Vec<ActionTrace>': {}", e)))
 }
 
+//Tests to manually check each items parsing in get info
+
 #[test]
-fn test_parse_action_traces() {
-    // Mock JSON structure for action traces, reflecting the provided mock data.
-    let mock_action_traces_json = json!([
-        {
-            "action_ordinal": 1,
-            "creator_action_ordinal": 0,
-            "closest_unnotified_ancestor_action_ordinal": 0,
-            "receipt": {
-                "receiver": "eosio.token",
-                "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
-                "global_sequence": 383003514,
-                "recv_sequence": 1837548,
-                "auth_sequence": [["corecorecore", 13]],
-                "code_sequence": 7,
-                "abi_sequence": 8
-            },
-            "receiver": "eosio.token",
-            "act": {
-                "account": "eosio.token",
-                "name": "transfer",
-                "authorization": [
-                    {
-                        "actor": "corecorecore",
-                        "permission": "active"
-                    }
-                ],
-                "data": {
-                    "from": "corecorecore",
-                    "to": "teamgreymass",
-                    "quantity": "0.0420 TLOS",
-                    "memo": "Testing antelope-rs"
-                }
-            },
-            "context_free": false,
-            "elapsed": 74,
-            "console": "",
-            "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
-            "block_num": 275003381,
-            "block_time": "2024-01-02T19:01:00.000",
-            "producer_block_id": null,
-            "account_ram_deltas": [],
-            "except": null,
-            "error_code": null,
-            "return_value_hex_data": ""
-        },
-        {
-            "action_ordinal": 2,
-            "creator_action_ordinal": 1,
-            "closest_unnotified_ancestor_action_ordinal": 1,
-            "receipt": {
-                "receiver": "corecorecore",
-                "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
-                "global_sequence": 383003515,
-                "recv_sequence": 6,
-                "auth_sequence": [["corecorecore", 14]],
-                "code_sequence": 7,
-                "abi_sequence": 8
-            },
-            "receiver": "corecorecore",
-            "act": {
-                "account": "eosio.token",
-                "name": "transfer",
-                "authorization": [{"actor": "corecorecore", "permission": "active"}],
-                "data": {"from": "corecorecore", "to": "teamgreymass", "quantity": "0.0420 TLOS", "memo": "Testing antelope-rs"}
-            },
-            "context_free": false,
-            "elapsed": 3,
-            "console": "",
-            "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
-            "block_num": 275003381,
-            "block_time": "2024-01-02T19:01:00.000",
-            "producer_block_id": null,
-            "account_ram_deltas": [],
-            "except": null,
-            "error_code": null,
-            "return_value_hex_data": ""
-        },
-        {
-            "action_ordinal": 3,
-            "creator_action_ordinal": 1,
-            "closest_unnotified_ancestor_action_ordinal": 1,
-            "receipt": {
-                "receiver": "teamgreymass",
-                "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
-                "global_sequence": 383003516,
-                "recv_sequence": 23,
-                "auth_sequence": [["corecorecore", 15]],
-                "code_sequence": 7,
-                "abi_sequence": 8
-            },
-            "receiver": "teamgreymass",
-            "act": {
-                "account": "eosio.token",
-                "name": "transfer",
-                "authorization": [{"actor": "corecorecore", "permission": "active"}],
-                "data": {"from": "corecorecore", "to": "teamgreymass", "quantity": "0.0420 TLOS", "memo": "Testing antelope-rs"}
-            },
-            "context_free": false,
-            "elapsed": 6,
-            "console": "",
-            "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
-            "block_num": 275003381,
-            "block_time": "2024-01-02T19:01:00.000",
-            "producer_block_id": null,
-            "account_ram_deltas": [],
-            "except": null,
-            "error_code": null,
-            "return_value_hex_data": ""
-        }
-    ]);
+fn deserialize_getinfo() {
+    let json = r#"{
+        "server_version": "6c1717c9",
+        "chain_id": "4667b205c6838ef70ff7988f6e8257e8be0e1284a2f59699054a018f743b1d11",
+        "head_block_num": 315556408,
+        "last_irreversible_block_num": 315556072,
+        "last_irreversible_block_id": "12cf00e89773c8497415c368960b9c57ba6ee076283f71df14aeee2daefbb2a6",
+        "head_block_id": "12cf02388e0ac11fedb6da8589890f55660b2c64efb758528bf3c0d4f54f5af7",
+        "head_block_time": "2023-12-16T16:17:47.500",
+        "head_block_producer": "bp.boid",
+        "virtual_block_cpu_limit": 200000000,
+        "virtual_block_net_limit": 1048576000,
+        "block_cpu_limit": 200000,
+        "block_net_limit": 1048576,
+        "server_version_string": "v4.0.3-hotfix",
+        "fork_db_head_block_num": 315556408,
+        "fork_db_head_block_id": "12cf02388e0ac11fedb6da8589890f55660b2c64efb758528bf3c0d4f54f5af7",
+        "server_full_version_string": "v4.0.3-hotfix-6c1717c94394a9713d12b1a5a1742598300f6042",
+        "total_cpu_weight": "53576658287",
+        "total_net_weight": "45215580902",
+        "earliest_available_block_num": 1,
+        "last_irreversible_block_time": "2023-12-16T16:14:59.500"
+    }"#;
 
-    let action_traces_result: Result<Vec<ActionTrace>, EncodingError> =
-        parse_action_traces(mock_action_traces_json);
-
-    assert!(
-        action_traces_result.is_ok(),
-        "Parsing action traces should succeed"
-    );
-
-    let action_traces = action_traces_result.expect("Failed to parse Vec<ActionTrace> from result");
-
-    // Assert the correct number of action traces parsed
-    assert_eq!(
-        action_traces.len(),
-        3,
-        "There should be exactly 3 action traces parsed."
-    );
-
-    // Now, assert details for each action trace based on the provided data
-    for (index, action_trace) in action_traces.iter().enumerate() {
-        // Generic assertions applicable to all traces
-        assert_eq!(
-            action_trace.context_free,
-            false,
-            "Context free flag should match for trace {}",
-            index + 1
-        );
-        assert_eq!(
-            action_trace.console,
-            "",
-            "Console output should match for trace {}",
-            index + 1
-        );
-        assert_eq!(
-            action_trace.trx_id,
-            "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
-            "Transaction ID should match for trace {}",
-            index + 1
-        );
-        assert_eq!(
-            action_trace.block_num,
-            275003381,
-            "Block number should match for trace {}",
-            index + 1
-        );
-        assert_eq!(
-            action_trace.block_time,
-            "2024-01-02T19:01:00.000",
-            "Block time should match for trace {}",
-            index + 1
-        );
-
-        // Specific assertions for each trace based on unique values
-        match index {
-            0 => {
-                // Assertions for the first action trace
-                assert_eq!(
-                    action_trace.action_ordinal, 1,
-                    "Action ordinal should match for the first trace."
-                );
-                assert_eq!(
-                    action_trace.creator_action_ordinal, 0,
-                    "Creator action ordinal should match for the first trace."
-                );
-                assert_eq!(
-                    action_trace.closest_unnotified_ancestor_action_ordinal, 0,
-                    "Closest unnotified ancestor action ordinal should match for the first trace."
-                );
-
-                // Receipt assertions for the first trace
-                let receipt = &action_trace.receipt;
-                assert_eq!(
-                    receipt.receiver,
-                    Name::new("eosio.token"),
-                    "Receipt receiver should match for the first trace."
-                );
-                assert_eq!(
-                    receipt.act_digest,
-                    "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
-                    "Act digest should match for the first trace."
-                );
-                assert_eq!(
-                    receipt.global_sequence, 383003514,
-                    "Global sequence should match for the first trace."
-                );
-                assert_eq!(
-                    receipt.recv_sequence, 1837548,
-                    "Recv sequence should match for the first trace."
-                );
-
-                // Auth sequence within receipt for the first trace
-                assert_eq!(
-                    receipt.auth_sequence.len(),
-                    1,
-                    "Auth sequence should contain one entry for the first trace."
-                );
-                let first_auth_sequence = &receipt.auth_sequence[0];
-                assert_eq!(
-                    first_auth_sequence.account,
-                    Name::new("corecorecore"),
-                    "Auth sequence account should match for the first trace."
-                );
-                assert_eq!(
-                    first_auth_sequence.sequence, 13,
-                    "Auth sequence number should match for the first trace."
-                );
-
-                assert_eq!(
-                    receipt.code_sequence, 7,
-                    "Code sequence should match for the first trace."
-                );
-                assert_eq!(
-                    receipt.abi_sequence, 8,
-                    "ABI sequence should match for the first trace."
-                );
-
-                // Act assertions for the first trace
-                let act = &action_trace.act;
-                assert_eq!(
-                    act.account,
-                    Name::new("eosio.token"),
-                    "Act account should match for the first trace."
-                );
-                assert_eq!(
-                    act.name,
-                    Name::new("transfer"),
-                    "Act name should match for the first trace."
-                );
-
-                // Authorization within act for the first trace
-                assert_eq!(
-                    act.authorization.len(),
-                    1,
-                    "Authorization should contain one entry for the first trace."
-                );
-                let first_authorization = &act.authorization[0];
-                assert_eq!(
-                    first_authorization.actor,
-                    Name::new("corecorecore"),
-                    "Authorization actor should match for the first trace."
-                );
-                assert_eq!(
-                    first_authorization.permission,
-                    Name::new("active"),
-                    "Authorization permission should match for the first trace."
-                );
-
-                // Additional fields for the first trace
-                assert!(
-                    !action_trace.context_free,
-                    "Context free flag should match for the first trace."
-                );
-                assert_eq!(
-                    action_trace.elapsed, 74,
-                    "Elapsed time should match for the first trace."
-                );
-                assert_eq!(
-                    action_trace.console, "",
-                    "Console output should match for the first trace."
-                );
-                assert_eq!(
-                    action_trace.trx_id,
-                    "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
-                    "Transaction ID should match for the first trace."
-                );
-                assert_eq!(
-                    action_trace.block_num, 275003381,
-                    "Block number should match for the first trace."
-                );
-                assert_eq!(
-                    action_trace.block_time, "2024-01-02T19:01:00.000",
-                    "Block time should match for the first trace."
-                );
-                assert!(
-                    action_trace.producer_block_id.is_none(),
-                    "Producer block ID should be None for the first trace."
-                );
-                assert!(
-                    action_trace.account_ram_deltas.is_empty(),
-                    "Account RAM deltas should be empty for the first trace."
-                );
-                assert!(
-                    action_trace.except.is_none(),
-                    "Except should be None for the first trace."
-                );
-                assert!(
-                    action_trace.error_code.is_none(),
-                    "Error code should be None for the first trace."
-                );
-                assert_eq!(
-                    action_trace.return_value_hex_data, "",
-                    "Return value hex data should match for the first trace."
-                );
-            }
-            1 => {
-                assert_eq!(
-                    action_trace.action_ordinal, 2,
-                    "Action ordinal should match for the second trace"
-                );
-                assert_eq!(
-                    action_trace.elapsed, 3,
-                    "Elapsed time should match for the second trace"
-                );
-                // Add more specific assertions for the second trace here...
-            }
-            2 => {
-                assert_eq!(
-                    action_trace.action_ordinal, 3,
-                    "Action ordinal should match for the third trace."
-                );
-                assert_eq!(
-                    action_trace.creator_action_ordinal, 1,
-                    "Creator action ordinal should match for the third trace."
-                );
-                assert_eq!(
-                    action_trace.closest_unnotified_ancestor_action_ordinal, 1,
-                    "Closest unnotified ancestor action ordinal should match for the third trace."
-                );
-
-                // Receipt assertions for the third trace
-                let receipt = &action_trace.receipt;
-                assert_eq!(
-                    receipt.receiver,
-                    Name::new("teamgreymass"),
-                    "Receipt receiver should match for the third trace."
-                );
-                assert_eq!(
-                    receipt.act_digest,
-                    "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
-                    "Act digest should match for the third trace."
-                );
-                assert_eq!(
-                    receipt.global_sequence, 383003516,
-                    "Global sequence should match for the third trace."
-                );
-                assert_eq!(
-                    receipt.recv_sequence, 23,
-                    "Recv sequence should match for the third trace."
-                );
-
-                // Auth sequence within receipt for the third trace
-                assert_eq!(
-                    receipt.auth_sequence.len(),
-                    1,
-                    "Auth sequence should contain one entry for the third trace."
-                );
-                let first_auth_sequence = &receipt.auth_sequence[0];
-                assert_eq!(
-                    first_auth_sequence.account,
-                    Name::new("corecorecore"),
-                    "Auth sequence account should match for the third trace."
-                );
-                assert_eq!(
-                    first_auth_sequence.sequence, 15,
-                    "Auth sequence number should match for the third trace."
-                );
-
-                assert_eq!(
-                    receipt.code_sequence, 7,
-                    "Code sequence should match for the third trace."
-                );
-                assert_eq!(
-                    receipt.abi_sequence, 8,
-                    "ABI sequence should match for the third trace."
-                );
-
-                // Act assertions for the third trace
-                let act = &action_trace.act;
-                assert_eq!(
-                    act.account,
-                    Name::new("eosio.token"),
-                    "Act account should match for the third trace."
-                );
-                assert_eq!(
-                    act.name,
-                    Name::new("transfer"),
-                    "Act name should match for the third trace."
-                );
-
-                // Authorization within act for the third trace
-                assert_eq!(
-                    act.authorization.len(),
-                    1,
-                    "Authorization should contain one entry for the third trace."
-                );
-                let first_authorization = &act.authorization[0];
-                assert_eq!(
-                    first_authorization.actor,
-                    Name::new("corecorecore"),
-                    "Authorization actor should match for the third trace."
-                );
-                assert_eq!(
-                    first_authorization.permission,
-                    Name::new("active"),
-                    "Authorization permission should match for the third trace."
-                );
-
-                // Data within act for the third trace
-                // Assuming `data` parsing and comparison logic is already implemented elsewhere or not directly compared due to its binary format
-
-                assert_eq!(
-                    action_trace.elapsed, 6,
-                    "Elapsed time should match for the third trace."
-                );
-                assert!(
-                    !action_trace.context_free,
-                    "Context free flag should match for the third trace."
-                );
-                assert_eq!(
-                    action_trace.console, "",
-                    "Console output should match for the third trace."
-                );
-                assert_eq!(
-                    action_trace.trx_id,
-                    "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
-                    "Transaction ID should match for the third trace."
-                );
-                assert_eq!(
-                    action_trace.block_num, 275003381,
-                    "Block number should match for the third trace."
-                );
-                assert_eq!(
-                    action_trace.block_time, "2024-01-02T19:01:00.000",
-                    "Block time should match for the third trace."
-                );
-                assert!(
-                    action_trace.producer_block_id.is_none(),
-                    "Producer block ID should be None for the third trace."
-                );
-                assert!(
-                    action_trace.account_ram_deltas.is_empty(),
-                    "Account RAM deltas should be empty for the third trace."
-                );
-                assert!(
-                    action_trace.except.is_none(),
-                    "Except should be None for the third trace."
-                );
-                assert!(
-                    action_trace.error_code.is_none(),
-                    "Error code should be None for the third trace."
-                );
-                assert_eq!(
-                    action_trace.return_value_hex_data, "",
-                    "Return value hex data should match for the third trace."
-                );
-            }
-            _ => unreachable!(),
-        }
+    let result: Result<TESTGetInfoResponse, _> = serde_json::from_str(json);
+    if let Err(e) = &result {
+        println!("Deserialization error: {:?}", e);
     }
+    assert!(result.is_ok());
+
+    let result_unwrapped = result.unwrap();
+    assert_eq!(result_unwrapped.server_version, "6c1717c9".to_string());
+    assert_eq!(
+        result_unwrapped.chain_id,
+        Checksum256::from_hex("4667b205c6838ef70ff7988f6e8257e8be0e1284a2f59699054a018f743b1d11")
+            .unwrap()
+    );
+
+    let last_irreversible_block_id_bytes =
+        hex::decode("12cf00e89773c8497415c368960b9c57ba6ee076283f71df14aeee2daefbb2a6")
+            .expect("Invalid hex for last_irreversible_block_id");
+    assert_eq!(
+        result_unwrapped.last_irreversible_block_id.bytes, last_irreversible_block_id_bytes,
+        "last_irreversible_block_id does not match"
+    );
+
+    let head_block_id_bytes =
+        hex::decode("12cf02388e0ac11fedb6da8589890f55660b2c64efb758528bf3c0d4f54f5af7")
+            .expect("Invalid hex for head_block_id");
+    assert_eq!(
+        result_unwrapped.head_block_id.bytes, head_block_id_bytes,
+        "head_block_id does not match"
+    );
+
+    let expected_datetime =
+        chrono::NaiveDateTime::parse_from_str("2023-12-16T16:17:47.500", "%Y-%m-%dT%H:%M:%S%.f")
+            .expect("Failed to parse datetime");
+    let expected_timestamp_micros = expected_datetime.timestamp_nanos_opt()
+        .expect("Failed to get timestamp nanos") // Handle potential failure
+        as u64
+        / 1_000; // Convert nanoseconds to microseconds
+
+    assert_eq!(
+        result_unwrapped.head_block_time.elapsed, expected_timestamp_micros,
+        "head_block_time does not match expected value"
+    );
+
+    assert_eq!(result_unwrapped.head_block_producer, name!("bp.boid"));
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+struct TransferData {
+    from: String,
+    to: String,
+    quantity: String,
+    memo: String,
+}
+
+#[test]
+fn test_parse_first_action_trace() {
+    // Mock JSON for the first action trace
+    let mock_action_trace_json = json!({
+        "action_ordinal": 1,
+        "creator_action_ordinal": 0,
+        "closest_unnotified_ancestor_action_ordinal": 0,
+        "receipt": {
+            "receiver": "eosio.token",
+            "act_digest": "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530",
+            "global_sequence": 383003514,
+            "recv_sequence": 1837548,
+            "auth_sequence": [
+                ["corecorecore", 13]
+            ],
+            "code_sequence": 7,
+            "abi_sequence": 8
+        },
+        "receiver": "eosio.token",
+        "act": {
+            "account": "eosio.token",
+            "name": "transfer",
+            "authorization": [
+                {
+                    "actor": "corecorecore",
+                    "permission": "active"
+                }
+            ],
+            "data": {
+                "from": "corecorecore",
+                "to": "teamgreymass",
+                "quantity": "0.0420 TLOS",
+                "memo": "Testing antelope-rs"
+            },
+            "hex_data": "a02e45ea52a42e4580b1915e5d268dcaa40100000000000004544c4f530000001354657374696e6720616e74656c6f70652d7273"
+        },
+        "context_free": false,
+        "elapsed": 74,
+        "console": "",
+        "trx_id": "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49",
+        "block_num": 275003381,
+        "block_time": "2024-01-02T19:01:00.000",
+        "producer_block_id": null,
+        "account_ram_deltas": [],
+        "except": null,
+        "error_code": null,
+        "return_value_hex_data": ""
+    });
+
+    // Deserialize the JSON into an ActionTrace instance
+    let action_trace: ActionTrace = serde_json::from_value(mock_action_trace_json)
+        .expect("Failed to parse ActionTrace from JSON");
+
+    // Assertions to verify each field of the ActionTrace struct
+    assert_eq!(action_trace.action_ordinal, 1);
+    assert_eq!(action_trace.creator_action_ordinal, 0);
+    assert_eq!(action_trace.closest_unnotified_ancestor_action_ordinal, 0);
+
+    // Verifying the 'receipt' field
+    let receipt = action_trace.receipt;
+    assert_eq!(receipt.receiver, name!("eosio.token"));
+    assert_eq!(
+        receipt.act_digest,
+        "cadbd7470130836a0ca0c9403155b219c4776738378f09eda4d6ff7e4eee4530"
+    );
+    assert_eq!(receipt.global_sequence, 383003514);
+    assert_eq!(receipt.recv_sequence, 1837548);
+    assert_eq!(receipt.auth_sequence[0].account, name!("corecorecore"));
+    assert_eq!(receipt.auth_sequence[0].sequence, 13);
+    assert_eq!(receipt.code_sequence, 7);
+    assert_eq!(receipt.abi_sequence, 8);
+
+    // Verifying the 'act' field
+    let act = action_trace.act;
+    assert_eq!(act.account, name!("eosio.token"));
+    assert_eq!(act.name, name!("transfer"));
+    assert_eq!(act.authorization.len(), 1);
+    assert_eq!(act.authorization[0].actor, name!("corecorecore"));
+    assert_eq!(act.authorization[0].permission, name!("active"));
+
+    //missing tests for act.data
+
+    // Verifying other fields
+    assert!(!action_trace.context_free);
+    assert_eq!(action_trace.elapsed, 74);
+    assert_eq!(action_trace.console, "");
+    assert_eq!(
+        action_trace.trx_id,
+        "57dcff5a6dd9eed1a9a4b4554ed6aa69b4caf5f73b6abdf466ee61829cfaed49"
+    );
+    assert_eq!(action_trace.block_num, 275003381);
+    assert_eq!(action_trace.block_time, "2024-01-02T19:01:00.000");
+    assert!(action_trace.producer_block_id.is_none());
+    assert!(action_trace.account_ram_deltas.is_empty());
+    assert!(action_trace.except.is_none());
+    assert!(action_trace.error_code.is_none());
+    assert_eq!(action_trace.return_value_hex_data, "");
 }
 
 #[test]
@@ -578,7 +305,7 @@ fn test_account_ram_delta_deserialization() {
         account_ram_delta_present.unwrap(),
         Some(AccountRamDelta {
             account: Name::new_from_str("testaccount"),
-            delta: 42
+            delta: 42,
         }),
         "Deserialized data does not match expected value"
     );

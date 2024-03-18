@@ -1,7 +1,7 @@
-use crate::api::v1::chain::ChainAPI;
 use std::fmt::{Debug, Display, Formatter};
 
 pub use crate::api::default_provider::DefaultProvider;
+use crate::api::v1::chain::ChainAPI;
 
 pub enum HTTPMethod {
     GET,
@@ -22,14 +22,11 @@ impl Display for HTTPMethod {
 }
 
 // TODO: Make this return an APIResponse with status code, timing, etc..
+
+#[async_trait::async_trait]
 pub trait Provider: Debug + Default + Sync + Send {
-    fn post(
-        &self,
-        path: String,
-        body: Option<String>,
-    ) -> impl std::future::Future<Output = Result<String, String>> + Send;
-    fn get(&self, path: String)
-        -> impl std::future::Future<Output = Result<String, String>> + Send;
+    async fn post(&self, path: String, body: Option<String>) -> Result<String, String>;
+    async fn get(&self, path: String) -> Result<String, String>;
 }
 
 #[derive(Debug, Default, Clone)]

@@ -1,9 +1,9 @@
 use core::ops;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-use crate::chain::name::Name;
-use crate::chain::{Decoder, Encoder, Packer};
+use serde::{Deserialize, Serialize};
+
+use crate::chain::{name::Name, Decoder, Encoder, Packer};
 
 const MAX_AMOUNT: i64 = (1 << 62) - 1;
 const MAX_PRECISION: u8 = 18;
@@ -110,7 +110,7 @@ impl Packer for SymbolCode {
     }
 }
 
-#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Symbol {
     value: u64,
 }
@@ -179,7 +179,7 @@ impl Packer for Symbol {
     }
 }
 
-#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Asset {
     amount: i64,
     symbol: Symbol,

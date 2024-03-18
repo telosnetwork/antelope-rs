@@ -1,16 +1,22 @@
-use crate::chain::checksum::Checksum256;
-use crate::chain::{name::Name, varint::VarUint32};
-use serde::de::{self, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
-use std::fmt;
 
-use crate::serializer::{Decoder, Encoder, Packer};
+use crate::{
+    chain::{
+        checksum::Checksum256,
+        name::{deserialize_name, Name},
+        varint::VarUint32,
+    },
+    serializer::{Decoder, Encoder, Packer},
+};
+use serde_json::Value;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct PermissionLevel {
     /// The account holding the permission.
+    #[serde(deserialize_with = "deserialize_name")]
     pub actor: Name,
     /// The permission type.
+    #[serde(deserialize_with = "deserialize_name")]
     pub permission: Name,
 }
 
@@ -21,7 +27,8 @@ impl PermissionLevel {
     }
 }
 
-/// Implements the Packer trait for PermissionLevel to enable serialization and deserialization.
+/// Implements the Packer trait for PermissionLevel to enable serialization and
+/// deserialization.
 impl Packer for PermissionLevel {
     /// Returns the packed size of the PermissionLevel structure.
     fn size(&self) -> usize {
@@ -49,20 +56,24 @@ impl Packer for PermissionLevel {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Serialize)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Action {
     /// The account on which the action is executed.
+    #[serde(deserialize_with = "deserialize_name")]
     pub account: Name,
     /// The name of the action.
+    #[serde(deserialize_with = "deserialize_name")]
     pub name: Name,
     /// A list of permission levels required to execute the action.
     pub authorization: Vec<PermissionLevel>,
     /// The action's payload data.
+    #[serde(deserialize_with = "deserialize_data")]
     pub data: Vec<u8>,
 }
 
 impl Action {
-    /// Creates an action by specifying contract account, action name, authorization and data.
+    /// Creates an action by specifying contract account, action name,
+    /// authorization and data.
     pub fn new<T>(account: Name, name: Name, authorization: PermissionLevel, data: T) -> Self
     where
         T: Packer,
@@ -109,7 +120,8 @@ impl Default for Action {
     }
 }
 
-/// Implements the Packer trait for Action to enable serialization and deserialization.
+/// Implements the Packer trait for Action to enable serialization and
+/// deserialization.
 impl Packer for Action {
     /// Returns the packed size of the Action structure.
     fn size(&self) -> usize {
@@ -146,64 +158,13 @@ impl Packer for Action {
     }
 }
 
-impl<'de> Deserialize<'de> for Action {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct ActionVisitor;
-
-        impl<'de> Visitor<'de> for ActionVisitor {
-            type Value = Action;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("struct Action")
-            }
-
-            fn visit_map<V>(self, mut map: V) -> Result<Action, V::Error>
-            where
-                V: MapAccess<'de>,
-            {
-                let mut account = None;
-                let mut name = None;
-                let mut authorization = None;
-                let mut data = None;
-
-                while let Some(key) = map.next_key::<String>()? {
-                    match key.as_str() {
-                        "account" => account = Some(map.next_value()?),
-                        "name" => name = Some(map.next_value()?),
-                        "authorization" => authorization = Some(map.next_value()?),
-                        "data" => {
-                            let data_obj: serde_json::Value = map.next_value()?; // Temporarily holds the JSON object
-                            let data_str =
-                                serde_json::to_string(&data_obj).map_err(de::Error::custom)?; // Serialize the JSON object to a string
-                            data = Some(data_str.into_bytes()); // Convert the serialized string to Vec<u8>
-                        }
-                        _ => {
-                            let _: de::IgnoredAny = map.next_value()?;
-                        }
-                    }
-                }
-
-                let account = account.ok_or_else(|| de::Error::missing_field("account"))?;
-                let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
-                let authorization =
-                    authorization.ok_or_else(|| de::Error::missing_field("authorization"))?;
-                let data = data.ok_or_else(|| de::Error::missing_field("data"))?;
-
-                Ok(Action {
-                    account,
-                    name,
-                    authorization,
-                    data,
-                })
-            }
-        }
-
-        const FIELDS: &[&str] = &["account", "name", "authorization", "data"];
-        deserializer.deserialize_struct("Action", FIELDS, ActionVisitor)
-    }
+fn deserialize_data<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let data: Value = Deserialize::deserialize(deserializer)?;
+    let serialized_str = serde_json::to_string(&data).map_err(serde::de::Error::custom)?;
+    Ok(serialized_str.into_bytes())
 }
 
 #[derive(Default, Serialize, Deserialize)]

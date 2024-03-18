@@ -1,9 +1,13 @@
-use crate::base58::{decode_public_key, encode_ripemd160_check};
-use crate::chain::{key_type::KeyType, Decoder, Encoder, Packer};
-use crate::util::bytes_to_hex;
+use std::fmt::{Display, Formatter};
+
 use antelope_client_macros::StructPacker;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter};
+
+use crate::{
+    base58::{decode_public_key, encode_ripemd160_check},
+    chain::{key_type::KeyType, Decoder, Encoder, Packer},
+    util::bytes_to_hex,
+};
 
 #[derive(Clone, Eq, PartialEq, Default, StructPacker, Serialize, Deserialize)]
 pub struct PublicKey {

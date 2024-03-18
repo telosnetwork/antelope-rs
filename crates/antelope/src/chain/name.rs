@@ -1,7 +1,11 @@
-use crate::serializer::{Encoder, Packer};
+use std::{
+    fmt,
+    fmt::{Display, Formatter},
+};
+
 use serde::{Deserialize, Deserializer, Serialize};
-use std::fmt;
-use std::fmt::{Display, Formatter};
+
+use crate::serializer::{Encoder, Packer};
 
 const INVALID_NAME_CHAR: u8 = 0xffu8;
 
@@ -171,9 +175,10 @@ fn str_to_name_checked(s: &str) -> u64 {
     n
 }
 
-/// a wrapper around a 64-bit unsigned integer that represents a name in the Antelope blockchain
+/// a wrapper around a 64-bit unsigned integer that represents a name in the
+/// Antelope blockchain
 #[repr(C, align(8))]
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Name {
     pub n: u64,
 }
@@ -225,31 +230,37 @@ impl Packer for Name {
     }
 }
 
-impl<'de> Deserialize<'de> for Name {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct NameVisitor;
+pub(crate) fn deserialize_name<'de, D>(deserializer: D) -> Result<Name, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct NameVisitor;
 
-        impl<'de> serde::de::Visitor<'de> for NameVisitor {
-            type Value = Name;
+    impl<'de> serde::de::Visitor<'de> for NameVisitor {
+        type Value = Name;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a string for Name")
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Name, E>
-            where
-                E: serde::de::Error,
-            {
-                // Correctly use the new_from_str method to instantiate Name
-                Ok(Name::new_from_str(v))
-            }
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string representing an EOSIO name")
         }
 
-        deserializer.deserialize_str(NameVisitor)
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Name::new_from_str(v))
+        }
     }
+
+    deserializer.deserialize_str(NameVisitor)
+}
+
+pub(crate) fn deserialize_optional_name<'de, D>(deserializer: D) -> Result<Option<Name>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt: Option<String> = Option::deserialize(deserializer)?;
+    let result = opt.map(|s| Name::new_from_str(&s));
+    Ok(result)
 }
 
 pub const SAME_PAYER: Name = Name { n: 0 };

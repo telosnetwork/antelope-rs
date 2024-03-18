@@ -1,7 +1,7 @@
-use crate::chain::key_type::KeyType;
 use k256;
-use p256;
-use p256::elliptic_curve::sec1::ToEncodedPoint;
+use p256::{self, elliptic_curve::sec1::ToEncodedPoint};
+
+use crate::chain::key_type::KeyType;
 
 pub fn generate(curve_type: KeyType) -> Result<Vec<u8>, String> {
     // TODO: maybe these can use generic types to deduplicate code?

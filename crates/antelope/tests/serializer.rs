@@ -1,9 +1,9 @@
-use antelope::chain::name::Name;
-use antelope::chain::signature::Signature;
-use antelope::chain::{Decoder, Encoder};
-use antelope::serializer::Packer;
-use antelope::util;
-use antelope::util::{bytes_to_hex, hex_to_bytes};
+use antelope::{
+    chain::{name::Name, signature::Signature, Decoder, Encoder},
+    serializer::Packer,
+    util,
+    util::{bytes_to_hex, hex_to_bytes},
+};
 use antelope_client_macros::StructPacker;
 
 #[test]
@@ -59,7 +59,8 @@ fn name() {
     assert_eq!(name1, name2);
     let name3 = Name::from_u64(6712742083569909760);
     assert_eq!(name1, name3);
-    // TODO: The typescript lib produces empty string, are they the same? (. vs '')
+    // TODO: The typescript lib produces empty string, are they the same? (. vs
+    // '')
     assert_eq!(Name::from_u64(0).to_string(), ".");
     /*
     assert.equal(JSON.stringify(Name.from(UInt64.from(0))), """");
@@ -221,7 +222,8 @@ fn string() {
     let object = String::from("hello world");
 
     let encoded = Encoder::pack(&object);
-    //let decoded = Serializer::decode(serializable_to_encode_args(Box::new(object)));
+    //let decoded =
+    // Serializer::decode(serializable_to_encode_args(Box::new(object)));
 
     assert_eq!(encoded, util::hex_to_bytes(data));
 
@@ -279,9 +281,9 @@ test('public key (wa)', function () {
 #[test]
 fn signature() {
     let data =
-            hex_to_bytes("00205150a67288c3b393fdba9061b05019c54b12bdac295fc83bebad7cd63c7bb67d5cb8cc220564da006240a58419f64d06a5c6e1fc62889816a6c3dfdd231ed389");
+        hex_to_bytes("00205150a67288c3b393fdba9061b05019c54b12bdac295fc83bebad7cd63c7bb67d5cb8cc220564da006240a58419f64d06a5c6e1fc62889816a6c3dfdd231ed389");
     let json =
-            "SIG_K1_KfPLgpw35iX8nfDzhbcmSBCr7nEGNEYXgmmempQspDJYBCKuAEs5rm3s4ZuLJY428Ca8ZhvR2Dkwu118y3NAoMDxhicRj9";
+        "SIG_K1_KfPLgpw35iX8nfDzhbcmSBCr7nEGNEYXgmmempQspDJYBCKuAEs5rm3s4ZuLJY428Ca8ZhvR2Dkwu118y3NAoMDxhicRj9";
     let sig = Signature::from_string(json).unwrap();
 
     let encoded = Encoder::pack(&sig);

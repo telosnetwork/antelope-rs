@@ -1,20 +1,25 @@
-use crate::api::client::Provider;
-use crate::api::v1::structs::{
-    AccountRamDelta, ActionTrace, ClientError, EncodingError, GetInfoResponse, GetTableRowsParams,
-    GetTableRowsResponse, ProcessedTransaction, ProcessedTransactionReceipt,
-    SendTransactionResponse, SendTransactionResponseError, TableIndexType,
-};
-use crate::chain::block_id::BlockId;
-use crate::chain::checksum::Checksum256;
-use crate::chain::name::Name;
-use crate::chain::time::TimePoint;
-use crate::chain::transaction::{CompressionType, PackedTransaction, SignedTransaction};
-use crate::chain::{Decoder, Packer};
-use crate::name;
-use crate::serializer::formatter::{JSONObject, ValueTo};
-use crate::util::hex_to_bytes;
-use serde_json::{self, Value};
 use std::fmt::Debug;
+
+use serde_json::{self, Value};
+
+use crate::{
+    api::{
+        client::Provider,
+        v1::structs::{
+            AccountObject, ClientError, ErrorResponse, GetInfoResponse, GetTableRowsParams,
+            GetTableRowsResponse, SendTransactionResponse, SendTransactionResponseError,
+            TableIndexType,
+        },
+    },
+    chain::{
+        name::Name,
+        transaction::{CompressionType, PackedTransaction, SignedTransaction},
+        Decoder, Packer,
+    },
+    name,
+    serializer::formatter::{JSONObject, ValueTo},
+    util::hex_to_bytes,
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct ChainAPI<T: Provider> {
@@ -26,107 +31,70 @@ impl<T: Provider> ChainAPI<T> {
         ChainAPI { provider }
     }
 
-    pub async fn get_info(&self) -> Result<GetInfoResponse, ClientError<()>> {
-        let result = self.provider.get(String::from("/v1/chain/get_info"));
-        let json = serde_json::from_str(result.await.unwrap().as_str());
-        if json.is_err() {
-            return Err(ClientError::encoding("Failed to parse JSON".into()));
-        }
-        let obj = JSONObject::new(json.unwrap());
-        Ok(GetInfoResponse {
-            server_version: obj.get_string("server_version")?,
-            chain_id: Checksum256::from_hex(obj.get_string("chain_id")?.as_str())?,
-            head_block_num: obj.get_u32("head_block_num")?,
-            last_irreversible_block_num: obj.get_u32("last_irreversible_block_num")?,
-            last_irreversible_block_id: BlockId {
-                bytes: obj.get_hex_bytes("last_irreversible_block_id")?,
-            },
-            head_block_id: BlockId {
-                bytes: obj.get_hex_bytes("head_block_id")?,
-            },
-            head_block_time: TimePoint::from_timestamp(obj.get_str("head_block_time")?)?,
-            head_block_producer: name!(obj.get_str("head_block_producer")?),
-            virtual_block_cpu_limit: obj.get_u64("virtual_block_cpu_limit")?,
-            virtual_block_net_limit: obj.get_u64("virtual_block_net_limit")?,
-            block_cpu_limit: obj.get_u64("block_cpu_limit")?,
-            block_net_limit: obj.get_u64("block_net_limit")?,
-            server_version_string: obj.get_string("server_version_string").ok(),
-            fork_db_head_block_num: obj.get_u32("fork_db_head_block_num").ok(),
-            fork_db_head_block_id: BlockId::from_bytes(
-                &obj.get_hex_bytes("fork_db_head_block_id")?,
+    // pub async fn get_abi(&self) -> Result<
+
+    pub async fn get_account(
+        &self,
+        account_name: String,
+    ) -> Result<AccountObject, ClientError<()>> {
+        let payload = serde_json::json!({ "account_name": account_name });
+
+        let result = self
+            .provider
+            .post(
+                String::from("/v1/chain/get_account"),
+                Some(payload.to_string()),
             )
-            .ok(),
-        })
+            .await;
+
+        match result {
+            Ok(response) => serde_json::from_str::<AccountObject>(&response)
+                .map_err(|_| ClientError::encoding("Failed to parse JSON".into())),
+            Err(_) => Err(ClientError::encoding("Request failed".into())),
+        }
+    }
+
+    pub async fn get_info(&self) -> Result<GetInfoResponse, ClientError<()>> {
+        let result = self.provider.get(String::from("/v1/chain/get_info")).await;
+
+        match result {
+            Ok(response) => serde_json::from_str::<GetInfoResponse>(&response)
+                .map_err(|_| ClientError::encoding("Failed to parse JSON".into())),
+            Err(_) => Err(ClientError::encoding("Request failed".into())),
+        }
     }
 
     pub async fn send_transaction(
         &self,
         trx: SignedTransaction,
     ) -> Result<SendTransactionResponse, ClientError<SendTransactionResponseError>> {
-        let packed_result = PackedTransaction::from_signed(trx, CompressionType::ZLIB);
-        if packed_result.is_err() {
-            return Err(ClientError::encoding("Failed to pack transaction".into()));
-        }
-        let packed = packed_result.unwrap();
+        let packed = PackedTransaction::from_signed(trx, CompressionType::ZLIB)
+            .map_err(|_| ClientError::encoding("Failed to pack transaction".into()))?;
+
         let trx_json = packed.to_json();
         let result = self
             .provider
-            .post(String::from("/v1/chain/send_transaction"), Some(trx_json));
-        let json: Value = serde_json::from_str(result.await.unwrap().as_str()).unwrap();
-        let response_obj = JSONObject::new(json);
-        if response_obj.has("code") {
-            let error_value = response_obj.get_value("error").unwrap();
-            let error_json = error_value.to_string();
-            let error_obj = JSONObject::new(error_value);
-            return Err(ClientError::server(SendTransactionResponseError {
-                code: error_obj.get_u32("code")?,
-                name: error_obj.get_string("name")?,
-                message: error_json,
-                stack: vec![],
-            }));
-        }
-        let processed_obj = JSONObject::new(response_obj.get_value("processed").unwrap());
-        let receipt_obj = JSONObject::new(processed_obj.get_value("receipt").unwrap());
-        let action_traces_json = processed_obj
-            .get_value("action_traces")
-            .unwrap_or(Value::Null);
-        let action_traces: Vec<ActionTrace> =
-            serde_json::from_value(action_traces_json).map_err(|e| {
-                ClientError::encoding(format!("Failed to deserialize 'Vec<ActionTrace>': {}", e))
-            })?;
-        let account_ram_delta_json = processed_obj
-            .get_value("account_ram_delta")
-            .unwrap_or(Value::Null);
+            .post(String::from("/v1/chain/send_transaction"), Some(trx_json))
+            .await
+            .map_err(|_| ClientError::NETWORK("Failed to send transaction".into()))?; // Assuming network error handling
 
-        let account_ram_delta: Option<AccountRamDelta> = if account_ram_delta_json != Value::Null {
-            serde_json::from_value(account_ram_delta_json)
-                .map_err(|e| {
-                    EncodingError::new(format!("Failed to deserialize AccountRamDelta: {}", e))
-                })
-                .ok()
-        } else {
-            None
-        };
-
-        Ok(SendTransactionResponse {
-            transaction_id: response_obj.get_string("transaction_id")?,
-            processed: ProcessedTransaction {
-                id: processed_obj.get_string("id")?,
-                block_num: processed_obj.get_u64("block_num")?,
-                block_time: processed_obj.get_string("block_time")?,
-                receipt: ProcessedTransactionReceipt {
-                    status: receipt_obj.get_string("status")?,
-                    cpu_usage_us: receipt_obj.get_u32("cpu_usage_us")?,
-                    net_usage_words: receipt_obj.get_u32("net_usage_words")?,
-                },
-                elapsed: processed_obj.get_u64("elapsed")?,
-                except: None,
-                net_usage: processed_obj.get_u32("net_usage")?,
-                scheduled: false,
-                action_traces,
-                account_ram_delta,
+        match serde_json::from_str::<SendTransactionResponse>(&result) {
+            Ok(response) => Ok(response),
+            Err(_) => match serde_json::from_str::<ErrorResponse>(&result) {
+                Ok(error_response) => {
+                    Err(ClientError::server(SendTransactionResponseError {
+                        code: error_response.error.code,
+                        name: error_response.error.name,
+                        message: error_response.error.message,
+                        stack: vec![], // Could be IgnoredAny?
+                    }))
+                }
+                Err(e) => Err(ClientError::encoding(format!(
+                    "Failed to parse response: {}",
+                    e
+                ))),
             },
-        })
+        }
     }
 
     pub async fn get_table_rows<P: Packer + Default>(
