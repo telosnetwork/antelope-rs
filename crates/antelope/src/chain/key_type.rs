@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::chain::{Encoder, Packer};
 
-#[derive(Clone, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub enum KeyType {
     #[default]
     K1,

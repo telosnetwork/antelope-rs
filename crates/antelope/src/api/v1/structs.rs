@@ -1,14 +1,17 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
+use std::fmt;
 
-use crate::chain::asset::Asset;
 use crate::chain::{
-    action::Action,
+    action::{Action, PermissionLevel},
+    asset::{deserialize_asset, Asset},
+    authority::Authority,
     block_id::{deserialize_block_id, deserialize_optional_block_id, BlockId},
     checksum::{deserialize_checksum256, Checksum160, Checksum256},
-    name::{deserialize_name, deserialize_optional_name, Name},
+    name::{deserialize_name, deserialize_optional_name, deserialize_vec_name, Name},
     time::{deserialize_optional_timepoint, deserialize_timepoint, TimePoint, TimePointSec},
     transaction::TransactionHeader,
     varint::VarUint32,
@@ -338,49 +341,103 @@ pub struct GetTableRowsResponse<T> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct TESTAccountObject {
+    #[serde(deserialize_with = "deserialize_name")]
+    pub account_name: Name,
+    pub head_block_num: u32,
+    #[serde(deserialize_with = "deserialize_timepoint")]
+    pub head_block_time: TimePoint,
+    pub privileged: bool,
+    #[serde(deserialize_with = "deserialize_timepoint")]
+    pub last_code_update: TimePoint,
+    #[serde(deserialize_with = "deserialize_timepoint")]
+    pub created: TimePoint,
+    #[serde(deserialize_with = "deserialize_asset")]
+    pub core_liquid_balance: Asset,
+    pub ram_quota: i64,
+    pub net_weight: i64,
+    pub cpu_weight: i64,
+    pub net_limit: AccountResourceLimit,
+    pub cpu_limit: AccountResourceLimit,
+    pub ram_usage: u64,
+    pub permissions: Vec<AccountPermission>,
+    pub total_resources: Option<AccountTotalResources>,
+    pub self_delegated_bandwidth: Option<SelfDelegatedBandwidth>,
+    pub refund_request: Option<AccountRefundRequest>,
+    pub voter_info: Option<AccountVoterInfo>,
+    pub rex_info: Option<AccountRexInfo>,
+    pub subjective_cpu_bill_limit: Option<AccountResourceLimit>,
+    pub eosio_any_linked_actions: Option<Vec<AccountLinkedAction>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AccountObject {
-    account_name: Name,
-    head_block_num: u32,
+    #[serde(deserialize_with = "deserialize_name")]
+    pub account_name: Name,
+    pub head_block_num: u32,
     #[serde(deserialize_with = "deserialize_timepoint")]
-    head_block_time: TimePoint,
-    privileged: bool,
+    pub head_block_time: TimePoint,
+    pub privileged: bool,
     #[serde(deserialize_with = "deserialize_timepoint")]
-    last_code_update: TimePoint,
+    pub last_code_update: TimePoint,
     #[serde(deserialize_with = "deserialize_timepoint")]
-    created: TimePoint,
-    core_liquid_balance: Asset,
-    ram_quota: i64,
-    net_weight: i64,
-    cpu_weight: i64,
-    net_limit: AccountResourceLimit,
-    cpu_limit: AccountResourceLimit,
-    subjective_cpu_bill_limit: Option<AccountResourceLimit>,
-    ram_usage: u64,
-    permissions: Vec<AccountPermission>,
-    total_resources: Option<AccountTotalResources>,
-    self_delegated_bandwidth: Option<SelfDelegatedBandwidth>,
-    refund_request: Option<AccountRefundRequest>,
-    voter_info: VoterInfo,
-    rex_info: AccountRexInfo,
-    eosio_any_linked_actions: Option<Vec<AccountLinkedAction>>,
+    pub created: TimePoint,
+    #[serde(deserialize_with = "deserialize_asset")]
+    pub core_liquid_balance: Asset,
+    pub ram_quota: i64,
+    pub net_weight: i64,
+    pub cpu_weight: i64,
+    pub net_limit: AccountResourceLimit,
+    pub cpu_limit: AccountResourceLimit,
+    pub ram_usage: u64,
+    pub permissions: Vec<AccountPermission>,
+    pub total_resources: Option<AccountTotalResources>,
+    pub self_delegated_bandwidth: Option<SelfDelegatedBandwidth>,
+    pub refund_request: Option<AccountRefundRequest>,
+    pub voter_info: Option<AccountVoterInfo>,
+    pub rex_info: Option<AccountRexInfo>,
+    pub subjective_cpu_bill_limit: Option<AccountResourceLimit>,
+    pub eosio_any_linked_actions: Option<Vec<AccountLinkedAction>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountRexInfo {
     version: u32,
+    #[serde(deserialize_with = "deserialize_name")]
     owner: Name,
-    vote_stakes: Asset,
+    #[serde(deserialize_with = "deserialize_asset")]
+    vote_stake: Asset,
+    #[serde(deserialize_with = "deserialize_asset")]
     rex_balance: Asset,
+    #[serde(deserialize_with = "deserialize_i64_from_string_or_i64")]
     matured_rex: i64,
     rex_maturities: Vec<AccountRexInfoMaturities>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountRexInfoMaturities {
-    #[serde(deserialize_with = "deserialize_optional_timepoint")]
+    #[serde(
+        deserialize_with = "deserialize_optional_timepoint",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     key: Option<TimePoint>,
+    #[serde(
+        deserialize_with = "deserialize_optional_i64_from_string",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     value: Option<i64>,
-    #[serde(deserialize_with = "deserialize_optional_timepoint")]
+    #[serde(
+        deserialize_with = "deserialize_optional_timepoint",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     first: Option<TimePoint>,
+    #[serde(
+        deserialize_with = "deserialize_optional_i64_from_string",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     second: Option<i64>,
 }
 
@@ -397,8 +454,17 @@ pub struct AccountResourceLimit {
     used: i64,
     available: i64,
     max: i64,
-    #[serde(deserialize_with = "deserialize_optional_timepoint")]
+    #[serde(
+        deserialize_with = "deserialize_optional_timepoint",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     last_usage_update_time: Option<TimePoint>,
+    #[serde(
+        deserialize_with = "deserialize_optional_i64_from_string",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     current_used: Option<i64>,
 }
 
@@ -408,7 +474,9 @@ pub struct AccountRefundRequest {
     owner: Name,
     #[serde(deserialize_with = "deserialize_timepoint")]
     request_time: TimePoint,
+    #[serde(deserialize_with = "deserialize_asset")]
     net_amount: Asset,
+    #[serde(deserialize_with = "deserialize_asset")]
     cpu_amount: Asset,
 }
 
@@ -423,7 +491,9 @@ pub struct ResourceLimit {
 pub struct AccountTotalResources {
     #[serde(deserialize_with = "deserialize_name")]
     owner: Name,
+    #[serde(deserialize_with = "deserialize_asset")]
     net_weight: Asset,
+    #[serde(deserialize_with = "deserialize_asset")]
     cpu_weight: Asset,
     ram_bytes: u64,
 }
@@ -434,7 +504,9 @@ pub struct SelfDelegatedBandwidth {
     from: Name,
     #[serde(deserialize_with = "deserialize_name")]
     to: Name,
+    #[serde(deserialize_with = "deserialize_asset")]
     net_weight: Asset,
+    #[serde(deserialize_with = "deserialize_asset")]
     cpu_weight: Asset,
 }
 
@@ -453,8 +525,9 @@ pub struct AccountPermission {
     parent: Name,
     #[serde(deserialize_with = "deserialize_name")]
     perm_name: Name,
-    //required_auth: Authority, TODO: Create Authority type
-    linked_actions: AccountLinkedAction,
+    required_auth: Authority,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub linked_actions: Option<Vec<AccountLinkedAction>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -492,25 +565,169 @@ pub struct Account {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PermissionLevel {
-    #[serde(deserialize_with = "deserialize_name")]
-    actor: Name,
-    #[serde(deserialize_with = "deserialize_name")]
-    permission: Name,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct VoterInfo {
+pub struct AccountVoterInfo {
     #[serde(deserialize_with = "deserialize_name")]
     owner: Name,
     #[serde(deserialize_with = "deserialize_name")]
     proxy: Name,
-    producers: Option<Vec<Name>>,
+    #[serde(deserialize_with = "deserialize_vec_name")]
+    producers: Vec<Name>,
     staked: Option<i64>,
+    #[serde(deserialize_with = "deserialize_f64_from_string")]
     last_vote_weight: f64,
+    #[serde(deserialize_with = "deserialize_f64_from_string")]
     proxied_vote_weight: f64,
+    #[serde(deserialize_with = "deserialize_bool_from_number")]
     is_proxy: bool,
     flags1: Option<u32>,
     reserved2: u32,
     reserved3: String,
+}
+
+fn deserialize_f64_from_string<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct StringToF64Visitor;
+
+    impl<'de> Visitor<'de> for StringToF64Visitor {
+        type Value = f64;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string that can be parsed into a f64")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<f64, E>
+        where
+            E: de::Error,
+        {
+            value.parse::<f64>().map_err(de::Error::custom)
+        }
+    }
+
+    deserializer.deserialize_str(StringToF64Visitor)
+}
+
+fn deserialize_bool_from_number<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct NumberToBoolVisitor;
+
+    impl<'de> Visitor<'de> for NumberToBoolVisitor {
+        type Value = bool;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a number representing a boolean (0 or 1)")
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<bool, E>
+        where
+            E: de::Error,
+        {
+            match value {
+                0 => Ok(false),
+                1 => Ok(true),
+                _ => Err(E::custom("expected 0 or 1 for boolean")),
+            }
+        }
+    }
+
+    deserializer.deserialize_any(NumberToBoolVisitor)
+}
+
+fn deserialize_i64_from_string_or_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct I64OrStringVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for I64OrStringVisitor {
+        type Value = i64;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("an integer or a string representation of an integer")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            value.parse::<i64>().map_err(E::custom)
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(value)
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            i64::try_from(value).map_err(|_| E::custom("u64 value too large for i64"))
+        }
+    }
+
+    deserializer.deserialize_any(I64OrStringVisitor)
+}
+
+fn deserialize_optional_i64_from_string<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct StringOrI64Visitor;
+
+    impl<'de> Visitor<'de> for StringOrI64Visitor {
+        type Value = Option<i64>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str(
+                "a string representing a 64-bit signed integer, an actual integer, or null",
+            )
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Option<i64>, E>
+        where
+            E: de::Error,
+        {
+            value.parse::<i64>().map(Some).map_err(de::Error::custom)
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Option<i64>, E>
+        where
+            E: de::Error,
+        {
+            Ok(Some(value))
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Option<i64>, E>
+        where
+            E: de::Error,
+        {
+            if value <= i64::MAX as u64 {
+                Ok(Some(value as i64))
+            } else {
+                Err(de::Error::custom("u64 value too large for i64"))
+            }
+        }
+
+        fn visit_none<E>(self) -> Result<Option<i64>, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_unit<E>(self) -> Result<Option<i64>, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+    }
+
+    deserializer.deserialize_any(StringOrI64Visitor)
 }

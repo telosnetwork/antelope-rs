@@ -56,6 +56,21 @@ impl Packer for PermissionLevel {
     }
 }
 
+impl PartialOrd for PermissionLevel {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PermissionLevel {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.actor.cmp(&other.actor) {
+            std::cmp::Ordering::Equal => self.permission.cmp(&other.permission),
+            other => other,
+        }
+    }
+}
+
 #[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Action {
     /// The account on which the action is executed.

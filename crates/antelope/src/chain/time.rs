@@ -142,5 +142,6 @@ where
         }
     }
 
-    deserializer.deserialize_option(OptionalTimePointVisitor)
+    // Updated to handle null values directly
+    deserializer.deserialize_any(OptionalTimePointVisitor)
 }

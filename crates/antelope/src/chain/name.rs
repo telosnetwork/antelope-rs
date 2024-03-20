@@ -3,6 +3,7 @@ use std::{
     fmt::{Display, Formatter},
 };
 
+use serde::de::SeqAccess;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::serializer::{Encoder, Packer};
@@ -230,6 +231,18 @@ impl Packer for Name {
     }
 }
 
+impl PartialOrd for Name {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Name {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.n.cmp(&other.n)
+    }
+}
+
 pub(crate) fn deserialize_name<'de, D>(deserializer: D) -> Result<Name, D::Error>
 where
     D: Deserializer<'de>,
@@ -261,6 +274,36 @@ where
     let opt: Option<String> = Option::deserialize(deserializer)?;
     let result = opt.map(|s| Name::new_from_str(&s));
     Ok(result)
+}
+
+pub(crate) fn deserialize_vec_name<'de, D>(deserializer: D) -> Result<Vec<Name>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct VecNameVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for VecNameVisitor {
+        type Value = Vec<Name>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a vector of strings representing EOSIO names")
+        }
+
+        fn visit_seq<S>(self, mut seq: S) -> Result<Vec<Name>, S::Error>
+        where
+            S: SeqAccess<'de>,
+        {
+            let mut names = Vec::new();
+
+            while let Some(elem) = seq.next_element::<String>()? {
+                names.push(Name::new_from_str(&elem));
+            }
+
+            Ok(names)
+        }
+    }
+
+    deserializer.deserialize_seq(VecNameVisitor)
 }
 
 pub const SAME_PAYER: Name = Name { n: 0 };
