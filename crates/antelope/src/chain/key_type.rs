@@ -1,8 +1,10 @@
-use crate::chain::{Encoder, Packer};
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
+use serde::{Deserialize, Serialize};
+
+use crate::chain::{Encoder, Packer};
+
+#[derive(Clone, Debug, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub enum KeyType {
     #[default]
     K1,

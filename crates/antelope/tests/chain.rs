@@ -1,13 +1,16 @@
-use antelope::chain::asset::Symbol;
-use antelope::chain::block_id::BlockId;
-use antelope::chain::checksum::{Checksum160, Checksum256, Checksum512};
-use antelope::chain::name::Name;
-use antelope::chain::transaction::{Transaction, TransactionHeader};
-use antelope::chain::{
-    action::Action, action::PermissionLevel, asset::Asset, Decoder, Encoder, Packer,
+use antelope::{
+    chain::{
+        action::{Action, PermissionLevel},
+        asset::{Asset, Symbol},
+        block_id::BlockId,
+        checksum::{Checksum160, Checksum256, Checksum512},
+        name::Name,
+        transaction::{Transaction, TransactionHeader},
+        Decoder, Encoder, Packer,
+    },
+    name,
+    util::{bytes_to_hex, hex_to_bytes},
 };
-use antelope::name;
-use antelope::util::{bytes_to_hex, hex_to_bytes};
 use antelope_client_macros::StructPacker;
 
 #[test]
@@ -16,8 +19,9 @@ fn asset() {
     //assert_eq!(Asset::from_string("-1.2345 NEGS").to_string(), "-1.2345 NEGS");
     //assert.equal(Asset.from('-1.2345 NEGS').toString(), '-1.2345 NEGS')
     //assert.equal(Asset.from('-0.2345 NEGS').toString(), '-0.2345 NEGS')
-    //assert.equal(Asset.from('-99999999999 DUCKS').toString(), '-99999999999 DUCKS')
-    //assert.equal(Asset.from('-0.0000000000001 DUCKS').toString(), '-0.0000000000001 DUCKS')
+    //assert.equal(Asset.from('-99999999999 DUCKS').toString(), '-99999999999
+    // DUCKS') assert.equal(Asset.from('-0.0000000000001 DUCKS').toString(),
+    // '-0.0000000000001 DUCKS')
     assert_eq!(
         Asset::from_string("0.0000000000000 DUCKS").to_string(),
         "0.0000000000000 DUCKS"
@@ -115,7 +119,8 @@ fn block_id() {
     //assert_eq!(block_id.to_string(), string);
     assert_eq!(block_id.block_num().to_string(), "76047867");
     assert!(block_id.block_num() == 76047867);
-    //assert!(block_id.block_num().equals(UInt32::from(76047867))); UInt32 not implemented yet
+    //assert!(block_id.block_num().equals(UInt32::from(76047867))); UInt32 not
+    // implemented yet
 
     //decode not implemented yet
     // let block_id2 = BlockId::from(BlockIdType::BlockChecksumAndNumber {
@@ -126,7 +131,8 @@ fn block_id() {
     //     block_num: UInt32::from(7),
     // });
 
-    // assert_eq!(block_id2.to_string(), "000000075fbe6bbad86e424962a190e8309394b7bff4bf3e16b0a2a71e5a617c");
+    // assert_eq!(block_id2.to_string(),
+    // "000000075fbe6bbad86e424962a190e8309394b7bff4bf3e16b0a2a71e5a617c");
     // assert!(block_id2.block_num().equals(7));
 }
 

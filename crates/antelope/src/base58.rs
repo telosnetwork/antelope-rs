@@ -1,7 +1,7 @@
-use crate::base58;
-use crate::chain::key_type::KeyType;
 use ripemd::{Digest as RipeDigest, Ripemd160};
 use sha2::Sha256;
+
+use crate::{base58, chain::key_type::KeyType};
 
 pub fn encode(data: Vec<u8>) -> String {
     bs58::encode(data).into_string()

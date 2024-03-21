@@ -1,13 +1,16 @@
-use crate::chain::checksum::Checksum256;
-use crate::chain::signature::Signature;
-use crate::chain::{
-    action::Action, time::TimePointSec, varint::VarUint32, Decoder, Encoder, Packer,
-};
-use crate::util::{bytes_to_hex, zlib_compress};
+use std::collections::HashMap;
+
 use antelope_client_macros::StructPacker;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::collections::HashMap;
+
+use crate::{
+    chain::{
+        action::Action, checksum::Checksum256, signature::Signature, time::TimePointSec,
+        varint::VarUint32, Decoder, Encoder, Packer,
+    },
+    util::{bytes_to_hex, zlib_compress},
+};
 
 #[derive(Clone, Eq, PartialEq, Default, StructPacker, Serialize, Deserialize)]
 pub struct TransactionExtension {

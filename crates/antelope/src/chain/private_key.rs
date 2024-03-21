@@ -1,14 +1,16 @@
-use crate::base58::{decode_key, encode_check, encode_ripemd160_check};
-use crate::chain::checksum::Checksum512;
-use crate::chain::key_type::KeyType;
-use crate::chain::public_key::PublicKey;
-use crate::chain::signature::Signature;
-use crate::crypto::generate::generate;
-use crate::crypto::get_public::get_public;
-use crate::crypto::shared_secrets::shared_secret;
-use crate::crypto::sign::sign;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
+
+use serde::{Deserialize, Serialize};
+
+use crate::{
+    base58::{decode_key, encode_check, encode_ripemd160_check},
+    chain::{
+        checksum::Checksum512, key_type::KeyType, public_key::PublicKey, signature::Signature,
+    },
+    crypto::{
+        generate::generate, get_public::get_public, shared_secrets::shared_secret, sign::sign,
+    },
+};
 
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct PrivateKey {

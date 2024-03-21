@@ -1,14 +1,22 @@
-use crate::chain::checksum::Checksum256;
-use crate::chain::{name::Name, varint::VarUint32};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::serializer::{Decoder, Encoder, Packer};
+use crate::{
+    chain::{
+        checksum::Checksum256,
+        name::{deserialize_name, Name},
+        varint::VarUint32,
+    },
+    serializer::{Decoder, Encoder, Packer},
+};
+use serde_json::Value;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct PermissionLevel {
     /// The account holding the permission.
+    #[serde(deserialize_with = "deserialize_name")]
     pub actor: Name,
     /// The permission type.
+    #[serde(deserialize_with = "deserialize_name")]
     pub permission: Name,
 }
 
@@ -19,7 +27,8 @@ impl PermissionLevel {
     }
 }
 
-/// Implements the Packer trait for PermissionLevel to enable serialization and deserialization.
+/// Implements the Packer trait for PermissionLevel to enable serialization and
+/// deserialization.
 impl Packer for PermissionLevel {
     /// Returns the packed size of the PermissionLevel structure.
     fn size(&self) -> usize {
@@ -47,20 +56,39 @@ impl Packer for PermissionLevel {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+impl PartialOrd for PermissionLevel {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PermissionLevel {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.actor.cmp(&other.actor) {
+            std::cmp::Ordering::Equal => self.permission.cmp(&other.permission),
+            other => other,
+        }
+    }
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Action {
     /// The account on which the action is executed.
+    #[serde(deserialize_with = "deserialize_name")]
     pub account: Name,
     /// The name of the action.
+    #[serde(deserialize_with = "deserialize_name")]
     pub name: Name,
     /// A list of permission levels required to execute the action.
     pub authorization: Vec<PermissionLevel>,
     /// The action's payload data.
+    #[serde(deserialize_with = "deserialize_data")]
     pub data: Vec<u8>,
 }
 
 impl Action {
-    /// Creates an action by specifying contract account, action name, authorization and data.
+    /// Creates an action by specifying contract account, action name,
+    /// authorization and data.
     pub fn new<T>(account: Name, name: Name, authorization: PermissionLevel, data: T) -> Self
     where
         T: Packer,
@@ -107,7 +135,8 @@ impl Default for Action {
     }
 }
 
-/// Implements the Packer trait for Action to enable serialization and deserialization.
+/// Implements the Packer trait for Action to enable serialization and
+/// deserialization.
 impl Packer for Action {
     /// Returns the packed size of the Action structure.
     fn size(&self) -> usize {
@@ -142,6 +171,15 @@ impl Packer for Action {
         dec.unpack(&mut self.data);
         dec.get_pos()
     }
+}
+
+fn deserialize_data<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let data: Value = Deserialize::deserialize(deserializer)?;
+    let serialized_str = serde_json::to_string(&data).map_err(serde::de::Error::custom)?;
+    Ok(serialized_str.into_bytes())
 }
 
 #[derive(Default, Serialize, Deserialize)]

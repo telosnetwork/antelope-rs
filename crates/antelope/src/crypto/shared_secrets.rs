@@ -1,5 +1,7 @@
-use crate::chain::key_type::KeyType;
-use crate::crypto::curves::{create_k1_field_bytes, create_r1_field_bytes};
+use crate::{
+    chain::key_type::KeyType,
+    crypto::curves::{create_k1_field_bytes, create_r1_field_bytes},
+};
 
 pub fn shared_secret(
     my_secret: &[u8],

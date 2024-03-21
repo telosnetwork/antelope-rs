@@ -1,17 +1,21 @@
-use crate::base58;
-use crate::base58::encode_ripemd160_check;
-use crate::chain::key_type::KeyType;
-use crate::chain::key_type::KeyTypeTrait;
-use crate::chain::public_key::PublicKey;
-use crate::chain::{Encoder, Packer};
-use crate::crypto::recover::recover_message;
-use crate::crypto::verify::verify_message;
-use crate::util::slice_copy;
+use std::fmt::{Display, Formatter};
+
 use ecdsa::RecoveryId;
 use k256::Secp256k1;
 use p256::NistP256;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter};
+
+use crate::{
+    base58,
+    base58::encode_ripemd160_check,
+    chain::{
+        key_type::{KeyType, KeyTypeTrait},
+        public_key::PublicKey,
+        Encoder, Packer,
+    },
+    crypto::{recover::recover_message, verify::verify_message},
+    util::slice_copy,
+};
 
 #[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Signature {
@@ -67,8 +71,8 @@ impl Signature {
         let parts: Vec<&str> = s.split('_').collect();
         let key_type = KeyType::from_string(parts[1]).unwrap();
         let size: Option<usize> = Some(65);
-        // TODO: add back this logic when other key types are supported and have a different length
-        // match key_type {
+        // TODO: add back this logic when other key types are supported and have a
+        // different length match key_type {
         //     KeyType::K1 | KeyType::R1 => {
         //         size = Some(65);
         //     }

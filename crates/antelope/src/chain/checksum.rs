@@ -1,12 +1,18 @@
-use crate::chain::{Encoder, Packer};
-use crate::util::{bytes_to_hex, hex_to_bytes, slice_copy};
-use ripemd::{Digest as Ripemd160Digest, Ripemd160};
-use serde::{Deserialize, Serialize};
-use serde_big_array::BigArray;
-use sha2::{Sha256, Sha512};
+use std::fmt;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
+use ripemd::{Digest as Ripemd160Digest, Ripemd160};
+use serde::de::Visitor;
+use serde::{de, Deserialize, Deserializer, Serialize};
+use serde_big_array::BigArray;
+use sha2::{Sha256, Sha512};
+
+use crate::{
+    chain::{Encoder, Packer},
+    util::{bytes_to_hex, hex_to_bytes, slice_copy},
+};
+
+#[derive(Clone, Copy, Eq, PartialEq, Default, Serialize, Deserialize, Debug)]
 pub struct Checksum160 {
     pub data: [u8; 20],
 }
@@ -64,9 +70,44 @@ impl Packer for Checksum160 {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Copy, Eq, PartialEq, Default, Debug, Serialize, Deserialize)]
 pub struct Checksum256 {
     pub data: [u8; 32],
+}
+
+pub(crate) fn deserialize_checksum256<'de, D>(deserializer: D) -> Result<Checksum256, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct Checksum256Visitor;
+
+    impl<'de> Visitor<'de> for Checksum256Visitor {
+        type Value = Checksum256;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a hex string of length 64 (for 32 bytes)")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            if value.len() != 64 {
+                return Err(E::custom("hex string must be exactly 64 characters long"));
+            }
+
+            let mut data = [0u8; 32];
+            for i in 0..32 {
+                let byte_slice = &value[i * 2..i * 2 + 2];
+                data[i] = u8::from_str_radix(byte_slice, 16).map_err(E::custom)?;
+            }
+
+            // Adjust this to properly construct a Checksum256 instance
+            Checksum256::from_bytes(&data).map_err(E::custom)
+        }
+    }
+
+    deserializer.deserialize_str(Checksum256Visitor)
 }
 
 impl Checksum256 {

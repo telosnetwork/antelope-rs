@@ -1,8 +1,10 @@
-use crate::chain::key_type::KeyType;
-use crate::chain::signature::Signature;
-use crate::crypto::curves::{create_k1_field_bytes, create_r1_field_bytes};
 use ecdsa::signature::Verifier;
 use k256::elliptic_curve::sec1::ToEncodedPoint;
+
+use crate::{
+    chain::{key_type::KeyType, signature::Signature},
+    crypto::curves::{create_k1_field_bytes, create_r1_field_bytes},
+};
 
 pub fn verify_message(signature: &Signature, message_bytes: &Vec<u8>, pub_key: &Vec<u8>) -> bool {
     // TODO: This more generic

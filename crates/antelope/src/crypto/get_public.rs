@@ -1,8 +1,11 @@
-use crate::chain::key_type::KeyType;
-use crate::crypto::curves::{create_k1_field_bytes, create_r1_field_bytes};
 use ecdsa::elliptic_curve::sec1::ToEncodedPoint;
 use k256;
 use p256;
+
+use crate::{
+    chain::key_type::KeyType,
+    crypto::curves::{create_k1_field_bytes, create_r1_field_bytes},
+};
 
 pub fn get_public(priv_key: Vec<u8>, curve_type: KeyType) -> Result<Vec<u8>, String> {
     // TODO: maybe these can use generic types to deduplicate code?

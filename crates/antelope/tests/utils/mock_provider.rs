@@ -1,17 +1,26 @@
-use antelope::api::client::{HTTPMethod, Provider};
-use antelope::api::v1::structs::GetInfoResponse;
-use antelope::chain::action::{Action, PermissionLevel};
-use antelope::chain::asset::Asset;
-use antelope::chain::checksum::Checksum160;
-use antelope::chain::name::Name;
-use antelope::chain::private_key::PrivateKey;
-use antelope::chain::transaction::{SignedTransaction, Transaction};
-use antelope::chain::{Decoder, Encoder, Packer};
-use antelope::name;
+use std::{
+    fmt::{Debug, Formatter},
+    fs,
+    path::PathBuf,
+};
+
+use antelope::{
+    api::{
+        client::{HTTPMethod, Provider},
+        v1::structs::GetInfoResponse,
+    },
+    chain::{
+        action::{Action, PermissionLevel},
+        asset::Asset,
+        checksum::Checksum160,
+        name::Name,
+        private_key::PrivateKey,
+        transaction::{SignedTransaction, Transaction},
+        Decoder, Encoder, Packer,
+    },
+    name,
+};
 use antelope_client_macros::StructPacker;
-use std::fmt::{Debug, Formatter};
-use std::fs;
-use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct MockProvider {}
@@ -42,6 +51,7 @@ impl Debug for MockProvider {
     }
 }
 
+#[async_trait::async_trait]
 impl Provider for MockProvider {
     async fn post(&self, path: String, body: Option<String>) -> Result<String, String> {
         self.call(HTTPMethod::POST, path, body)

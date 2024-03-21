@@ -1,10 +1,10 @@
 use core::mem::size_of;
 
-use crate::chain::varint::VarUint32;
-use crate::util::slice_copy;
+use crate::{chain::varint::VarUint32, util::slice_copy};
 
 ///
-/// The `Packer` trait provides methods for packing and unpacking values to and from byte arrays.
+/// The `Packer` trait provides methods for packing and unpacking values to and
+/// from byte arrays.
 ///
 /// # Examples
 ///
@@ -48,7 +48,8 @@ pub trait Packer {
     fn unpack(&mut self, data: &[u8]) -> usize;
 }
 
-/// The `Encoder` struct provides methods for packing values that implement the `Packer` trait.
+/// The `Encoder` struct provides methods for packing values that implement the
+/// `Packer` trait.
 ///
 /// # Examples
 ///
@@ -183,7 +184,6 @@ impl<'a> Decoder<'a> {
 }
 
 /// A trait for packing and unpacking values
-///
 macro_rules! impl_packed {
     ( $ty:ident ) => {
         impl Packer for $ty {
