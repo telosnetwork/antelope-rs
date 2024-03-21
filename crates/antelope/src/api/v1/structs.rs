@@ -216,12 +216,23 @@ pub struct SendTransactionResponseExceptionStack {
 pub struct SendTransactionResponseError {
     pub code: u32,
     pub name: String,
-    pub message: String,
-    pub stack: Vec<SendTransactionResponseExceptionStack>,
+    pub what: String,
+    pub stack: Option<Vec<SendTransactionResponseExceptionStack>>,
+    pub details: Vec<SendTransactionResponseErrorDetails>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SendTransactionResponseErrorDetails {
+    pub message: String,
+    pub file: String,
+    pub line_number: u32,
+    pub method: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorResponse {
+    pub code: u16,
+    pub message: String,
     pub error: SendTransactionResponseError,
 }
 

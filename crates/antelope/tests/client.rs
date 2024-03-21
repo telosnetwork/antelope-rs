@@ -1,5 +1,5 @@
 use antelope::api::default_provider::DefaultProvider;
-use antelope::api::v1::structs::{TESTAccountObject, TESTGetInfoResponse};
+use antelope::api::v1::structs::{ErrorResponse, TESTAccountObject, TESTGetInfoResponse};
 use antelope::{
     api::{
         client::APIClient,
@@ -37,6 +37,92 @@ async fn chain_get_info() {
         .bytes
     );
     assert_eq!(info.last_irreversible_block_num, 315556072);
+}
+
+#[test]
+fn test_error_response_parsing() {
+    let error_json = r#"{
+            "code": 500,
+            "message": "Internal Service Error",
+            "error": {
+                "code": 3050003,
+                "name": "eosio_assert_message_exception",
+                "what": "eosio_assert_message assertion failure",
+                "details": [
+                    {
+                        "message": "assertion failure with message: unable to find key",
+                        "file": "cf_system.cpp",
+                        "line_number": 14,
+                        "method": "eosio_assert"
+                    },
+                    {
+                        "message": "pending console output: ",
+                        "file": "apply_context.cpp",
+                        "line_number": 124,
+                        "method": "exec_one"
+                    }
+                ]
+            }
+        }"#;
+
+    let parsed_error: Result<ErrorResponse, _> = serde_json::from_str(&error_json);
+    let error_response = parsed_error.expect("Failed to parse JSON");
+
+    assert_eq!(
+        error_response.error.code, 3050003,
+        "Error code did not match"
+    );
+    assert_eq!(
+        error_response.error.name, "eosio_assert_message_exception",
+        "Error name did not match"
+    );
+    assert_eq!(
+        error_response.error.what, "eosio_assert_message assertion failure",
+        "Error what did not match"
+    );
+
+    assert_eq!(
+        error_response.error.details.len(),
+        2,
+        "Expected 2 details, found {}",
+        error_response.error.details.len()
+    );
+
+    let detail1 = &error_response.error.details[0];
+    assert_eq!(
+        detail1.message, "assertion failure with message: unable to find key",
+        "First detail message did not match"
+    );
+    assert_eq!(
+        detail1.file, "cf_system.cpp",
+        "First detail file did not match"
+    );
+    assert_eq!(
+        detail1.line_number, 14,
+        "First detail line number did not match"
+    );
+    assert_eq!(
+        detail1.method, "eosio_assert",
+        "First detail method did not match"
+    );
+
+    let detail2 = &error_response.error.details[1];
+    assert_eq!(
+        detail2.message, "pending console output: ",
+        "Second detail message did not match"
+    );
+    assert_eq!(
+        detail2.file, "apply_context.cpp",
+        "Second detail file did not match"
+    );
+    assert_eq!(
+        detail2.line_number, 124,
+        "Second detail line number did not match"
+    );
+    assert_eq!(
+        detail2.method, "exec_one",
+        "Second detail method did not match"
+    );
 }
 
 #[tokio::test]
@@ -89,6 +175,7 @@ async fn chain_send_transaction() {
         "Failed transaction result should be err"
     );
     let failure_response = failed_result.err().unwrap();
+    println!("{:?}", failure_response);
     match failure_response {
         ClientError::SERVER(err) => {
             assert_eq!(err.error.code, 3050003);

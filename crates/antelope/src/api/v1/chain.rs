@@ -2,6 +2,7 @@ use std::fmt::Debug;
 
 use serde_json::{self, Value};
 
+use crate::api::v1::structs::{EncodingError, ServerError};
 use crate::{
     api::{
         client::Provider,
@@ -76,24 +77,28 @@ impl<T: Provider> ChainAPI<T> {
             .provider
             .post(String::from("/v1/chain/send_transaction"), Some(trx_json))
             .await
-            .map_err(|_| ClientError::NETWORK("Failed to send transaction".into()))?; // Assuming network error handling
+            .map_err(|_| ClientError::NETWORK("Failed to send transaction".into()))?;
 
+        // Try to deserialize the successful response
         match serde_json::from_str::<SendTransactionResponse>(&result) {
             Ok(response) => Ok(response),
-            Err(_) => match serde_json::from_str::<ErrorResponse>(&result) {
-                Ok(error_response) => {
-                    Err(ClientError::server(SendTransactionResponseError {
-                        code: error_response.error.code,
-                        name: error_response.error.name,
-                        message: error_response.error.message,
-                        stack: vec![], // Could be IgnoredAny?
-                    }))
+            Err(_) => {
+                // Attempt to parse the error response
+                match serde_json::from_str::<ErrorResponse>(&result) {
+                    Ok(error_response) => {
+                        // Create a ClientError::SERVER error with the nested error from the response
+                        Err(ClientError::SERVER(ServerError {
+                            error: error_response.error,
+                        }))
+                    }
+                    Err(e) => {
+                        // If parsing the error response also fails, consider it an encoding error
+                        Err(ClientError::ENCODING(EncodingError {
+                            message: format!("Failed to parse response: {}", e),
+                        }))
+                    }
                 }
-                Err(e) => Err(ClientError::encoding(format!(
-                    "Failed to parse response: {}",
-                    e
-                ))),
-            },
+            }
         }
     }
 
