@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Eq, PartialEq, StructPacker, Serialize, Deserialize, Debug)]
+#[derive(Clone, Default, Eq, PartialEq, StructPacker, Serialize, Deserialize, Debug)]
 pub struct BlockId {
     pub bytes: Vec<u8>,
 }

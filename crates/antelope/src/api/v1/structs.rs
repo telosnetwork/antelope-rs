@@ -5,6 +5,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
 use std::fmt;
 
+use crate::chain::abi::ABI;
+use crate::chain::public_key::PublicKey;
+use crate::chain::signature::Signature;
 use crate::chain::{
     action::{Action, PermissionLevel},
     asset::{deserialize_asset, Asset},
@@ -95,36 +98,6 @@ impl EncodingError {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetInfoResponse {
-    pub server_version: String,
-    #[serde(deserialize_with = "deserialize_checksum256")]
-    pub chain_id: Checksum256,
-    pub head_block_num: u32,
-    pub last_irreversible_block_num: u32,
-    #[serde(deserialize_with = "deserialize_block_id")]
-    pub last_irreversible_block_id: BlockId,
-    #[serde(deserialize_with = "deserialize_block_id")]
-    pub head_block_id: BlockId,
-    #[serde(deserialize_with = "deserialize_timepoint")]
-    pub head_block_time: TimePoint,
-    #[serde(deserialize_with = "deserialize_name")]
-    pub head_block_producer: Name,
-    pub virtual_block_cpu_limit: u64,
-    pub virtual_block_net_limit: u64,
-    pub block_cpu_limit: u64,
-    pub block_net_limit: u64,
-    pub server_version_string: Option<String>,
-    pub fork_db_head_block_num: Option<u32>,
-    #[serde(deserialize_with = "deserialize_optional_block_id")]
-    pub fork_db_head_block_id: Option<BlockId>,
-    pub server_full_version_string: String,
-    pub total_cpu_weight: String,
-    pub total_net_weight: String,
-    pub earliest_available_block_num: u32,
-    pub last_irreversible_block_time: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TESTGetInfoResponse {
     pub server_version: String,
     #[serde(deserialize_with = "deserialize_checksum256")]
     pub chain_id: Checksum256,
@@ -594,6 +567,124 @@ pub struct AccountVoterInfo {
     reserved2: u32,
     reserved3: String,
 }
+
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ABIResponse {
+    pub account_name: String,
+    pub abi: ABI,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct GetBlockResponse {
+    pub time_point: TimePoint,
+    pub producer: Name,
+    pub confirmed: u16,
+    pub pevious: BlockId,
+    pub transaction_mroot: Checksum256,
+    pub action_mroot: Checksum256,
+    pub schedule_version: u32,
+    pub new_producers: Option<NewProducers>,
+    pub header_extensions: Option<HeaderExtension>,
+    // pub new_protocol_features: any,
+    pub producer_signature: Signature,
+    pub transactions: Vec<GetBlockResponseTransactionReceipt>,
+    pub block_extensions: Option<Vec<BlockExtension>>,
+    pub id: BlockId,
+    pub block_num: u32,
+    pub ref_block_prefix: u32,
+}
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct NewProducers {
+    pub version: u32,
+    pub producers: Vec<NewProducersEntry>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct NewProducersEntry {
+    pub producer_name: Name,
+    pub block_signing_key: PublicKey,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct HeaderExtension {
+    pub r#type: u16,
+    pub data: Vec<u8>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct GetBlockResponseTransactionReceipt {
+    pub trx: TrxVariant, //TODO: Implement TxVarient
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct TrxVariant {
+    pub id: Checksum256,
+    pub extra: HashMap<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct BlockExtension {
+    pub r#type: u16,
+    pub data: Vec<u8>,
+}
+
+// impl TrxVariant {
+//     pub fn from(data: serde_json::Value) -> Result<Self, Box<dyn std::error::Error>> {
+//         let id;
+//         let extra: HashMap<String, serde_json::Value>;
+//
+//         match data {
+//             Value::String(s) => {
+//                 id = Checksum256::from(&s)?;
+//                 extra = HashMap::new();
+//             },
+//             Value::Object(obj) => {
+//                 let id_str = obj.get("id")
+//                     .ok_or("id field missing")?
+//                     .as_str()
+//                     .ok_or("id field is not a string")?;
+//                 id = Checksum256::from(id_str)?;
+//                 extra = obj;
+//             },
+//             _ => return Err("Unsupported data type".into()),
+//         }
+//
+//         Ok(TrxVariant { id, extra })
+//     }
+//
+//     pub fn transaction(&self) -> Option<Transaction> {
+//         self.extra.get("packed_trx").and_then(|packed_trx| {
+//             match self.extra.get("compression").and_then(|c| c.as_str()) {
+//                 Some("zlib") => {
+//                     // Decompress using zlib and decode
+//                     let inflated = decompress_zlib(&packed_trx);
+//                     Some(packer::pack(&inflated, Transaction))
+//                 },
+//                 Some("none") => {
+//                     // Directly decode
+//                     Some(packer::pack(packed_trx, Transaction))
+//                 },
+//                 _ => None,
+//             }
+//         })
+//     }
+//
+//     pub fn signatures(&self) -> Option<Vec<Signature>> {
+//         self.extra.get("signatures").and_then(|sigs| {
+//             sigs.as_array().map(|arr| {
+//                 arr.iter().filter_map(|sig| Signature::from(sig)).collect()
+//             })
+//         })
+//     }
+//
+//     pub fn equals(&self, other: &TrxVariant) -> bool {
+//         self.id == other.id
+//     }
+//
+//     pub fn to_json(&self) -> Value {
+//         json!(self.id)
+//     }
+// }
 
 fn deserialize_f64_from_string<'de, D>(deserializer: D) -> Result<f64, D::Error>
 where

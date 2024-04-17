@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use serde_json::{self, Value};
 
-use crate::api::v1::structs::{EncodingError, ServerError};
+use crate::api::v1::structs::{ABIResponse, EncodingError, GetBlockResponse, ServerError};
 use crate::{
     api::{
         client::Provider,
@@ -37,7 +37,7 @@ impl<T: Provider> ChainAPI<T> {
     pub async fn get_account(
         &self,
         account_name: String,
-    ) -> Result<AccountObject, ClientError<()>> {
+    ) -> Result<AccountObject, ClientError<ErrorResponse>> {
         let payload = serde_json::json!({ "account_name": account_name });
 
         let result = self
@@ -49,9 +49,94 @@ impl<T: Provider> ChainAPI<T> {
             .await;
 
         match result {
-            Ok(response) => serde_json::from_str::<AccountObject>(&response)
-                .map_err(|_| ClientError::encoding("Failed to parse JSON".into())),
-            Err(_) => Err(ClientError::encoding("Request failed".into())),
+            Ok(response) => {
+                match serde_json::from_str::<AccountObject>(&response) {
+                    Ok(account_object) => Ok(account_object),
+                    Err(_) => {
+                        // Attempt to parse the error response
+                        match serde_json::from_str::<ErrorResponse>(&response) {
+                            Ok(error_response) => Err(ClientError::SERVER(ServerError {
+                                error: error_response,
+                            })),
+                            Err(_) => Err(ClientError::ENCODING(EncodingError {
+                                message: "Failed to parse JSON".into(),
+                            })),
+                        }
+                    }
+                }
+            }
+            Err(msg) => Err(ClientError::NETWORK(msg)),
+        }
+    }
+
+    pub async fn get_abi(
+        &self,
+        account_name: String,
+    ) -> Result<ABIResponse, ClientError<ErrorResponse>> {
+        let payload = serde_json::json!({
+            "account_name": account_name,
+        });
+
+        let result = self
+            .provider
+            .post(String::from("/v1/chain/get_abi"), Some(payload.to_string()))
+            .await;
+
+        match result {
+            Ok(response) => {
+                match serde_json::from_str::<ABIResponse>(&response) {
+                    Ok(abi_response) => Ok(abi_response),
+                    Err(_) => {
+                        // Attempt to parse the error response
+                        match serde_json::from_str::<ErrorResponse>(&response) {
+                            Ok(error_response) => Err(ClientError::SERVER(ServerError {
+                                error: error_response,
+                            })),
+                            Err(_) => Err(ClientError::ENCODING(EncodingError {
+                                message: "Failed to parse JSON".into(),
+                            })),
+                        }
+                    }
+                }
+            }
+            Err(msg) => Err(ClientError::NETWORK(msg)),
+        }
+    }
+
+    pub async fn get_block(
+        &self,
+        block_num_or_id: String,
+    ) -> Result<GetBlockResponse, ClientError<ErrorResponse>> {
+        let payload = serde_json::json!({
+            "block_num_or_id": block_num_or_id,
+        });
+
+        let result = self
+            .provider
+            .post(
+                String::from("/v1/chain/get_block"),
+                Some(payload.to_string()),
+            )
+            .await;
+
+        match result {
+            Ok(response) => {
+                match serde_json::from_str::<GetBlockResponse>(&response) {
+                    Ok(block_response) => Ok(block_response),
+                    Err(_) => {
+                        // Attempt to parse the error response
+                        match serde_json::from_str::<ErrorResponse>(&response) {
+                            Ok(error_response) => Err(ClientError::SERVER(ServerError {
+                                error: error_response,
+                            })),
+                            Err(_) => Err(ClientError::ENCODING(EncodingError {
+                                message: "Failed to parse JSON".into(),
+                            })),
+                        }
+                    }
+                }
+            }
+            Err(msg) => Err(ClientError::NETWORK(msg)),
         }
     }
 

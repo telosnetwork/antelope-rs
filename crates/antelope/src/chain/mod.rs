@@ -1,5 +1,6 @@
 pub use crate::serializer::{Decoder, Encoder, Packer};
 
+pub mod abi;
 pub mod action;
 pub mod asset;
 pub mod authority;

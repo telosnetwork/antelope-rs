@@ -17,7 +17,7 @@ use crate::{
     util::slice_copy,
 };
 
-#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Signature {
     pub key_type: KeyType,
     value: Vec<u8>,
