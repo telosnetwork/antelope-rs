@@ -12,6 +12,8 @@ use antelope::{
     util::{bytes_to_hex, hex_to_bytes},
 };
 use antelope_client_macros::StructPacker;
+use antelope::chain::authority::{Authority, KeyWeight, WaitWeight};
+use antelope::chain::public_key::PublicKey;
 
 #[test]
 fn asset() {
@@ -781,22 +783,30 @@ fn transaction_signing_data_and_digest() {
         assert.instanceOf(decoded.data.to, Name)
         assert.instanceOf(decoded.data.quantity, Asset)
     })
+    */
 
-    test('authority', function () {
-        const auth = Authority.from({
+    #[test]
+    fn authority() {
+        let data = "15000000020002caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc140001039e338bb411813f6b10a9d5dac9cf1afeedc698ff5726f81b521f6c328459b936020000010a0000000100";
+        let auth = Authority {
             threshold: 21,
-            keys: [
-                {
-                    key: 'EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin',
+            keys: vec![
+                KeyWeight {
+                    key: PublicKey::new_from_str("EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin").unwrap(),
                     weight: 20,
                 },
-                {
-                    key: 'PUB_R1_82ua5qburg82c9eWY1qZVNUAAD6VPHsTMoPMGDrk7s4BQgxEoc',
+                KeyWeight {
+                    key: PublicKey::new_from_str("PUB_R1_82ua5qburg82c9eWY1qZVNUAAD6VPHsTMoPMGDrk7s4BQgxEoc").unwrap(),
                     weight: 2,
                 },
             ],
-            waits: [{wait_sec: 10, weight: 1}],
-        })
+            waits: vec![WaitWeight {wait_sec: 10, weight: 1}],
+            accounts: vec![]
+        };
+        
+        let auth_packed = bytes_to_hex(&Encoder::pack(&auth));
+        assert_eq!(auth_packed, data);
+        /*
         assert.ok(auth.hasPermission('EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin'))
         assert.ok(
             auth.hasPermission('PUB_R1_82ua5qburg82c9eWY1qZVNUAAD6VPHsTMoPMGDrk7s4BQgxEoc', true)
@@ -806,7 +816,9 @@ fn transaction_signing_data_and_digest() {
         assert.ok(
             !auth.hasPermission('PUB_K1_6E45rq9ZhnvnWNTNEEexpM8V8rqCjggUWHXJBurkVQSnEyCHQ9', true)
         )
-    })
+        */
+    }
+/*
 
     test('packed transaction', function () {
         // uncompressed packed transaction

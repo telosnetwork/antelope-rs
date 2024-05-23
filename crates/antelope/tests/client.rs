@@ -176,7 +176,7 @@ pub async fn chain_get_abi() {
 
     // Perform various assertions to verify the correctness of the ABI parsing
     assert_eq!(abi_object.abi.version, "eosio::abi/1.2");
-    assert!(abi_object.abi.types.is_some() && abi_object.abi.types.unwrap().is_empty());
+    assert!(abi_object.abi.types.is_empty());
 
     // Check structs parsing
     assert_eq!(abi_object.abi.structs.len(), 8);

@@ -1,10 +1,8 @@
-use antelope::{
-    chain::{name::Name, signature::Signature, Decoder, Encoder},
-    serializer::Packer,
-    util,
-    util::{bytes_to_hex, hex_to_bytes},
-};
+use antelope::{chain::{name::Name, signature::Signature, Decoder, Encoder}, name, serializer::Packer, util, util::{bytes_to_hex, hex_to_bytes}};
 use antelope_client_macros::StructPacker;
+use digest::Digest;
+use sha2::Sha256;
+use antelope::chain::abi::ABI;
 
 #[test]
 fn array() {
@@ -1065,31 +1063,97 @@ fn signature() {
            Test.from({b: 'foo'})
        }, /encountered undefined for non-optional/)
    })
+   */
 
-   test('abi def', function () {
-       const abi = ABI.from({
-           types: [{new_type_name: 'b', type: 'a'}],
-           structs: [{base: '', name: 'a', fields: [{name: 'f', type: 'a'}]}],
-           tables: [
-               {name: 't', type: 'a', index_type: 'i64', key_names: ['k'], key_types: ['i64']},
-           ],
-           ricardian_clauses: [{id: 'foo', body: 'bar'}],
-           variants: [{name: 'v', types: ['a', 'b']}],
-       })
-       const data = Serializer.encode({object: abi})
-       assert.equal(
-           data.hexString,
-           '0e656f73696f3a3a6162692f312e310101620161010161000101660161000100000000000000c80369363401016b010369363401610103666f6f036261720000010176020161016200'
-       )
-       const decoded = Serializer.objectify(Serializer.decode({data, type: ABI}))
-       assert.deepEqual(abi.types, decoded.types)
-       assert.deepEqual(abi.structs, decoded.structs)
-       assert.deepEqual(abi.tables, decoded.tables)
-       assert.deepEqual(abi.ricardian_clauses, decoded.ricardian_clauses)
-       assert.deepEqual(abi.variants, decoded.variants)
-       assert.ok(abi.equals(decoded))
-   })
+    #[test]
+    fn setcode()  {
+        let account = name!("contract");
+        let wasm = std::fs::read("tests/contract.wasm").unwrap();
+        let mut hasher = Sha256::new();
+        hasher.update(&wasm);
+        let wasm_hash = hasher.finalize();
+        let wasm_hash_hex = bytes_to_hex(&wasm_hash.to_vec());
+        println!("Setting contract for account: {:?}, with hash: {:?}", account.as_string(), wasm_hash_hex);
+        assert_eq!(wasm_hash_hex, "295586a9f3b2de36d637dbde251106cee7b23d3fd1e4d0162df43c3bbaa6e800");
+    }
 
+    #[test]
+    fn abi_def() {
+        let abi = ABI::from_string(
+            r#"
+            {
+                "version": "eosio::abi/1.1",
+                "types": [
+                    {
+                        "new_type_name": "b",
+                        "type": "a"
+                    }
+                ],
+                "structs": [
+                    {
+                        "base": "",
+                        "name": "a",
+                        "fields": [
+                            {
+                                "name": "f",
+                                "type": "a"
+                            }
+                        ]
+                    }
+                ],
+                "tables": [
+                    {
+                        "name": "t",
+                        "type": "a",
+                        "index_type": "i64",
+                        "key_names": [
+                            "k"
+                        ],
+                        "key_types": [
+                            "i64"
+                        ]
+                    }
+                ],
+                "ricardian_clauses": [
+                    {
+                        "id": "foo",
+                        "body": "bar"
+                    }
+                ],
+                "variants": [
+                    {
+                        "name": "v",
+                        "types": [
+                            "a",
+                            "b"
+                        ]
+                    }
+                ]
+            }
+            "#,
+        );
+        assert!(abi.is_ok(), "ABI parsing failed");
+        let abi = abi.unwrap();
+        assert_eq!(abi.version, "eosio::abi/1.1");
+
+        let encoded = "0e656f73696f3a3a6162692f312e310101620161010161000101660161000100000000000000c80369363401016b010369363401610103666f6f036261720000010176020161016200";
+        let abi_hex = bytes_to_hex(&Encoder::pack(&abi));
+        assert_eq!(abi_hex, encoded);
+
+        let data_bytes = hex_to_bytes(abi_hex.as_str());
+        let mut decoder = Decoder::new(data_bytes.as_slice());
+        let mut abi_decoded = ABI::default();
+        decoder.unpack(&mut abi_decoded);
+
+        assert_eq!(abi.types, abi_decoded.types);
+        assert_eq!(abi.structs, abi_decoded.structs);
+        assert_eq!(abi.tables, abi_decoded.tables);
+        assert_eq!(abi.ricardian_clauses, abi_decoded.ricardian_clauses);
+        assert_eq!(abi.variants, abi_decoded.variants);
+        assert_eq!(abi, abi_decoded);
+    }
+
+   /*
    test('binary extensions', function () {
        @Struct.type('info_pair')
        class InfoPair extends Struct {

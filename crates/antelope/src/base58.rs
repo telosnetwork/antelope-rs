@@ -92,7 +92,7 @@ pub fn decode_public_key(value: &str) -> Result<(KeyType, Vec<u8>), String> {
         Ok((key_type, data))
     } else if value.len() > 50 {
         let without_prefix = value.chars().skip(value.len() - 50).collect::<String>();
-        let data = base58::decode_ripemd160_check(without_prefix.as_str(), None, None, false);
+        let data = base58::decode_ripemd160_check(without_prefix.as_str(), Some(32), None, false);
         Ok((KeyType::K1, data.unwrap().to_vec()))
     } else {
         Err(String::from("Public key format invalid"))

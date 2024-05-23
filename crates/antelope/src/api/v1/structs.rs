@@ -120,7 +120,9 @@ pub struct GetInfoResponse {
     #[serde(deserialize_with = "deserialize_optional_block_id")]
     pub fork_db_head_block_id: Option<BlockId>,
     pub server_full_version_string: String,
+    #[serde(deserialize_with = "deserialize_number_or_string")]
     pub total_cpu_weight: String,
+    #[serde(deserialize_with = "deserialize_number_or_string")]
     pub total_net_weight: String,
     pub earliest_available_block_num: u32,
     pub last_irreversible_block_time: String,
@@ -192,6 +194,24 @@ pub struct SendTransactionResponseError {
     pub what: String,
     pub stack: Option<Vec<SendTransactionResponseExceptionStack>>,
     pub details: Vec<SendTransactionResponseErrorDetails>,
+}
+
+impl SendTransactionResponseError {
+    pub fn print_error(&self) {
+        self.details.iter().for_each(|d| println!("{:?}", d));
+    }
+    
+    pub fn get_stack(&self) -> String {
+        self.stack
+            .as_ref()
+            .map(|s| {
+                s.iter()
+                    .map(|s| s.format.clone())
+                    .collect::<Vec<String>>()
+                    .join("\n")
+            })
+            .unwrap_or_default()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -322,36 +342,6 @@ pub struct GetTableRowsResponse<T> {
     pub more: bool,
     pub ram_payers: Option<Vec<Name>>,
     pub next_key: Option<TableIndexType>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TESTAccountObject {
-    #[serde(deserialize_with = "deserialize_name")]
-    pub account_name: Name,
-    pub head_block_num: u32,
-    #[serde(deserialize_with = "deserialize_timepoint")]
-    pub head_block_time: TimePoint,
-    pub privileged: bool,
-    #[serde(deserialize_with = "deserialize_timepoint")]
-    pub last_code_update: TimePoint,
-    #[serde(deserialize_with = "deserialize_timepoint")]
-    pub created: TimePoint,
-    #[serde(deserialize_with = "deserialize_asset")]
-    pub core_liquid_balance: Asset,
-    pub ram_quota: i64,
-    pub net_weight: i64,
-    pub cpu_weight: i64,
-    pub net_limit: AccountResourceLimit,
-    pub cpu_limit: AccountResourceLimit,
-    pub ram_usage: u64,
-    pub permissions: Vec<AccountPermission>,
-    pub total_resources: Option<AccountTotalResources>,
-    pub self_delegated_bandwidth: Option<SelfDelegatedBandwidth>,
-    pub refund_request: Option<AccountRefundRequest>,
-    pub voter_info: Option<AccountVoterInfo>,
-    pub rex_info: Option<AccountRexInfo>,
-    pub subjective_cpu_bill_limit: Option<AccountResourceLimit>,
-    pub eosio_any_linked_actions: Option<Vec<AccountLinkedAction>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -685,6 +675,18 @@ pub struct BlockExtension {
 //         json!(self.id)
 //     }
 // }
+
+fn deserialize_number_or_string<'de, D>(deserializer: D) -> Result<String, D::Error>
+    where
+        D: Deserializer<'de>,
+{
+    let value = Value::deserialize(deserializer)?;
+    match value {
+        Value::Number(num) => Ok(num.to_string()),
+        Value::String(s) => Ok(s),
+        _ => Err(serde::de::Error::custom("expected a number or a string")),
+    }
+}
 
 fn deserialize_f64_from_string<'de, D>(deserializer: D) -> Result<f64, D::Error>
 where

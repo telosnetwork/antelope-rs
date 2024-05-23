@@ -1,77 +1,99 @@
+use antelope_client_macros::StructPacker;
 use serde::{Deserialize, Serialize};
+use crate::chain::{Encoder, Decoder, Packer};
 
 use crate::{
     chain::name::{deserialize_name, Name},
     // serializer::{Decoder, Encoder, Packer},
 };
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, StructPacker)]
 pub struct ABI {
     pub version: String,
-    pub types: Option<Vec<AbiTypeDef>>,
+    #[serde(default)]
+    pub types: Vec<AbiTypeDef>,
+    #[serde(default)]
     pub structs: Vec<AbiStruct>,
-    variants: Option<Vec<AbiVarient>>,
+    #[serde(default)]
     pub actions: Vec<AbiAction>,
+    #[serde(default)]
     pub tables: Vec<AbiTable>,
-    ricardian_clauses: Option<Vec<AbiClause>>,
-    action_results: Option<Vec<AbiActionResult>>,
-    // error_messages: [],
-    // abi_extensions: [],
+    #[serde(default)]
+    pub ricardian_clauses: Vec<AbiClause>,
+    #[serde(default)]
+    error_messages: Vec<String>,
+    #[serde(default)]
+    abi_extensions: Vec<String>,
+    #[serde(default)]
+    pub variants: Vec<AbiVariant>,
+    #[serde(default)]
+    pub action_results: Vec<AbiActionResult>,
     // kv_tables: {}
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
-pub struct AbiTypeDef {
-    new_type_name: String,
-    r#type: String,
+impl ABI {
+    pub fn from_string(str: &str) -> Result<Self, String> {
+        let mut abi = serde_json::from_str::<ABI>(str).unwrap();
+        abi.error_messages = vec![];
+        abi.abi_extensions = vec![];
+        Ok(abi)
+    }
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, StructPacker)]
+pub struct AbiTypeDef {
+    pub new_type_name: String,
+    pub r#type: String,
+}
+
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, StructPacker)]
 pub struct AbiField {
     pub name: String,
     pub r#type: String,
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, StructPacker)]
 pub struct AbiStruct {
     pub name: String,
-    base: String,
+    pub base: String,
     pub fields: Vec<AbiField>,
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
-pub struct AbiVarient {
-    name: String,
-    types: Vec<String>,
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, StructPacker)]
+pub struct AbiVariant {
+    pub name: String,
+    pub types: Vec<String>,
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, StructPacker)]
 pub struct AbiAction {
     #[serde(deserialize_with = "deserialize_name")]
     pub name: Name,
     pub r#type: String,
-    ricardian_contract: String,
+    pub ricardian_contract: String,
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, StructPacker)]
 pub struct AbiTable {
     #[serde(deserialize_with = "deserialize_name")]
     pub name: Name,
-    index_type: String,
-    key_names: Option<Vec<String>>,
-    key_types: Option<Vec<String>>,
-    r#type: String,
+    pub index_type: String,
+    #[serde(default)]
+    pub key_names: Vec<String>,
+    #[serde(default)]
+    pub key_types: Vec<String>,
+    pub r#type: String,
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, StructPacker)]
 pub struct AbiClause {
-    id: String,
-    body: String,
+    pub id: String,
+    pub body: String,
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, StructPacker)]
 pub struct AbiActionResult {
     #[serde(deserialize_with = "deserialize_name")]
-    name: Name,
-    result_type: String,
+    pub name: Name,
+    pub result_type: String,
 }

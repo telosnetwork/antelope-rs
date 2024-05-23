@@ -1,7 +1,11 @@
 use std::fmt::{Debug, Display, Formatter};
 
 pub use crate::api::default_provider::DefaultProvider;
+use crate::api::util::transact;
 use crate::api::v1::chain::ChainAPI;
+use crate::api::v1::structs::{ClientError, SendTransactionResponse, SendTransactionResponseError};
+use crate::chain::action::Action;
+use crate::chain::private_key::PrivateKey;
 
 pub enum HTTPMethod {
     GET,
@@ -44,5 +48,9 @@ impl<P: Provider> APIClient<P> {
         Ok(APIClient {
             v1_chain: ChainAPI::new(provider),
         })
+    }
+
+    pub async fn transact(&self, actions: Vec<Action>, private_key: PrivateKey) -> Result<SendTransactionResponse, ClientError<SendTransactionResponseError>> {
+        transact(self, actions, private_key).await
     }
 }

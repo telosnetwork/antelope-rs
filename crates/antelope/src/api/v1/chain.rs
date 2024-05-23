@@ -145,7 +145,10 @@ impl<T: Provider> ChainAPI<T> {
 
         match result {
             Ok(response) => serde_json::from_str::<GetInfoResponse>(&response)
-                .map_err(|_| ClientError::encoding("Failed to parse JSON".into())),
+                .map_err(|e| {
+                    let message = format!("Failed to parse JSON: {}", e);
+                    ClientError::encoding(message)
+                }),
             Err(_) => Err(ClientError::encoding("Request failed".into())),
         }
     }
