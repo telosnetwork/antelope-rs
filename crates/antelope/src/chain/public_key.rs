@@ -1,20 +1,44 @@
-use std::fmt::{Display, Formatter};
-
-use antelope_client_macros::StructPacker;
-use serde::{Deserialize, Deserializer, Serialize};
-
-use std::fmt;
-
 use crate::{
     base58::{decode_public_key, encode_ripemd160_check},
     chain::{key_type::KeyType, Decoder, Encoder, Packer},
     util::bytes_to_hex,
 };
+use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt;
+use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Debug, Eq, PartialEq, Default, StructPacker, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct PublicKey {
     pub key_type: KeyType,
     pub value: Vec<u8>,
+}
+
+impl Packer for PublicKey {
+    fn size(&self) -> usize {
+        34usize
+    }
+
+    fn pack(&self, enc: &mut Encoder) -> usize {
+        let pos = enc.get_size();
+        self.key_type.pack(enc);
+        for v in self.value.iter() {
+            v.pack(enc);
+        }
+        enc.get_size() - pos
+    }
+
+    fn unpack(&mut self, data: &[u8]) -> usize {
+        let mut dec = Decoder::new(data);
+        let mut key_type = KeyType::default();
+        dec.unpack(&mut key_type);
+        self.value.reserve(32usize);
+        for _ in 0..33 {
+            let mut v: u8 = Default::default();
+            dec.unpack(&mut v);
+            self.value.push(v);
+        }
+        dec.get_pos()
+    }
 }
 
 impl PublicKey {
