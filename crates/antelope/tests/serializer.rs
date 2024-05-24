@@ -2,7 +2,12 @@ use antelope::{chain::{name::Name, signature::Signature, Decoder, Encoder}, name
 use antelope_client_macros::StructPacker;
 use digest::Digest;
 use sha2::Sha256;
+use antelope::api::system::structs::SetCodeAction;
 use antelope::chain::abi::ABI;
+use antelope::chain::binary_extension::BinaryExtension;
+use crate::test_bytes::{EXPECTED_SETCODE_BYTES_HEX, EXPECTED_WASM_BYTES_HEX};
+
+mod test_bytes;
 
 #[test]
 fn array() {
@@ -42,6 +47,19 @@ fn array() {
 
     let encoded = "020501680165016c016c016f050177016f0172016c0164";
     assert_eq!(bytes_to_hex(&Encoder::pack(&custom_array)), encoded);
+}
+
+#[test]
+fn bytes() {
+    let data = "0401020304";
+    let bytes = vec![1, 2, 3, 4];
+    assert_eq!(bytes_to_hex(&Encoder::pack(&bytes)), data);
+    let data_bytes = hex_to_bytes(data);
+    let mut decoder = Decoder::new(data_bytes.as_slice());
+    let mut bytes2 = Vec::<u8>::default();
+    decoder.unpack(&mut bytes2);
+    assert_eq!(bytes, bytes2);
+
 }
 
 #[test]
@@ -1075,6 +1093,21 @@ fn signature() {
         let wasm_hash_hex = bytes_to_hex(&wasm_hash.to_vec());
         println!("Setting contract for account: {:?}, with hash: {:?}", account.as_string(), wasm_hash_hex);
         assert_eq!(wasm_hash_hex, "295586a9f3b2de36d637dbde251106cee7b23d3fd1e4d0162df43c3bbaa6e800");
+        let setcode_action = SetCodeAction {
+            account,
+            vmtype: 0,
+            vmversion: 0,
+            code: wasm.clone(),
+            memo: BinaryExtension::new(None),
+        };
+        let encoded_setcode_action = Encoder::pack(&setcode_action);
+        let encoded_setcode_action_hex = bytes_to_hex(&encoded_setcode_action);
+        let encoded_wasm_bytes = Encoder::pack(&wasm);
+        let encoded_wasm_bytes_hex = bytes_to_hex(&encoded_wasm_bytes);
+        let expected_wasmbytes_hex = EXPECTED_WASM_BYTES_HEX;
+        let expected_setcode_bytes_hex = EXPECTED_SETCODE_BYTES_HEX;
+        assert_eq!(encoded_wasm_bytes_hex.as_str(), expected_wasmbytes_hex);
+        assert_eq!(encoded_setcode_action_hex.as_str(), expected_setcode_bytes_hex);
     }
 
     #[test]

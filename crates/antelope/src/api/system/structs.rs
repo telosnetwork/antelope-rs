@@ -1,6 +1,6 @@
 use antelope_client_macros::StructPacker;
 use crate::chain::{Encoder, Decoder, Packer};
-use crate::chain::asset::Asset;
+use crate::chain::asset::{Asset, Symbol};
 use crate::chain::authority::Authority;
 use crate::chain::binary_extension::BinaryExtension;
 use crate::chain::name::Name;
@@ -11,9 +11,9 @@ pub struct CreateAccountParams {
     pub creator: Name,
     pub owner: Authority,
     pub active: Authority,
-    pub ram_bytes: u64,
-    pub stake_net: u64,
-    pub stake_cpu: u64,
+    pub ram_bytes: u32,
+    pub stake_net: Asset,
+    pub stake_cpu: Asset,
     pub transfer: bool,
 }
 
@@ -30,9 +30,9 @@ impl CreateAccountParams {
             creator,
             owner,
             active,
-            ram_bytes: 1_048_576,
-            stake_net: 10_000,
-            stake_cpu: 10_000,
+            ram_bytes: 10_048_576,
+            stake_net: Asset::new(10_000, Symbol::new("TLOS", 4)),
+            stake_cpu: Asset::new(10_000, Symbol::new("TLOS", 4)),
             transfer: true,
         }
     }
@@ -58,15 +58,15 @@ pub struct NewAccountAction {
 pub struct BuyRamBytesAction {
     pub payer: Name,
     pub receiver: Name,
-    pub bytes: u64,
+    pub bytes: u32,
 }
 
 #[derive(Debug, Clone, StructPacker)]
 pub struct DelegateBandwidthAction {
     pub from: Name,
     pub receiver: Name,
-    pub stake_net_quantity: u64,
-    pub stake_cpu_quantity: u64,
+    pub stake_net_quantity: Asset,
+    pub stake_cpu_quantity: Asset,
     pub transfer: bool,
 }
 
