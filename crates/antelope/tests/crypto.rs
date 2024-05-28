@@ -1,4 +1,3 @@
-use antelope::chain::abi::ABI;
 use antelope::chain::{Decoder, Encoder};
 use antelope::util::bytes_to_hex;
 use antelope::{
