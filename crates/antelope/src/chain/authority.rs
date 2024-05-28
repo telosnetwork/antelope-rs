@@ -1,7 +1,7 @@
-use antelope_client_macros::StructPacker;
 use crate::chain::action::PermissionLevel;
 use crate::chain::public_key::{deserialize_public_key, PublicKey};
 use crate::serializer::{Decoder, Encoder, Packer};
+use antelope_client_macros::StructPacker;
 use serde::{Deserialize, Serialize};
 
 // Assuming basic types like PublicKey and PermissionLevel are defined elsewhere

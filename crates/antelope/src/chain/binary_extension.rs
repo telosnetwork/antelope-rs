@@ -1,22 +1,17 @@
+use crate::serializer::{Encoder, Packer};
 use serde::{Deserialize, Serialize};
-use crate::serializer::{
-    Packer,
-    Encoder
-};
 
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct BinaryExtension<T: Packer + Default> {
-    value: Option<T>
+    value: Option<T>,
 }
 
 impl<T> BinaryExtension<T>
-    where
-        T: Packer + Default
+where
+    T: Packer + Default,
 {
     pub fn new(value: Option<T>) -> Self {
-        Self {
-            value,
-        }
+        Self { value }
     }
 
     pub fn value(&self) -> Option<&T> {
@@ -25,8 +20,8 @@ impl<T> BinaryExtension<T>
 }
 
 impl<T> Packer for BinaryExtension<T>
-    where
-        T: Packer + Default
+where
+    T: Packer + Default,
 {
     fn size(&self) -> usize {
         if let Some(x) = &self.value {
@@ -35,7 +30,7 @@ impl<T> Packer for BinaryExtension<T>
             0
         }
     }
-    
+
     fn pack(&self, enc: &mut Encoder) -> usize {
         let pos = enc.get_size();
         if let Some(x) = &self.value {

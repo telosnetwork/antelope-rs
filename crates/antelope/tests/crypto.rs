@@ -1,10 +1,10 @@
+use antelope::chain::abi::ABI;
+use antelope::chain::{Decoder, Encoder};
+use antelope::util::bytes_to_hex;
 use antelope::{
     chain::{key_type::KeyType, private_key::PrivateKey, public_key::PublicKey},
     util::hex_to_bytes,
 };
-use antelope::chain::{Decoder, Encoder};
-use antelope::chain::abi::ABI;
-use antelope::util::bytes_to_hex;
 
 #[test]
 fn private_key_encoding() {
@@ -71,10 +71,14 @@ fn public_key_encoding() {
     );
     let legacy_result = r1_key.to_legacy_string(None);
     assert!(legacy_result.is_err());
-    
-    let public_key = PublicKey::new_from_str("EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin").unwrap();
+
+    let public_key =
+        PublicKey::new_from_str("EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin").unwrap();
     let encoded_key = bytes_to_hex(&Encoder::pack(&public_key));
-    assert_eq!(encoded_key, "0002caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc");
+    assert_eq!(
+        encoded_key,
+        "0002caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc"
+    );
     let data_bytes = hex_to_bytes(encoded_key.as_str());
     let mut decoder = Decoder::new(data_bytes.as_slice());
     let mut decoded_key = PublicKey::default();

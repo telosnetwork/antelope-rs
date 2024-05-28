@@ -1,6 +1,5 @@
 pub mod structs;
 
-use sha2::{Sha256, Digest};
 use crate::api::client::{APIClient, Provider};
 use crate::api::system::structs::{
     CreateAccountParams, DelegateBandwidthAction, NewAccountAction, SetAbiAction, SetCodeAction,
@@ -14,6 +13,7 @@ use crate::chain::name::Name;
 use crate::chain::private_key::PrivateKey;
 use crate::name;
 use crate::serializer::Encoder;
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Default, Clone)]
 pub struct SystemAPI<T: Provider> {
@@ -22,9 +22,7 @@ pub struct SystemAPI<T: Provider> {
 
 impl<T: Provider> SystemAPI<T> {
     pub fn new(api_client: APIClient<T>) -> Self {
-        SystemAPI {
-            api_client,
-        }
+        SystemAPI { api_client }
     }
 
     pub async fn create_account(
@@ -76,9 +74,7 @@ impl<T: Provider> SystemAPI<T> {
             },
         );
         let actions = vec![new_account_action, buy_ram_action, delegate_bw_action];
-        self.api_client
-            .transact(actions, creator_private_key)
-            .await
+        self.api_client.transact(actions, creator_private_key).await
     }
 
     pub async fn transfer(
@@ -127,7 +123,11 @@ impl<T: Provider> SystemAPI<T> {
         let mut hasher = Sha256::new();
         hasher.update(&wasm);
         let wasm_hash = hasher.finalize();
-        println!("Setting contract for account: {:?}, with hash: {:?}", account.as_string(), wasm_hash);
+        println!(
+            "Setting contract for account: {:?}, with hash: {:?}",
+            account.as_string(),
+            wasm_hash
+        );
         self.api_client
             .transact(
                 vec![

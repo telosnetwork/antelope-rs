@@ -1,10 +1,10 @@
-use antelope_client_macros::StructPacker;
-use crate::chain::{Encoder, Decoder, Packer};
 use crate::chain::asset::{Asset, Symbol};
 use crate::chain::authority::Authority;
 use crate::chain::binary_extension::BinaryExtension;
 use crate::chain::name::Name;
 use crate::chain::public_key::PublicKey;
+use crate::chain::{Decoder, Encoder, Packer};
+use antelope_client_macros::StructPacker;
 
 pub struct CreateAccountParams {
     pub name: Name,
@@ -18,11 +18,7 @@ pub struct CreateAccountParams {
 }
 
 impl CreateAccountParams {
-    pub fn testing(
-        name: Name,
-        creator: Name,
-        public_key: PublicKey,
-    ) -> Self {
+    pub fn testing(name: Name, creator: Name, public_key: PublicKey) -> Self {
         let owner = Authority::new_single_key(public_key);
         let active = owner.clone();
         CreateAccountParams {
@@ -76,12 +72,12 @@ pub struct SetCodeAction {
     pub vmtype: u8,
     pub vmversion: u8,
     pub code: Vec<u8>,
-    pub memo: BinaryExtension<String>
+    pub memo: BinaryExtension<String>,
 }
 
 #[derive(Debug, Clone, StructPacker)]
 pub struct SetAbiAction {
     pub account: Name,
     pub abi: Vec<u8>,
-    pub memo: BinaryExtension<String>
+    pub memo: BinaryExtension<String>,
 }

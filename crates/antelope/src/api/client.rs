@@ -50,7 +50,11 @@ impl<P: Provider> APIClient<P> {
         })
     }
 
-    pub async fn transact(&self, actions: Vec<Action>, private_key: PrivateKey) -> Result<SendTransactionResponse, ClientError<SendTransactionResponseError>> {
+    pub async fn transact(
+        &self,
+        actions: Vec<Action>,
+        private_key: PrivateKey,
+    ) -> Result<SendTransactionResponse, ClientError<SendTransactionResponseError>> {
         transact(self, actions, private_key).await
     }
 }

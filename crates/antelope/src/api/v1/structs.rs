@@ -200,7 +200,7 @@ impl SendTransactionResponseError {
     pub fn print_error(&self) {
         self.details.iter().for_each(|d| println!("{:?}", d));
     }
-    
+
     pub fn get_stack(&self) -> String {
         self.stack
             .as_ref()
@@ -677,8 +677,8 @@ pub struct BlockExtension {
 // }
 
 fn deserialize_number_or_string<'de, D>(deserializer: D) -> Result<String, D::Error>
-    where
-        D: Deserializer<'de>,
+where
+    D: Deserializer<'de>,
 {
     let value = Value::deserialize(deserializer)?;
     match value {

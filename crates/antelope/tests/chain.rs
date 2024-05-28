@@ -1,3 +1,5 @@
+use antelope::chain::authority::{Authority, KeyWeight, WaitWeight};
+use antelope::chain::public_key::PublicKey;
 use antelope::{
     chain::{
         action::{Action, PermissionLevel},
@@ -12,8 +14,6 @@ use antelope::{
     util::{bytes_to_hex, hex_to_bytes},
 };
 use antelope_client_macros::StructPacker;
-use antelope::chain::authority::{Authority, KeyWeight, WaitWeight};
-use antelope::chain::public_key::PublicKey;
 
 #[test]
 fn asset() {
@@ -577,247 +577,256 @@ fn transaction_signing_data_and_digest() {
 }
 
 /*
-    test('action with no arguments', function () {
-        const abi = {
-            structs: [{name: 'noop', base: '', fields: []}],
-            actions: [
-                {
-                    name: 'noop',
-                    type: 'noop',
-                    ricardian_contract: '',
-                },
-            ],
-        }
-        const a1 = Action.from(
+test('action with no arguments', function () {
+    const abi = {
+        structs: [{name: 'noop', base: '', fields: []}],
+        actions: [
             {
-                account: 'greymassnoop',
                 name: 'noop',
-                authorization: [{actor: 'greymassfuel', permission: 'cosign'}],
-                data: '',
+                type: 'noop',
+                ricardian_contract: '',
             },
-            abi
-        )
-        const a2 = Action.from(
-            {
-                account: 'greymassnoop',
-                name: 'noop',
-                authorization: [{actor: 'greymassfuel', permission: 'cosign'}],
-                data: {},
-            },
-            abi
-        )
-        const a3 = Action.from(
-            {
-                account: 'greymassnoop',
-                name: 'noop',
-                authorization: [{actor: 'greymassfuel', permission: 'cosign'}],
-                data: [],
-            },
-            abi
-        )
-        assert.equal(a1.equals(a2), true)
-        assert.equal(a1.equals(a3), true)
-    })
-
-    test('action retains abi (abi)', function () {
-        const abi = {
-            structs: [{name: 'noop', base: '', fields: []}],
-            actions: [
-                {
-                    name: 'noop',
-                    type: 'noop',
-                    ricardian_contract: '',
-                },
-            ],
-        }
-        const action = Action.from(
-            {
-                account: 'greymassnoop',
-                name: 'noop',
-                authorization: [{actor: 'greymassfuel', permission: 'cosign'}],
-                data: '',
-            },
-            abi
-        )
-        assert.instanceOf(action.abi, ABI)
-    })
-
-    test('action can deserialize itself from abi', function () {
-        const abi = {
-            structs: [
-                {
-                    name: 'transfer',
-                    base: '',
-                    fields: [
-                        {
-                            name: 'from',
-                            type: 'name',
-                        },
-                        {
-                            name: 'to',
-                            type: 'name',
-                        },
-                        {
-                            name: 'quantity',
-                            type: 'asset',
-                        },
-                        {
-                            name: 'memo',
-                            type: 'string',
-                        },
-                    ],
-                },
-            ],
-            actions: [
-                {
-                    name: 'transfer',
-                    type: 'transfer',
-                    ricardian_contract: '',
-                },
-            ],
-        }
-
-        const action = Action.from(
-            {
-                account: 'eosio.token',
-                name: 'transfer',
-                authorization: [{actor: 'foo', permission: 'bar'}],
-                data: {
-                    from: 'foo',
-                    to: 'bar',
-                    quantity: '1.0000 EOS',
-                    memo: 'hello',
-                },
-            },
-            abi
-        )
-        assert.instanceOf(action.abi, ABI)
-        const decoded = action.decoded
-        assert.instanceOf(decoded.account, Name)
-        assert.instanceOf(decoded.name, Name)
-        assert.instanceOf(decoded.authorization, Array)
-        assert.instanceOf(decoded.authorization[0], PermissionLevel)
-        assert.instanceOf(decoded.data.from, Name)
-        assert.instanceOf(decoded.data.to, Name)
-        assert.instanceOf(decoded.data.quantity, Asset)
-    })
-
-    test('action retains abi (struct)', function () {
-        @Struct.type('transfer')
-        class Transfer extends Struct {
-            @Struct.field('name') from!: Name
-            @Struct.field('name') to!: Name
-            @Struct.field('asset') quantity!: Asset
-            @Struct.field('string') memo!: string
-        }
-
-        const data = Transfer.from({
-            from: 'foo',
-            to: 'bar',
-            quantity: '1.0000 EOS',
-            memo: 'hello',
-        })
-
-        const action = Action.from({
-            authorization: [],
-            account: 'eosio.token',
-            name: 'transfer',
-            data,
-        })
-        assert.instanceOf(action.abi, ABI)
-
-        const transaction = Transaction.from({
-            ref_block_num: 0,
-            ref_block_prefix: 0,
-            expiration: 0,
-            actions: [action],
-        })
-
-        assert.instanceOf(transaction.actions[0].abi, ABI)
-        assert.isTrue(action.equals(transaction.actions[0]))
-        assert.isTrue(transaction.actions[0].equals(action))
-        assert.isTrue(
-            data.equals(
-                Serializer.decode({
-                    data: transaction.actions[0].data,
-                    abi: transaction.actions[0].abi,
-                    type: String(transaction.actions[0].name),
-                })
-            )
-        )
-    })
-
-    test('action can deserialize itself from struct', function () {
-        @Struct.type('transfer')
-        class Transfer extends Struct {
-            @Struct.field('name') from!: Name
-            @Struct.field('name') to!: Name
-            @Struct.field('asset') quantity!: Asset
-            @Struct.field('string') memo!: string
-        }
-        const data = Transfer.from({
-            from: 'foo',
-            to: 'bar',
-            quantity: '1.0000 EOS',
-            memo: 'hello',
-        })
-
-        const action = Action.from({
-            authorization: [
-                {
-                    actor: 'foo',
-                    permission: 'bar',
-                },
-            ],
-            account: 'eosio.token',
-            name: 'transfer',
-            data,
-        })
-        assert.instanceOf(action.abi, ABI)
-        const decoded = action.decoded
-        assert.instanceOf(decoded.account, Name)
-        assert.instanceOf(decoded.name, Name)
-        assert.instanceOf(decoded.authorization, Array)
-        assert.instanceOf(decoded.authorization[0], PermissionLevel)
-        assert.instanceOf(decoded.data.from, Name)
-        assert.instanceOf(decoded.data.to, Name)
-        assert.instanceOf(decoded.data.quantity, Asset)
-    })
-    */
-
-    #[test]
-    fn authority() {
-        let data = "15000000020002caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc140001039e338bb411813f6b10a9d5dac9cf1afeedc698ff5726f81b521f6c328459b936020000010a0000000100";
-        let auth = Authority {
-            threshold: 21,
-            keys: vec![
-                KeyWeight {
-                    key: PublicKey::new_from_str("EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin").unwrap(),
-                    weight: 20,
-                },
-                KeyWeight {
-                    key: PublicKey::new_from_str("PUB_R1_82ua5qburg82c9eWY1qZVNUAAD6VPHsTMoPMGDrk7s4BQgxEoc").unwrap(),
-                    weight: 2,
-                },
-            ],
-            waits: vec![WaitWeight {wait_sec: 10, weight: 1}],
-            accounts: vec![]
-        };
-        
-        let auth_packed = bytes_to_hex(&Encoder::pack(&auth));
-        assert_eq!(auth_packed, data);
-        /*
-        assert.ok(auth.hasPermission('EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin'))
-        assert.ok(
-            auth.hasPermission('PUB_R1_82ua5qburg82c9eWY1qZVNUAAD6VPHsTMoPMGDrk7s4BQgxEoc', true)
-        )
-        assert.ok(!auth.hasPermission('PUB_R1_82ua5qburg82c9eWY1qZVNUAAD6VPHsTMoPMGDrk7s4BQgxEoc'))
-        assert.ok(!auth.hasPermission('PUB_K1_6E45rq9ZhnvnWNTNEEexpM8V8rqCjggUWHXJBurkVQSnEyCHQ9'))
-        assert.ok(
-            !auth.hasPermission('PUB_K1_6E45rq9ZhnvnWNTNEEexpM8V8rqCjggUWHXJBurkVQSnEyCHQ9', true)
-        )
-        */
+        ],
     }
+    const a1 = Action.from(
+        {
+            account: 'greymassnoop',
+            name: 'noop',
+            authorization: [{actor: 'greymassfuel', permission: 'cosign'}],
+            data: '',
+        },
+        abi
+    )
+    const a2 = Action.from(
+        {
+            account: 'greymassnoop',
+            name: 'noop',
+            authorization: [{actor: 'greymassfuel', permission: 'cosign'}],
+            data: {},
+        },
+        abi
+    )
+    const a3 = Action.from(
+        {
+            account: 'greymassnoop',
+            name: 'noop',
+            authorization: [{actor: 'greymassfuel', permission: 'cosign'}],
+            data: [],
+        },
+        abi
+    )
+    assert.equal(a1.equals(a2), true)
+    assert.equal(a1.equals(a3), true)
+})
+
+test('action retains abi (abi)', function () {
+    const abi = {
+        structs: [{name: 'noop', base: '', fields: []}],
+        actions: [
+            {
+                name: 'noop',
+                type: 'noop',
+                ricardian_contract: '',
+            },
+        ],
+    }
+    const action = Action.from(
+        {
+            account: 'greymassnoop',
+            name: 'noop',
+            authorization: [{actor: 'greymassfuel', permission: 'cosign'}],
+            data: '',
+        },
+        abi
+    )
+    assert.instanceOf(action.abi, ABI)
+})
+
+test('action can deserialize itself from abi', function () {
+    const abi = {
+        structs: [
+            {
+                name: 'transfer',
+                base: '',
+                fields: [
+                    {
+                        name: 'from',
+                        type: 'name',
+                    },
+                    {
+                        name: 'to',
+                        type: 'name',
+                    },
+                    {
+                        name: 'quantity',
+                        type: 'asset',
+                    },
+                    {
+                        name: 'memo',
+                        type: 'string',
+                    },
+                ],
+            },
+        ],
+        actions: [
+            {
+                name: 'transfer',
+                type: 'transfer',
+                ricardian_contract: '',
+            },
+        ],
+    }
+
+    const action = Action.from(
+        {
+            account: 'eosio.token',
+            name: 'transfer',
+            authorization: [{actor: 'foo', permission: 'bar'}],
+            data: {
+                from: 'foo',
+                to: 'bar',
+                quantity: '1.0000 EOS',
+                memo: 'hello',
+            },
+        },
+        abi
+    )
+    assert.instanceOf(action.abi, ABI)
+    const decoded = action.decoded
+    assert.instanceOf(decoded.account, Name)
+    assert.instanceOf(decoded.name, Name)
+    assert.instanceOf(decoded.authorization, Array)
+    assert.instanceOf(decoded.authorization[0], PermissionLevel)
+    assert.instanceOf(decoded.data.from, Name)
+    assert.instanceOf(decoded.data.to, Name)
+    assert.instanceOf(decoded.data.quantity, Asset)
+})
+
+test('action retains abi (struct)', function () {
+    @Struct.type('transfer')
+    class Transfer extends Struct {
+        @Struct.field('name') from!: Name
+        @Struct.field('name') to!: Name
+        @Struct.field('asset') quantity!: Asset
+        @Struct.field('string') memo!: string
+    }
+
+    const data = Transfer.from({
+        from: 'foo',
+        to: 'bar',
+        quantity: '1.0000 EOS',
+        memo: 'hello',
+    })
+
+    const action = Action.from({
+        authorization: [],
+        account: 'eosio.token',
+        name: 'transfer',
+        data,
+    })
+    assert.instanceOf(action.abi, ABI)
+
+    const transaction = Transaction.from({
+        ref_block_num: 0,
+        ref_block_prefix: 0,
+        expiration: 0,
+        actions: [action],
+    })
+
+    assert.instanceOf(transaction.actions[0].abi, ABI)
+    assert.isTrue(action.equals(transaction.actions[0]))
+    assert.isTrue(transaction.actions[0].equals(action))
+    assert.isTrue(
+        data.equals(
+            Serializer.decode({
+                data: transaction.actions[0].data,
+                abi: transaction.actions[0].abi,
+                type: String(transaction.actions[0].name),
+            })
+        )
+    )
+})
+
+test('action can deserialize itself from struct', function () {
+    @Struct.type('transfer')
+    class Transfer extends Struct {
+        @Struct.field('name') from!: Name
+        @Struct.field('name') to!: Name
+        @Struct.field('asset') quantity!: Asset
+        @Struct.field('string') memo!: string
+    }
+    const data = Transfer.from({
+        from: 'foo',
+        to: 'bar',
+        quantity: '1.0000 EOS',
+        memo: 'hello',
+    })
+
+    const action = Action.from({
+        authorization: [
+            {
+                actor: 'foo',
+                permission: 'bar',
+            },
+        ],
+        account: 'eosio.token',
+        name: 'transfer',
+        data,
+    })
+    assert.instanceOf(action.abi, ABI)
+    const decoded = action.decoded
+    assert.instanceOf(decoded.account, Name)
+    assert.instanceOf(decoded.name, Name)
+    assert.instanceOf(decoded.authorization, Array)
+    assert.instanceOf(decoded.authorization[0], PermissionLevel)
+    assert.instanceOf(decoded.data.from, Name)
+    assert.instanceOf(decoded.data.to, Name)
+    assert.instanceOf(decoded.data.quantity, Asset)
+})
+*/
+
+#[test]
+fn authority() {
+    let data = "15000000020002caee1a02910b18dfd5d9db0e8a4bc90f8dd34cedbbfb00c6c841a2abb2fa28cc140001039e338bb411813f6b10a9d5dac9cf1afeedc698ff5726f81b521f6c328459b936020000010a0000000100";
+    let auth = Authority {
+        threshold: 21,
+        keys: vec![
+            KeyWeight {
+                key: PublicKey::new_from_str(
+                    "EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin",
+                )
+                .unwrap(),
+                weight: 20,
+            },
+            KeyWeight {
+                key: PublicKey::new_from_str(
+                    "PUB_R1_82ua5qburg82c9eWY1qZVNUAAD6VPHsTMoPMGDrk7s4BQgxEoc",
+                )
+                .unwrap(),
+                weight: 2,
+            },
+        ],
+        waits: vec![WaitWeight {
+            wait_sec: 10,
+            weight: 1,
+        }],
+        accounts: vec![],
+    };
+
+    let auth_packed = bytes_to_hex(&Encoder::pack(&auth));
+    assert_eq!(auth_packed, data);
+    /*
+    assert.ok(auth.hasPermission('EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin'))
+    assert.ok(
+        auth.hasPermission('PUB_R1_82ua5qburg82c9eWY1qZVNUAAD6VPHsTMoPMGDrk7s4BQgxEoc', true)
+    )
+    assert.ok(!auth.hasPermission('PUB_R1_82ua5qburg82c9eWY1qZVNUAAD6VPHsTMoPMGDrk7s4BQgxEoc'))
+    assert.ok(!auth.hasPermission('PUB_K1_6E45rq9ZhnvnWNTNEEexpM8V8rqCjggUWHXJBurkVQSnEyCHQ9'))
+    assert.ok(
+        !auth.hasPermission('PUB_K1_6E45rq9ZhnvnWNTNEEexpM8V8rqCjggUWHXJBurkVQSnEyCHQ9', true)
+    )
+    */
+}
 /*
 
     test('packed transaction', function () {

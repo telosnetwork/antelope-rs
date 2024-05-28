@@ -144,11 +144,10 @@ impl<T: Provider> ChainAPI<T> {
         let result = self.provider.get(String::from("/v1/chain/get_info")).await;
 
         match result {
-            Ok(response) => serde_json::from_str::<GetInfoResponse>(&response)
-                .map_err(|e| {
-                    let message = format!("Failed to parse JSON: {}", e);
-                    ClientError::encoding(message)
-                }),
+            Ok(response) => serde_json::from_str::<GetInfoResponse>(&response).map_err(|e| {
+                let message = format!("Failed to parse JSON: {}", e);
+                ClientError::encoding(message)
+            }),
             Err(_) => Err(ClientError::encoding("Request failed".into())),
         }
     }
