@@ -33,7 +33,7 @@ fn asset() {
         "99999999999 DUCKS"
     );
 
-    let asset = Asset::from(Asset::from_string("1.000000000 FOO"));
+    let asset = Asset::from_string("1.000000000 FOO");
     assert_eq!(asset.amount(), 1000000000);
     let new_asset = asset + asset;
     assert_eq!(new_asset.amount(), 2000000000);
@@ -43,7 +43,7 @@ fn asset() {
     assert.equal(asset.units.toString(), '-100000000000')
     */
 
-    let symbol = Symbol::from(Symbol::new("K", 10));
+    let symbol = Symbol::new("K", 10);
     assert_eq!(symbol.code().to_string(), "K");
     assert_eq!(symbol.precision(), 10);
     assert_eq!(symbol.to_string(), "10,K");
@@ -567,11 +567,11 @@ fn transaction_signing_data_and_digest() {
         hex_to_bytes("2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840").as_slice(),
     )
     .unwrap();
-    let data = trx.signing_data(&chain_id.data.to_vec());
+    let data = trx.signing_data(chain_id.data.as_ref());
     let expected_data_hex= "2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a91074684000000000000000000000000000000100a6823403ea3055000000572d3ccdcd01a02e45ea52a42e4500000000a8ed32323aa02e45ea52a42e4580b1915e5d268dcaba0100000000000004454f530000000019656f73696f2d636f7265206973207468652062657374203c33000000000000000000000000000000000000000000000000000000000000000000";
     assert_eq!(bytes_to_hex(&data), expected_data_hex);
 
-    let digest = trx.signing_digest(&chain_id.data.to_vec());
+    let digest = trx.signing_digest(chain_id.data.as_ref());
     let expected_digest_hex = "59fa6b615e3ce1b539ae27bc2398448c1374d2d3c97fe2bbba2c37c118631848";
     assert_eq!(bytes_to_hex(&digest), expected_digest_hex);
 }

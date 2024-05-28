@@ -220,7 +220,7 @@ fn test_error_response_parsing() {
             }
         }"#;
 
-    let parsed_error: Result<ErrorResponse, _> = serde_json::from_str(&error_json);
+    let parsed_error: Result<ErrorResponse, _> = serde_json::from_str(error_json);
     let error_response = parsed_error.expect("Failed to parse JSON");
 
     assert_eq!(

@@ -150,7 +150,7 @@ fn sign_and_verify() {
         PublicKey::new_from_str("PUB_R1_8E46r5HiQF84o6V8MWQQg1vPpgfjYA4XDqT6xbtaaebxw7XbLu")
             .unwrap();
     let signature2 = priv_key2.sign_message(&message);
-    assert_eq!(signature2.verify_message(&message, &pub_key2), true);
+    assert!(signature2.verify_message(&message, &pub_key2));
 }
 
 #[test]

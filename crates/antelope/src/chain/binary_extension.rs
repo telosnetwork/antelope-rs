@@ -40,7 +40,7 @@ where
     }
 
     fn unpack(&mut self, data: &[u8]) -> usize {
-        if data.len() > 0 {
+        if !data.is_empty() {
             let mut value = T::default();
             let size = value.unpack(data);
             self.value = Some(value);
