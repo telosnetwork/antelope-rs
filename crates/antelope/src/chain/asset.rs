@@ -41,7 +41,6 @@ pub fn is_valid_symbol_code(sym: u64) -> bool {
 
 #[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SymbolCode {
-    ///
     pub value: u64,
 }
 

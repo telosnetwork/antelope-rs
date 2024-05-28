@@ -47,7 +47,6 @@ impl Packer for TimePoint {
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct TimePointSec {
-    ///
     pub seconds: u32,
 }
 

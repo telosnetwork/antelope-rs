@@ -121,7 +121,6 @@ pub fn n2s(value: u64) -> String {
     String::from_utf8(s[0..i + 1].to_vec()).unwrap()
 }
 
-///
 fn str_to_name(s: &str) -> u64 {
     let mut value: u64 = 0;
     let _s = s.as_bytes();
