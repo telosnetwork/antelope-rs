@@ -1,6 +1,4 @@
-use antelope::chain::key_type::KeyType;
-use antelope::util::hex_to_bytes;
-use antelope::{base58, util};
+use antelope::{base58, chain::key_type::KeyType, util, util::hex_to_bytes};
 
 #[test]
 fn decode() {

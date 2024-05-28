@@ -1,9 +1,10 @@
-use crate::chain::key_type::KeyType;
-use crate::chain::public_key::PublicKey;
-use crate::chain::signature::Signature;
-use crate::crypto::curves::{create_k1_field_bytes, create_r1_field_bytes};
 use ecdsa::RecoveryId;
 use sha2::{Digest, Sha256};
+
+use crate::{
+    chain::{key_type::KeyType, public_key::PublicKey, signature::Signature},
+    crypto::curves::{create_k1_field_bytes, create_r1_field_bytes},
+};
 
 pub fn recover_message(signature: &Signature, message_bytes: &Vec<u8>) -> PublicKey {
     // TODO: This more generic

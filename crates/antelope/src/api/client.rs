@@ -1,7 +1,11 @@
-use crate::api::v1::chain::ChainAPI;
 use std::fmt::{Debug, Display, Formatter};
 
 pub use crate::api::default_provider::DefaultProvider;
+use crate::api::util::transact;
+use crate::api::v1::chain::ChainAPI;
+use crate::api::v1::structs::{ClientError, SendTransactionResponse, SendTransactionResponseError};
+use crate::chain::action::Action;
+use crate::chain::private_key::PrivateKey;
 
 pub enum HTTPMethod {
     GET,
@@ -22,14 +26,11 @@ impl Display for HTTPMethod {
 }
 
 // TODO: Make this return an APIResponse with status code, timing, etc..
+
+#[async_trait::async_trait]
 pub trait Provider: Debug + Default + Sync + Send {
-    fn post(
-        &self,
-        path: String,
-        body: Option<String>,
-    ) -> impl std::future::Future<Output = Result<String, String>> + Send;
-    fn get(&self, path: String)
-        -> impl std::future::Future<Output = Result<String, String>> + Send;
+    async fn post(&self, path: String, body: Option<String>) -> Result<String, String>;
+    async fn get(&self, path: String) -> Result<String, String>;
 }
 
 #[derive(Debug, Default, Clone)]
@@ -47,5 +48,13 @@ impl<P: Provider> APIClient<P> {
         Ok(APIClient {
             v1_chain: ChainAPI::new(provider),
         })
+    }
+
+    pub async fn transact(
+        &self,
+        actions: Vec<Action>,
+        private_key: PrivateKey,
+    ) -> Result<SendTransactionResponse, ClientError<SendTransactionResponseError>> {
+        transact(self, actions, private_key).await
     }
 }

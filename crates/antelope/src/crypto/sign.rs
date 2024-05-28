@@ -1,19 +1,22 @@
-use crate::chain::key_type::KeyType;
-use crate::chain::signature::Signature;
-use crate::crypto::curves::{create_k1_field_bytes, create_r1_field_bytes};
-use digest::consts::U32;
-use digest::core_api::{CoreWrapper, CtVariableCoreWrapper};
-use digest::generic_array::ArrayLength;
-use ecdsa::elliptic_curve::ops::Invert;
-use ecdsa::elliptic_curve::subtle::CtOption;
-use ecdsa::elliptic_curve::{CurveArithmetic, Scalar};
-use ecdsa::hazmat::{bits2field, DigestPrimitive, SignPrimitive};
-use ecdsa::{PrimeCurve, RecoveryId, SignatureSize};
-use k256::ecdsa::signature::DigestSigner;
-use k256::Secp256k1;
+use digest::{
+    consts::U32,
+    core_api::{CoreWrapper, CtVariableCoreWrapper},
+    generic_array::ArrayLength,
+};
+use ecdsa::{
+    elliptic_curve::{ops::Invert, subtle::CtOption, CurveArithmetic, Scalar},
+    hazmat::{bits2field, DigestPrimitive, SignPrimitive},
+    PrimeCurve, RecoveryId, SignatureSize,
+};
+use k256::{ecdsa::signature::DigestSigner, Secp256k1};
 use p256::NistP256;
 use sha2::{Digest, OidSha256, Sha256, Sha256VarCore};
 use signature::Error;
+
+use crate::{
+    chain::{key_type::KeyType, signature::Signature},
+    crypto::curves::{create_k1_field_bytes, create_r1_field_bytes},
+};
 
 pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Signature, String> {
     match key_type {
@@ -60,9 +63,10 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
 
             let digest = Sha256::new().chain_update(message);
 
-            //  TODO: Explore further how to follow more closely the typescript model with canonical flag
-            //    and personalization string being passed to sign method:
-            //      sig = key.sign(message, {canonical: true, pers: [attempt++]})
+            //  TODO: Explore further how to follow more closely the typescript model
+            // with canonical flag    and personalization string being passed to
+            // sign method:      sig = key.sign(message, {canonical: true, pers:
+            // [attempt++]})
             let signed: (ecdsa::Signature<NistP256>, RecoveryId) = signing_key.sign_digest(digest);
 
             let signature = signed.0;

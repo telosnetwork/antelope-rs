@@ -1,7 +1,10 @@
+use base64::{
+    alphabet,
+    engine::{general_purpose::PAD, GeneralPurpose},
+    Engine as _,
+};
+
 use crate::util::array_equals;
-use base64::engine::general_purpose::PAD;
-use base64::engine::GeneralPurpose;
-use base64::{alphabet, Engine as _};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BlobType {

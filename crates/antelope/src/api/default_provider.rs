@@ -1,6 +1,8 @@
-use crate::api::client::Provider;
-use reqwest::Client;
 use std::fmt::{Debug, Formatter};
+
+use reqwest::Client;
+
+use crate::api::client::Provider;
 
 #[derive(Default, Clone)]
 pub struct DefaultProvider {
@@ -35,6 +37,7 @@ impl Debug for DefaultProvider {
     }
 }
 
+#[async_trait::async_trait]
 impl Provider for DefaultProvider {
     async fn get(&self, path: String) -> Result<String, String> {
         let res = self

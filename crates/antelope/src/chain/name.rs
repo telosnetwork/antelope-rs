@@ -1,6 +1,12 @@
+use std::{
+    fmt,
+    fmt::{Display, Formatter},
+};
+
+use serde::de::SeqAccess;
+use serde::{Deserialize, Deserializer, Serialize};
+
 use crate::serializer::{Encoder, Packer};
-use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter};
 
 const INVALID_NAME_CHAR: u8 = 0xffu8;
 
@@ -115,7 +121,6 @@ pub fn n2s(value: u64) -> String {
     String::from_utf8(s[0..i + 1].to_vec()).unwrap()
 }
 
-///
 fn str_to_name(s: &str) -> u64 {
     let mut value: u64 = 0;
     let _s = s.as_bytes();
@@ -170,7 +175,8 @@ fn str_to_name_checked(s: &str) -> u64 {
     n
 }
 
-/// a wrapper around a 64-bit unsigned integer that represents a name in the Antelope blockchain
+/// a wrapper around a 64-bit unsigned integer that represents a name in the
+/// Antelope blockchain
 #[repr(C, align(8))]
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Name {
@@ -222,6 +228,81 @@ impl Packer for Name {
         self.n = u64::from_ne_bytes(raw[0..8].try_into().unwrap());
         8
     }
+}
+
+impl PartialOrd for Name {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Name {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.n.cmp(&other.n)
+    }
+}
+
+pub(crate) fn deserialize_name<'de, D>(deserializer: D) -> Result<Name, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct NameVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for NameVisitor {
+        type Value = Name;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string representing an EOSIO name")
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(Name::new_from_str(v))
+        }
+    }
+
+    deserializer.deserialize_str(NameVisitor)
+}
+
+pub(crate) fn deserialize_optional_name<'de, D>(deserializer: D) -> Result<Option<Name>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt: Option<String> = Option::deserialize(deserializer)?;
+    let result = opt.map(|s| Name::new_from_str(&s));
+    Ok(result)
+}
+
+pub(crate) fn deserialize_vec_name<'de, D>(deserializer: D) -> Result<Vec<Name>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct VecNameVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for VecNameVisitor {
+        type Value = Vec<Name>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a vector of strings representing EOSIO names")
+        }
+
+        fn visit_seq<S>(self, mut seq: S) -> Result<Vec<Name>, S::Error>
+        where
+            S: SeqAccess<'de>,
+        {
+            let mut names = Vec::new();
+
+            while let Some(elem) = seq.next_element::<String>()? {
+                names.push(Name::new_from_str(&elem));
+            }
+
+            Ok(names)
+        }
+    }
+
+    deserializer.deserialize_seq(VecNameVisitor)
 }
 
 pub const SAME_PAYER: Name = Name { n: 0 };

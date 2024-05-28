@@ -1,9 +1,9 @@
 use core::ops;
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
+use std::fmt;
 use std::fmt::{Display, Formatter};
 
-use crate::chain::name::Name;
-use crate::chain::{Decoder, Encoder, Packer};
+use crate::chain::{name::Name, Decoder, Encoder, Packer};
 
 const MAX_AMOUNT: i64 = (1 << 62) - 1;
 const MAX_PRECISION: u8 = 18;
@@ -41,7 +41,6 @@ pub fn is_valid_symbol_code(sym: u64) -> bool {
 
 #[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SymbolCode {
-    ///
     pub value: u64,
 }
 
@@ -110,7 +109,7 @@ impl Packer for SymbolCode {
     }
 }
 
-#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Symbol {
     value: u64,
 }
@@ -179,7 +178,7 @@ impl Packer for Symbol {
     }
 }
 
-#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Asset {
     amount: i64,
     symbol: Symbol,
@@ -405,6 +404,31 @@ impl Packer for Asset {
         dec.unpack(&mut self.symbol);
         dec.get_pos()
     }
+}
+
+pub(crate) fn deserialize_asset<'de, D>(deserializer: D) -> Result<Asset, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct AssetVisitor;
+
+    impl<'de> de::Visitor<'de> for AssetVisitor {
+        type Value = Asset;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string representing an asset in the format 'amount symbol_code'")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            // Directly return the Asset instance since Asset::from_string does not produce errors.
+            Ok(Asset::from_string(value))
+        }
+    }
+
+    deserializer.deserialize_str(AssetVisitor)
 }
 
 #[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
