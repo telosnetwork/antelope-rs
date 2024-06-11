@@ -1,6 +1,6 @@
 [package]
 name = "antelope-client-macros"
-description = "A proc-macro crate for StructPacker"
+description = "A proc-macro crate for EnumPacker & StructPacke"
 version = "0.1.0"
 documentation = ""
 
