@@ -5,4 +5,4 @@ pub mod crypto;
 pub mod serializer;
 pub mod util;
 
-pub use antelope_client_macros::{StructPacker, EnumPacker};
+pub use antelope_client_macros::{EnumPacker, StructPacker};
