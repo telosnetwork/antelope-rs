@@ -460,7 +460,7 @@ fn variant() {
         MyVariant::MyUint8(value) => assert_eq!(value, &255),
         _ => {
             panic!("Expected MyUint8");
-        },
+        }
     };
 
     let data = "030101";
@@ -477,12 +477,11 @@ fn variant() {
             assert!(opt.is_some(), "Option should be Some");
             let my_struct = opt.as_ref().unwrap();
             assert_eq!(my_struct.field1, true);
-        },
+        }
         _ => {
             panic!("Expected MyUint8");
-        },
+        }
     };
-
 }
 
 /*

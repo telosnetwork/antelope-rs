@@ -66,7 +66,6 @@ pub fn struct_packer_macro(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-
 #[proc_macro_derive(EnumPacker)]
 pub fn enum_packer_macro(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -111,7 +110,7 @@ pub fn enum_packer_macro(input: TokenStream) -> TokenStream {
                             dec.unpack(&mut v);
                             *self = #name::#variant_ident(v);
                         }
-                    },
+                    }
                     _ => panic!("Only unnamed fields are supported"),
                 };
                 quote! {
@@ -123,7 +122,6 @@ pub fn enum_packer_macro(input: TokenStream) -> TokenStream {
 
             let default_variant = &data_enum.variants[0];
             let default_variant_ident = &default_variant.ident;
-
 
             quote! {
                 impl Default for #name {
@@ -164,7 +162,7 @@ pub fn enum_packer_macro(input: TokenStream) -> TokenStream {
                     }
                 }
             }
-        },
+        }
         _ => panic!("EnumPacker can only be derived for enums"),
     };
 
