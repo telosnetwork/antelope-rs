@@ -19,7 +19,7 @@ exclude = ["tests"]
 name = "antelope"
 
 [dependencies]
-antelope-client-macros = {  path = "../macros" }
+antelope-client-macros = "0.1.0"
 
 log = "0.4.14"
 base64 = "0.21.5"
