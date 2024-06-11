@@ -9,7 +9,7 @@ use antelope::{
     util,
     util::{bytes_to_hex, hex_to_bytes},
 };
-use antelope_client_macros::StructPacker;
+use antelope_client_macros::{EnumPacker, StructPacker};
 use digest::Digest;
 use sha2::Sha256;
 
@@ -429,6 +429,62 @@ test('decoding errors', function () {
         )
     }
 })
+
+*/
+
+#[test]
+fn variant() {
+    #[derive(StructPacker, Default)]
+    struct MyStruct {
+        field1: bool,
+    }
+
+    #[derive(EnumPacker)]
+    enum MyVariant {
+        MyUint8(u8),
+        StringArray(Vec<String>),
+        SomeStruct(MyStruct),
+        StructOption(Option<MyStruct>),
+    }
+
+    let data = "00ff";
+    let my_uint8 = MyVariant::MyUint8(255);
+    assert_eq!(bytes_to_hex(&Encoder::pack(&my_uint8)), data);
+
+    let data_bytes = hex_to_bytes(data);
+    let mut decoder = Decoder::new(data_bytes.as_slice());
+    let decoded_uint8 = &mut MyVariant::default();
+    let decoded_size = decoder.unpack(decoded_uint8);
+    assert_eq!(decoded_size, 2);
+    match decoded_uint8 {
+        MyVariant::MyUint8(value) => assert_eq!(value, &255),
+        _ => {
+            panic!("Expected MyUint8");
+        }
+    };
+
+    let data = "030101";
+    let some_struct = MyVariant::StructOption(Some(MyStruct { field1: true }));
+    assert_eq!(bytes_to_hex(&Encoder::pack(&some_struct)), data);
+
+    let data_bytes = hex_to_bytes(data);
+    let mut decoder = Decoder::new(data_bytes.as_slice());
+    let decoded_opt_struct = &mut MyVariant::default();
+    let decoded_size = decoder.unpack(decoded_opt_struct);
+    assert_eq!(decoded_size, 3);
+    match decoded_opt_struct {
+        MyVariant::StructOption(opt) => {
+            assert!(opt.is_some(), "Option should be Some");
+            let my_struct = opt.as_ref().unwrap();
+            assert_eq!(my_struct.field1, true);
+        }
+        _ => {
+            panic!("Expected MyUint8");
+        }
+    };
+}
+
+/*
 
 test('variant', function () {
     const abi = ABI.from({
