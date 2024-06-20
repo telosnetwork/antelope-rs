@@ -213,13 +213,17 @@ impl<T: Provider> ChainAPI<T> {
             rows.push(row);
         }
 
-        let next_key = TableIndexType::NAME(name!(next_key_str.as_str()));
+        let next_key = if next_key_str.is_empty() {
+            None
+        } else {
+            Some(TableIndexType::NAME(name!(next_key_str.as_str())))
+        };
 
         Ok(GetTableRowsResponse {
             rows,
             more,
             ram_payers: None,
-            next_key: Some(next_key),
+            next_key,
         })
     }
 }
