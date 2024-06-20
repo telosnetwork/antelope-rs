@@ -21,6 +21,7 @@ use crate::{
     serializer::formatter::{JSONObject, ValueTo},
     util::hex_to_bytes,
 };
+use crate::chain::checksum::{Checksum160, Checksum256};
 
 #[derive(Debug, Default, Clone)]
 pub struct ChainAPI<T: Provider> {
@@ -213,10 +214,28 @@ impl<T: Provider> ChainAPI<T> {
             rows.push(row);
         }
 
-        let next_key = if next_key_str.is_empty() {
-            None
-        } else {
-            Some(TableIndexType::NAME(name!(next_key_str.as_str())))
+        let mut next_key = None;
+        
+        match params.lower_bound {
+            Some(TableIndexType::NAME(_)) => {
+                next_key = Some(TableIndexType::NAME(name!(next_key_str.as_str())));
+            }
+            Some(TableIndexType::UINT64(_)) => {
+                next_key = Some(TableIndexType::UINT64(next_key_str.parse().unwrap()));
+            }
+            Some(TableIndexType::UINT128(_)) => {
+                next_key = Some(TableIndexType::UINT128(next_key_str.parse().unwrap()));
+            }
+            Some(TableIndexType::CHECKSUM160(_)) => {
+                next_key = Some(TableIndexType::CHECKSUM160(Checksum160::from_bytes(hex_to_bytes(&next_key_str).as_slice()).unwrap()));
+            }
+            Some(TableIndexType::CHECKSUM256(_)) => {
+                next_key = Some(TableIndexType::CHECKSUM256(Checksum256::from_bytes(hex_to_bytes(&next_key_str).as_slice()).unwrap()));
+            }
+            Some(TableIndexType::FLOAT64(_)) => {
+                next_key = Some(TableIndexType::FLOAT64(next_key_str.parse().unwrap()));
+            }
+            None => {}
         };
 
         Ok(GetTableRowsResponse {

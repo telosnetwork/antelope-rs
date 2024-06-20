@@ -191,7 +191,7 @@ pub async fn chain_get_abi() {
 
     // Check tables parsing
     assert_eq!(abi_object.abi.tables.len(), 2);
-    assert_eq!(abi_object.abi.tables[0].name, name!("accounts"));
+    assert_eq!(abi_object.abi.tables[0].name, "accounts");
 }
 
 #[test]
