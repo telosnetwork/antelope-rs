@@ -1,5 +1,6 @@
 pub mod structs;
 
+use std::path::Path;
 use crate::api::client::{APIClient, Provider};
 use crate::api::system::structs::{
     CreateAccountParams, DelegateBandwidthAction, NewAccountAction, SetAbiAction, SetCodeAction,
@@ -104,8 +105,8 @@ impl<T: Provider> SystemAPI<T> {
         memo: Option<String>,
         private_key: PrivateKey,
     ) -> Result<SendTransactionResponse, ClientError<SendTransactionResponseError>> {
-        let wasm = std::fs::read(wasm_path).unwrap();
-        let abi_json_bytes = std::fs::read(abi_path).unwrap();
+        let wasm = std::fs::read(Path::new(wasm_path)).unwrap();
+        let abi_json_bytes = std::fs::read(Path::new(abi_path)).unwrap();
         let abi: ABI = serde_json::from_slice(&abi_json_bytes).unwrap();
         let abi_bytes = Encoder::pack(&abi);
         self.set_contract(account, wasm, abi_bytes, memo, private_key)

@@ -76,8 +76,8 @@ pub struct AbiAction {
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, StructPacker)]
 pub struct AbiTable {
-    //#[serde(deserialize_with = "deserialize_name")]
-    pub name: String,
+    #[serde(deserialize_with = "deserialize_name")]
+    pub name: Name,
     #[serde(default)]
     pub index_type: String,
     #[serde(default)]
