@@ -1,4 +1,4 @@
-use antelope::api::v1::structs::ErrorResponse;
+use antelope::api::v1::structs::{ErrorResponse, IndexPosition, TableIndexType};
 use antelope::{
     api::{
         client::APIClient,
@@ -9,6 +9,8 @@ use antelope::{
     serializer::{Decoder, Encoder, Packer},
     StructPacker,
 };
+use antelope::api::client::DefaultProvider;
+use antelope::util::bytes_to_hex;
 
 mod utils;
 use utils::mock_provider::MockProvider;
@@ -191,7 +193,7 @@ pub async fn chain_get_abi() {
 
     // Check tables parsing
     assert_eq!(abi_object.abi.tables.len(), 2);
-    assert_eq!(abi_object.abi.tables[0].name, "accounts");
+    assert_eq!(abi_object.abi.tables[0].name, name!("accounts"));
 }
 
 #[test]
@@ -364,4 +366,80 @@ pub async fn chain_get_table_rows() {
     // assert.equal(String(res2.rows[0].account), 'atomichub')
     // assert.equal(String(res2.next_key), 'boidservices')
     // assert.equal(Number(res2.rows[1].balance).toFixed(6), (0.02566).toFixed(6))
+}
+
+
+
+#[tokio::test]
+pub async fn secondary_index() {
+    #[derive(Clone, Eq, PartialEq, Default, Debug, StructPacker)]
+    pub struct Proof {
+        proof_id: u64,
+        proof_digest: Checksum256,
+        proof_input: Vec<u64>,
+    }
+
+    let mock_provider = MockProvider {};
+    //let client = APIClient::custom_provider(mock_provider).unwrap();
+    let mut client = APIClient::<DefaultProvider>::default_provider_debug(String::from("https://testnet.telos.caleos.io"), true).unwrap();
+    let checksum = Checksum256::from_hex("dc3264876b721aac60fe7270684c58bcd7e2c9e98ccdfdf4ed960a70b94fad32").unwrap();
+
+    let res1 = client
+        .v1_chain
+        .get_table_rows::<Proof>(GetTableRowsParams {
+            code: name!("snarktor1234"),
+            table: name!("proofs"),
+            scope: Some(name!("snarktor1234")),
+            lower_bound: Some(TableIndexType::CHECKSUM256(checksum)),
+            // upper_bound: Some(TableIndexType::CHECKSUM256(checksum)),
+            upper_bound: None,
+            limit: Some(1),
+            reverse: None,
+            index_position: Some(IndexPosition::SECONDARY),
+            show_payer: None,
+        })
+        .await
+        .unwrap();
+
+
+    // "cbcbbc9c75ab9df67dbf6809a57396769c7d38bf922346c908726016bbc28069"
+    // "c8b2bb18bf9e660d4dbe02ffd63a99e1787ad39e805f80454875818b810b4dad"
+    // "0d53b3c0bc34ffefe4f605530fab2d4f567b894fe957034ac2361c63dabf82d1"
+    // "4d4977421255f8b6dda4ffed6e670a83500bcc1142c37178772f9af0fb68df0a"
+    // "506b98e490dd92c93d35e547cbe1b861e5d3366a5c52ca7cfaa121fb5276c8e4"
+    // "dc3264876b721aac60fe7270684c58bcd7e2c9e98ccdfdf4ed960a70b94fad32"
+    // Found matching proof_digest
+    // "2990ffdefe1c38333989136ce3695177b2aaf768bb65f96b9313c0336143bee5"
+    // "47a1888757221af3ccf8c1aba67672e1c3cfd68b9f6bd7866641a55335cb439a"
+    // "d9186878687748c3e01516a5b276773ee0760a321ad8e527ce6dc2b08c4cd73e"
+    // "f20cbe860c8879f085dfadae11b2b99cbaaa809668cec5d4d3fc714dc60a65d2"
+    // "61162de1db80bfae857545c4355422f7874a977d1191abfb802de6ef5b6b264d"
+    // "34a01ef58a3073c6093aac47bc209678bf9a3eadf15d15d90bca57df5ab71fd9"
+    // "95b7ab0f79df0aefa00530aedbba5ab0983babe2e24d11b811041dfc26060021"
+
+    // let res1 = client
+    //     .v1_chain
+    //     .get_table_rows::<Proof>(GetTableRowsParams {
+    //         code: name!("snarktor1234"),
+    //         table: name!("proofs"),
+    //         scope: Some(name!("snarktor1234")),
+    //         lower_bound: None,
+    //         upper_bound: None,
+    //         limit: Some(100),
+    //         reverse: None,
+    //         index_position: None,
+    //         show_payer: None,
+    //     })
+    //     .await
+    //     .unwrap();
+
+    for row in res1.rows.iter() {
+        println!("{:?}", row.proof_digest.as_string());
+        if row.proof_digest.as_string() == checksum.as_string() {
+            println!("Found matching proof_digest");
+        }
+    }
+
+    assert_eq!(res1.rows.len(), 1, "Should get exactly 1 row back");
+    assert_eq!(res1.rows[0].proof_digest.as_string(), checksum.as_string(), "Should get back the matching proof_digest");
 }
