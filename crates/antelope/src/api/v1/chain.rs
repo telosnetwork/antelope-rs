@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use serde_json::{self, Value};
 
-use crate::api::v1::structs::{ABIResponse, EncodingError, GetBlockResponse, ServerError};
+use crate::api::v1::structs::{ABIResponse, EncodingError, GetBlockResponse, GetTransactionStatusResponse, ServerError};
 use crate::{
     api::{
         client::Provider,
@@ -187,6 +187,37 @@ impl<T: Provider> ChainAPI<T> {
                     }
                 }
             }
+        }
+    }
+
+    pub async fn get_transaction_status(&self, trx_id: Checksum256) -> Result<GetTransactionStatusResponse, ClientError<ErrorResponse>> {
+        let payload = serde_json::json!({
+            "id": trx_id,
+        });
+
+        let result = self
+            .provider
+            .post(String::from("/v1/chain/get_transaction_status"), Some(payload.to_string()))
+            .await;
+
+        match result {
+            Ok(response) => {
+                match serde_json::from_str::<GetTransactionStatusResponse>(&response) {
+                    Ok(status_response) => Ok(status_response),
+                    Err(_) => {
+                        // Attempt to parse the error response
+                        match serde_json::from_str::<ErrorResponse>(&response) {
+                            Ok(error_response) => Err(ClientError::SERVER(ServerError {
+                                error: error_response,
+                            })),
+                            Err(_) => Err(ClientError::ENCODING(EncodingError {
+                                message: "Failed to parse JSON".into(),
+                            })),
+                        }
+                    }
+                }
+            }
+            Err(msg) => Err(ClientError::NETWORK(msg)),
         }
     }
 
