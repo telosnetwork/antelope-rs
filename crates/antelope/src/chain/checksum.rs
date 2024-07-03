@@ -147,8 +147,8 @@ impl Checksum256 {
         let mut second_reversed = second_16.to_vec();
         second_reversed.reverse();
 
-        let mut new_vec = second_reversed;
-        new_vec.extend(first_reversed);
+        let mut new_vec = first_reversed;
+        new_vec.extend(second_reversed);
 
         bytes_to_hex(&new_vec)
     }
