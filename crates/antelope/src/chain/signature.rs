@@ -1,9 +1,10 @@
+use core::fmt;
 use std::fmt::{Display, Formatter};
 
 use ecdsa::RecoveryId;
 use k256::Secp256k1;
 use p256::NistP256;
-use serde::{Deserialize, Serialize};
+use serde::{de::{self, Visitor}, Deserialize, Deserializer, Serialize};
 
 use crate::{
     base58,
@@ -146,6 +147,30 @@ impl Signature {
             || r[0] == 0 && r[1] & 0x80 == 0
             || s[0] == 0 && s[1] & 0x80 == 0)
     }
+}
+
+pub(crate) fn deserialize_signature<'de, D>(deserializer: D) -> Result<Signature, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct SignatureVisitor;
+
+    impl<'de> Visitor<'de> for SignatureVisitor {
+        type Value = Signature;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a hex string of length 64 (for 32 bytes)")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Signature::from_string(value).map_err(E::custom)
+        }
+    }
+
+    deserializer.deserialize_str(SignatureVisitor)
 }
 
 impl Display for Signature {
