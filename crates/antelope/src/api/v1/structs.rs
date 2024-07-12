@@ -14,6 +14,7 @@ use crate::chain::{
     authority::Authority,
     block_id::{deserialize_block_id, deserialize_optional_block_id, BlockId},
     checksum::{deserialize_checksum256, Checksum160, Checksum256},
+    signature::deserialize_signature,
     name::{deserialize_name, deserialize_optional_name, deserialize_vec_name, Name},
     time::{deserialize_optional_timepoint, deserialize_timepoint, TimePoint, TimePointSec},
     transaction::TransactionHeader,
@@ -566,19 +567,27 @@ pub struct ABIResponse {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GetBlockResponse {
+    #[serde(rename = "timestamp")]
+    #[serde(deserialize_with = "deserialize_timepoint")]
     pub time_point: TimePoint,
+    #[serde(deserialize_with = "deserialize_name")]
     pub producer: Name,
     pub confirmed: u16,
-    pub pevious: BlockId,
+    #[serde(deserialize_with = "deserialize_block_id")]
+    pub previous: BlockId,
+    #[serde(deserialize_with = "deserialize_checksum256")]
     pub transaction_mroot: Checksum256,
+    #[serde(deserialize_with = "deserialize_checksum256")]
     pub action_mroot: Checksum256,
     pub schedule_version: u32,
     pub new_producers: Option<NewProducers>,
     pub header_extensions: Option<HeaderExtension>,
     // pub new_protocol_features: any,
+    #[serde(deserialize_with = "deserialize_signature")]
     pub producer_signature: Signature,
     pub transactions: Vec<GetBlockResponseTransactionReceipt>,
     pub block_extensions: Option<Vec<BlockExtension>>,
+    #[serde(deserialize_with = "deserialize_block_id")]
     pub id: BlockId,
     pub block_num: u32,
     pub ref_block_prefix: u32,
