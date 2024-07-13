@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{json, Value};
+use serde_json::{json, Number, Value};
 use std::fmt;
 
 use crate::chain::abi::ABI;
@@ -298,7 +298,7 @@ pub enum IndexPosition {
     TENTH,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TableIndexType {
     NAME(Name),
     UINT64(u64),
@@ -333,6 +333,76 @@ impl GetTableRowsParams {
 
         let scope = self.scope.unwrap_or(self.code);
         req.insert("scope", Value::String(scope.to_string()));
+
+        let mut key_type: Option<String> = None;
+
+        if self.lower_bound.is_some() {
+            let lower_bound: Value = match self.lower_bound.clone().unwrap(){
+                TableIndexType::NAME(name) => {
+                    key_type = Some("name".to_string());
+                    Value::String(name.as_string())
+                },
+                TableIndexType::UINT64(num) => {
+                    key_type = Some("i64".to_string());
+                    Value::Number(Number::from(num))
+                },
+                TableIndexType::UINT128(num) => {
+                    key_type = Some("i128".to_string());
+                    Value::String(num.to_string())
+                },
+                TableIndexType::FLOAT64(num) => {
+                    key_type = Some("float64".to_string());
+                    Value::Number(Number::from_f64(num).expect("Failed to parse float64"))
+                },
+                TableIndexType::CHECKSUM256(hash) => {
+                    key_type = Some("sha256".to_string());
+                    Value::String(hash.as_string())
+                },
+                TableIndexType::CHECKSUM160(hash) => {
+                    key_type = Some("ripmd160".to_string());
+                    Value::String(hash.as_string())
+                }
+            };
+            req.insert("lower_bound", lower_bound);
+        }
+
+        if self.upper_bound.is_some() {
+            let upper_bound: Value = match self.upper_bound.clone().unwrap() {
+                TableIndexType::NAME(name) => {
+                    key_type = Some("name".to_string());
+                    Value::String(name.as_string())
+                },
+                TableIndexType::UINT64(num) => {
+                    key_type = Some("i64".to_string());
+                    Value::Number(Number::from(num))
+                },
+                TableIndexType::UINT128(num) => {
+                    key_type = Some("i128".to_string());
+                    Value::String(num.to_string())
+                },
+                TableIndexType::FLOAT64(num) => {
+                    key_type = Some("float64".to_string());
+                    Value::Number(Number::from_f64(num).expect("Failed to parse float64"))
+                },
+                TableIndexType::CHECKSUM256(hash) => {
+                    key_type = Some("sha256".to_string());
+                    Value::String(hash.as_string())
+                },
+                TableIndexType::CHECKSUM160(hash) => {
+                    key_type = Some("ripmd160".to_string());
+                    Value::String(hash.as_string())
+                }
+            };
+            req.insert("upper_bound", upper_bound);
+        }
+
+        if key_type.is_some() {
+            req.insert("key_type", Value::String(key_type.unwrap()));
+        }
+
+        if self.limit.is_some() {
+            req.insert("limit", Value::Number(Number::from(self.limit.unwrap())));
+        }
 
         json!(req).to_string()
     }
