@@ -716,7 +716,7 @@ pub struct HeaderExtension {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GetBlockResponseTransactionReceipt {
-    pub trx: TrxVariant, //TODO: Implement TxVarient
+    pub trx: String, //TODO: Implement TxVarient
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
