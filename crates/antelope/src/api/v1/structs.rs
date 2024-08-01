@@ -320,7 +320,7 @@ pub struct GetTableRowsParams {
     pub upper_bound: Option<TableIndexType>,
     pub limit: Option<u32>,
     pub reverse: Option<bool>,
-    pub index_position: Option<IndexPosition>,
+    pub index_position: Option<u32>,
     pub show_payer: Option<bool>,
 }
 
@@ -333,6 +333,10 @@ impl GetTableRowsParams {
 
         let scope = self.scope.unwrap_or(self.code);
         req.insert("scope", Value::String(scope.to_string()));
+
+        if let Some(index_position) = self.index_position {
+            req.insert("index_position", Value::Number(Number::from(index_position)));
+        }
 
         let mut key_type: Option<String> = None;
 
