@@ -2,7 +2,10 @@ use std::fmt::Debug;
 
 use serde_json::{self, Value};
 
-use crate::api::v1::structs::{ABIResponse, EncodingError, GetBlockResponse, GetTransactionStatusResponse, ServerError};
+use crate::api::v1::structs::{
+    ABIResponse, EncodingError, GetBlockResponse, GetTransactionStatusResponse, ServerError,
+};
+use crate::chain::checksum::{Checksum160, Checksum256};
 use crate::{
     api::{
         client::Provider,
@@ -21,7 +24,6 @@ use crate::{
     serializer::formatter::{JSONObject, ValueTo},
     util::hex_to_bytes,
 };
-use crate::chain::checksum::{Checksum160, Checksum256};
 
 #[derive(Debug, Default, Clone)]
 pub struct ChainAPI<T: Provider> {
@@ -191,14 +193,20 @@ impl<T: Provider> ChainAPI<T> {
         }
     }
 
-    pub async fn get_transaction_status(&self, trx_id: Checksum256) -> Result<GetTransactionStatusResponse, ClientError<ErrorResponse>> {
+    pub async fn get_transaction_status(
+        &self,
+        trx_id: Checksum256,
+    ) -> Result<GetTransactionStatusResponse, ClientError<ErrorResponse>> {
         let payload = serde_json::json!({
             "id": trx_id,
         });
 
         let result = self
             .provider
-            .post(String::from("/v1/chain/get_transaction_status"), Some(payload.to_string()))
+            .post(
+                String::from("/v1/chain/get_transaction_status"),
+                Some(payload.to_string()),
+            )
             .await;
 
         match result {
@@ -264,10 +272,14 @@ impl<T: Provider> ChainAPI<T> {
                     next_key = Some(TableIndexType::UINT128(next_key_str.parse().unwrap()));
                 }
                 Some(TableIndexType::CHECKSUM160(_)) => {
-                    next_key = Some(TableIndexType::CHECKSUM160(Checksum160::from_bytes(hex_to_bytes(&next_key_str).as_slice()).unwrap()));
+                    next_key = Some(TableIndexType::CHECKSUM160(
+                        Checksum160::from_bytes(hex_to_bytes(&next_key_str).as_slice()).unwrap(),
+                    ));
                 }
                 Some(TableIndexType::CHECKSUM256(_)) => {
-                    next_key = Some(TableIndexType::CHECKSUM256(Checksum256::from_bytes(hex_to_bytes(&next_key_str).as_slice()).unwrap()));
+                    next_key = Some(TableIndexType::CHECKSUM256(
+                        Checksum256::from_bytes(hex_to_bytes(&next_key_str).as_slice()).unwrap(),
+                    ));
                 }
                 Some(TableIndexType::FLOAT64(_)) => {
                     next_key = Some(TableIndexType::FLOAT64(next_key_str.parse().unwrap()));

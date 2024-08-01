@@ -1,3 +1,4 @@
+use antelope::api::client::DefaultProvider;
 use antelope::api::v1::structs::{ErrorResponse, IndexPosition, TableIndexType};
 use antelope::{
     api::{
@@ -9,8 +10,6 @@ use antelope::{
     serializer::{Decoder, Encoder, Packer},
     StructPacker,
 };
-use antelope::api::client::DefaultProvider;
-use antelope::util::bytes_to_hex;
 
 mod utils;
 use utils::mock_provider::MockProvider;
@@ -368,8 +367,6 @@ pub async fn chain_get_table_rows() {
     // assert.equal(Number(res2.rows[1].balance).toFixed(6), (0.02566).toFixed(6))
 }
 
-
-
 #[tokio::test]
 pub async fn secondary_index() {
     #[derive(Clone, Eq, PartialEq, Default, Debug, StructPacker)]
@@ -381,8 +378,14 @@ pub async fn secondary_index() {
 
     let mock_provider = MockProvider {};
     //let client = APIClient::custom_provider(mock_provider).unwrap();
-    let mut client = APIClient::<DefaultProvider>::default_provider_debug(String::from("https://testnet.telos.caleos.io"), true).unwrap();
-    let checksum = Checksum256::from_hex("dc3264876b721aac60fe7270684c58bcd7e2c9e98ccdfdf4ed960a70b94fad32").unwrap();
+    let client = APIClient::<DefaultProvider>::default_provider_debug(
+        String::from("https://testnet.telos.caleos.io"),
+        true,
+    )
+    .unwrap();
+    let checksum =
+        Checksum256::from_hex("dc3264876b721aac60fe7270684c58bcd7e2c9e98ccdfdf4ed960a70b94fad32")
+            .unwrap();
 
     let res1 = client
         .v1_chain
@@ -400,7 +403,6 @@ pub async fn secondary_index() {
         })
         .await
         .unwrap();
-
 
     // "cbcbbc9c75ab9df67dbf6809a57396769c7d38bf922346c908726016bbc28069"
     // "c8b2bb18bf9e660d4dbe02ffd63a99e1787ad39e805f80454875818b810b4dad"
@@ -441,5 +443,9 @@ pub async fn secondary_index() {
     }
 
     assert_eq!(res1.rows.len(), 1, "Should get exactly 1 row back");
-    assert_eq!(res1.rows[0].proof_digest.as_string(), checksum.as_string(), "Should get back the matching proof_digest");
+    assert_eq!(
+        res1.rows[0].proof_digest.as_string(),
+        checksum.as_string(),
+        "Should get back the matching proof_digest"
+    );
 }

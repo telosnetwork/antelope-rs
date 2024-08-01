@@ -4,7 +4,10 @@ use std::fmt::{Display, Formatter};
 use ecdsa::RecoveryId;
 use k256::Secp256k1;
 use p256::NistP256;
-use serde::{de::{self, Visitor}, Deserialize, Deserializer, Serialize};
+use serde::{
+    de::{self, Visitor},
+    Deserialize, Deserializer, Serialize,
+};
 
 use crate::{
     base58,
