@@ -84,7 +84,7 @@ impl Provider for DefaultProvider {
             if self.debug {
                 println!("Error: {}", err_str);
             }
-            
+
             return Err(err_str);
         }
 
@@ -92,7 +92,7 @@ impl Provider for DefaultProvider {
         if self.debug {
             println!("Response: {}", response);
         }
-        
+
         Ok(response)
     }
 

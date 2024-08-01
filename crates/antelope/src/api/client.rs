@@ -43,11 +43,14 @@ impl<P: Provider> APIClient<P> {
     pub fn default_provider(base_url: String) -> Result<APIClient<DefaultProvider>, String> {
         Self::default_provider_debug(base_url, false)
     }
-    
-    pub fn default_provider_debug(base_url: String, debug: bool) -> Result<APIClient<DefaultProvider>, String> {
+
+    pub fn default_provider_debug(
+        base_url: String,
+        debug: bool,
+    ) -> Result<APIClient<DefaultProvider>, String> {
         let mut provider = DefaultProvider::new(base_url).unwrap();
         provider.set_debug(debug);
-        
+
         APIClient::custom_provider(provider)
     }
 

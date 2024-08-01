@@ -5,7 +5,6 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
 use std::fmt;
 use std::mem::discriminant;
-use digest::block_buffer::Block;
 
 use crate::chain::abi::ABI;
 use crate::chain::public_key::PublicKey;
@@ -16,8 +15,8 @@ use crate::chain::{
     authority::Authority,
     block_id::{deserialize_block_id, deserialize_optional_block_id, BlockId},
     checksum::{deserialize_checksum256, Checksum160, Checksum256},
-    signature::deserialize_signature,
     name::{deserialize_name, deserialize_optional_name, deserialize_vec_name, Name},
+    signature::deserialize_signature,
     time::{deserialize_optional_timepoint, deserialize_timepoint, TimePoint, TimePointSec},
     transaction::TransactionHeader,
     varint::VarUint32,
@@ -364,7 +363,7 @@ impl TableIndexType {
             TableIndexType::CHECKSUM160(value) => json!(value.as_string()),
         }
     }
-    
+
     pub fn get_key_type(&self) -> Value {
         match self {
             TableIndexType::NAME(_) => Value::String("name".to_string()),
@@ -411,7 +410,7 @@ impl GetTableRowsParams {
         if let Some(reverse) = &self.reverse {
             req.insert("reverse", Value::Bool(*reverse));
         }
-        
+
         if self.lower_bound.is_some() || self.upper_bound.is_some() {
             if self.upper_bound.is_none() {
                 let lower = self.lower_bound.as_ref().unwrap();
@@ -435,7 +434,6 @@ impl GetTableRowsParams {
             if let Some(index_position) = &self.index_position {
                 req.insert("index_position", index_position.to_json());
             }
-
         }
 
         json!(req).to_string()

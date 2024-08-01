@@ -299,27 +299,22 @@ impl_packed!(f64);
 
 #[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Debug, Default)]
 pub struct Float128 {
-    ///
     pub data: [u8; 16],
 }
 
 impl Float128 {
-    ///
-    pub fn new(data: [u8;16]) -> Self {
-        Self {
-            data: data
-        }
+    pub fn new(data: [u8; 16]) -> Self {
+        Self { data }
     }
 
-    ///
     pub fn data(&self) -> &[u8; 16] {
-        return &self.data;
+        &self.data
     }
 }
 
 impl Packer for Float128 {
     fn size(&self) -> usize {
-        return 16;
+        16
     }
 
     fn pack(&self, enc: &mut Encoder) -> usize {
@@ -332,7 +327,7 @@ impl Packer for Float128 {
         let size = self.size();
         assert!(raw.len() >= size, "Float128.unpack: buffer overflow!");
         slice_copy(&mut self.data, &raw[..size]);
-        return self.size();
+        self.size()
     }
 }
 
@@ -470,8 +465,8 @@ where
 
 /// Implement `Packer` for `Box<T>` type.
 impl<T> Packer for Box<T>
-    where
-        T: Packer + Default,
+where
+    T: Packer + Default,
 {
     /// Returns the size of this value in bytes.
     fn size(&self) -> usize {

@@ -476,7 +476,7 @@ fn variant() {
         MyVariant::StructOption(opt) => {
             assert!(opt.is_some(), "Option should be Some");
             let my_struct = opt.as_ref().unwrap();
-            assert_eq!(my_struct.field1, true);
+            assert!(my_struct.field1);
         }
         _ => {
             panic!("Expected MyUint8");
