@@ -4,6 +4,7 @@ use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
 use std::fmt;
+use std::mem::discriminant;
 
 use crate::chain::abi::ABI;
 use crate::chain::public_key::PublicKey;
@@ -15,6 +16,7 @@ use crate::chain::{
     block_id::{deserialize_block_id, deserialize_optional_block_id, BlockId},
     checksum::{deserialize_checksum256, Checksum160, Checksum256},
     name::{deserialize_name, deserialize_optional_name, deserialize_vec_name, Name},
+    signature::deserialize_signature,
     time::{deserialize_optional_timepoint, deserialize_timepoint, TimePoint, TimePointSec},
     transaction::TransactionHeader,
     varint::VarUint32,
@@ -236,6 +238,32 @@ pub struct SendTransactionResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub enum TransactionState {
+    InBlock,
+    Irreversible,
+    LocallyApplied,
+    ForkedOut,
+    Unknown,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetTransactionStatusResponse {
+    pub state: TransactionState,
+    pub block_number: Option<u32>,
+    pub block_id: Option<BlockId>,
+    pub block_timestamp: Option<TimePoint>,
+    pub expiration: Option<TimePoint>,
+    pub head_number: u32,
+    pub head_id: BlockId,
+    pub head_timestamp: TimePoint,
+    pub irreversible_number: u32,
+    pub irreversible_id: BlockId,
+    pub irreversible_timestamp: TimePoint,
+    pub earliest_tracked_block_id: BlockId,
+    pub earliest_tracked_block_number: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ActionTrace {
     pub action_ordinal: u32,
     pub creator_action_ordinal: u32,
@@ -297,6 +325,23 @@ pub enum IndexPosition {
     TENTH,
 }
 
+impl IndexPosition {
+    pub fn to_json(&self) -> Value {
+        match self {
+            IndexPosition::PRIMARY => Value::String("primary".to_string()),
+            IndexPosition::SECONDARY => Value::String("secondary".to_string()),
+            IndexPosition::TERTIARY => Value::String("tertiary".to_string()),
+            IndexPosition::FOURTH => Value::String("fourth".to_string()),
+            IndexPosition::FIFTH => Value::String("fifth".to_string()),
+            IndexPosition::SIXTH => Value::String("sixth".to_string()),
+            IndexPosition::SEVENTH => Value::String("seventh".to_string()),
+            IndexPosition::EIGHTH => Value::String("eighth".to_string()),
+            IndexPosition::NINTH => Value::String("ninth".to_string()),
+            IndexPosition::TENTH => Value::String("tenth".to_string()),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum TableIndexType {
     NAME(Name),
@@ -305,6 +350,30 @@ pub enum TableIndexType {
     FLOAT64(f64),
     CHECKSUM256(Checksum256),
     CHECKSUM160(Checksum160),
+}
+
+impl TableIndexType {
+    pub fn to_json(&self) -> Value {
+        match self {
+            TableIndexType::NAME(name) => json!(name.to_string()),
+            TableIndexType::UINT64(value) => json!(value.to_string()),
+            TableIndexType::UINT128(value) => json!(value.to_string()),
+            TableIndexType::FLOAT64(value) => json!(value.to_string()),
+            TableIndexType::CHECKSUM256(value) => json!(value.to_index()),
+            TableIndexType::CHECKSUM160(value) => json!(value.as_string()),
+        }
+    }
+
+    pub fn get_key_type(&self) -> Value {
+        match self {
+            TableIndexType::NAME(_) => Value::String("name".to_string()),
+            TableIndexType::UINT64(_) => Value::String("i64".to_string()),
+            TableIndexType::UINT128(_) => Value::String("i128".to_string()),
+            TableIndexType::FLOAT64(_) => Value::String("float64".to_string()),
+            TableIndexType::CHECKSUM256(_) => Value::String("sha256".to_string()),
+            TableIndexType::CHECKSUM160(_) => Value::String("ripemd160".to_string()),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -326,12 +395,46 @@ pub struct GetTableRowsParams {
 impl GetTableRowsParams {
     pub fn to_json(&self) -> String {
         let mut req: HashMap<&str, Value> = HashMap::new();
-        req.insert("json", Value::Bool(false));
         req.insert("code", Value::String(self.code.to_string()));
         req.insert("table", Value::String(self.table.to_string()));
 
         let scope = self.scope.unwrap_or(self.code);
         req.insert("scope", Value::String(scope.to_string()));
+
+        req.insert("json", Value::Bool(false));
+
+        if let Some(limit) = &self.limit {
+            req.insert("limit", Value::String(limit.to_string()));
+        }
+
+        if let Some(reverse) = &self.reverse {
+            req.insert("reverse", Value::Bool(*reverse));
+        }
+
+        if self.lower_bound.is_some() || self.upper_bound.is_some() {
+            if self.upper_bound.is_none() {
+                let lower = self.lower_bound.as_ref().unwrap();
+                req.insert("key_type", lower.get_key_type());
+                req.insert("lower_bound", lower.to_json());
+            } else if self.lower_bound.is_none() {
+                let upper = self.upper_bound.as_ref().unwrap();
+                req.insert("key_type", upper.get_key_type());
+                req.insert("upper_bound", upper.to_json());
+            } else {
+                let lower = self.lower_bound.as_ref().unwrap();
+                let upper = self.upper_bound.as_ref().unwrap();
+                if discriminant(lower) != discriminant(upper) {
+                    panic!("lower_bound and upper_bound must be of the same type");
+                }
+                req.insert("key_type", lower.get_key_type());
+                req.insert("lower_bound", lower.to_json());
+                req.insert("upper_bound", upper.to_json());
+            }
+
+            if let Some(index_position) = &self.index_position {
+                req.insert("index_position", index_position.to_json());
+            }
+        }
 
         json!(req).to_string()
     }
@@ -566,19 +669,27 @@ pub struct ABIResponse {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GetBlockResponse {
+    #[serde(rename = "timestamp")]
+    #[serde(deserialize_with = "deserialize_timepoint")]
     pub time_point: TimePoint,
+    #[serde(deserialize_with = "deserialize_name")]
     pub producer: Name,
     pub confirmed: u16,
-    pub pevious: BlockId,
+    #[serde(deserialize_with = "deserialize_block_id")]
+    pub previous: BlockId,
+    #[serde(deserialize_with = "deserialize_checksum256")]
     pub transaction_mroot: Checksum256,
+    #[serde(deserialize_with = "deserialize_checksum256")]
     pub action_mroot: Checksum256,
     pub schedule_version: u32,
     pub new_producers: Option<NewProducers>,
     pub header_extensions: Option<HeaderExtension>,
     // pub new_protocol_features: any,
+    #[serde(deserialize_with = "deserialize_signature")]
     pub producer_signature: Signature,
     pub transactions: Vec<GetBlockResponseTransactionReceipt>,
     pub block_extensions: Option<Vec<BlockExtension>>,
+    #[serde(deserialize_with = "deserialize_block_id")]
     pub id: BlockId,
     pub block_num: u32,
     pub ref_block_prefix: u32,
@@ -603,7 +714,7 @@ pub struct HeaderExtension {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GetBlockResponseTransactionReceipt {
-    pub trx: TrxVariant, //TODO: Implement TxVarient
+    pub trx: String, //TODO: Implement TxVarient
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

@@ -53,6 +53,10 @@ impl Debug for MockProvider {
 
 #[async_trait::async_trait]
 impl Provider for MockProvider {
+    fn set_debug(&mut self, debug: bool) {
+        // TODO: Implement if we want debugging of the mock response in tests
+    }
+
     async fn post(&self, path: String, body: Option<String>) -> Result<String, String> {
         self.call(HTTPMethod::POST, path, body)
     }

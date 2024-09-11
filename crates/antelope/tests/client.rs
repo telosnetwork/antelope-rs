@@ -1,4 +1,5 @@
-use antelope::api::v1::structs::ErrorResponse;
+use antelope::api::client::DefaultProvider;
+use antelope::api::v1::structs::{ErrorResponse, IndexPosition, TableIndexType};
 use antelope::{
     api::{
         client::APIClient,
@@ -191,7 +192,7 @@ pub async fn chain_get_abi() {
 
     // Check tables parsing
     assert_eq!(abi_object.abi.tables.len(), 2);
-    assert_eq!(abi_object.abi.tables[0].name, "accounts");
+    assert_eq!(abi_object.abi.tables[0].name, name!("accounts"));
 }
 
 #[test]

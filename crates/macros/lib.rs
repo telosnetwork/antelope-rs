@@ -73,7 +73,7 @@ pub fn enum_packer_macro(input: TokenStream) -> TokenStream {
 
     let gen = match input.data {
         syn::Data::Enum(data_enum) => {
-            let size_variants = data_enum.variants.iter().enumerate().map(|(_i, variant)| {
+            let size_variants = data_enum.variants.iter().map(|variant| {
                 let variant_ident = &variant.ident;
                 match &variant.fields {
                     Fields::Unnamed(fields) => {
