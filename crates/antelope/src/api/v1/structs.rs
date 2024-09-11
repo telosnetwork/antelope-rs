@@ -529,7 +529,9 @@ pub struct AccountRexInfoMaturities {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountResourceLimit {
     used: i64,
+    #[serde(deserialize_with = "deserialize_i64_from_string_or_i64")]
     available: i64,
+    #[serde(deserialize_with = "deserialize_i64_from_string_or_i64")]
     max: i64,
     #[serde(
         deserialize_with = "deserialize_optional_timepoint",
@@ -650,6 +652,7 @@ pub struct AccountVoterInfo {
     #[serde(deserialize_with = "deserialize_vec_name")]
     producers: Vec<Name>,
     staked: Option<i64>,
+    last_stake: Option<i64>,
     #[serde(deserialize_with = "deserialize_f64_from_string")]
     last_vote_weight: f64,
     #[serde(deserialize_with = "deserialize_f64_from_string")]
@@ -945,4 +948,15 @@ where
     }
 
     deserializer.deserialize_any(StringOrI64Visitor)
+}
+
+
+// TODO: Fix it!
+#[test]
+fn test_deserialize() {
+    let test_string = "{\"account_name\":\"eosio\",\"head_block_num\":56,\"head_block_time\":\"2024-08-29T15:27:24.500\",\"privileged\":true,\"last_code_update\":\"2024-08-29T14:06:02.000\",\"created\":\"2019-08-07T12:00:00.000\",\"core_liquid_balance\":\"99986000.0000 TLOS\",\"ram_quota\":-1,\"net_weight\":-1,\"cpu_weight\":-1,\"net_limit\":{\"used\":-1,\"available\":-1,\"max\":-1,\"last_usage_update_time\":\"2024-08-29T15:27:25.000\",\"current_used\":-1},\"cpu_limit\":{\"used\":-1,\"available\":-1,\"max\":-1,\"last_usage_update_time\":\"2024-08-29T15:27:25.000\",\"current_used\":-1},\"ram_usage\":3485037,\"permissions\":[{\"perm_name\":\"active\",\"parent\":\"owner\",\"required_auth\":{\"threshold\":1,\"keys\":[{\"key\":\"EOS5uHeBsURAT6bBXNtvwKtWaiDSDJSdSmc96rHVws5M1qqVCkAm6\",\"weight\":1}],\"accounts\":[],\"waits\":[]},\"linked_actions\":[]},{\"perm_name\":\"owner\",\"parent\":\"\",\"required_auth\":{\"threshold\":1,\"keys\":[{\"key\":\"EOS5uHeBsURAT6bBXNtvwKtWaiDSDJSdSmc96rHVws5M1qqVCkAm6\",\"weight\":1}],\"accounts\":[],\"waits\":[]},\"linked_actions\":[]}],\"total_resources\":null,\"self_delegated_bandwidth\":null,\"refund_request\":null,\"voter_info\":null,\"rex_info\":null,\"subjective_cpu_bill_limit\":{\"used\":0,\"available\":0,\"max\":0,\"last_usage_update_time\":\"2000-01-01T00:00:00.000\",\"current_used\":0},\"eosio_any_linked_actions\":[]}";
+    let test_string2 = "{\"account_name\":\"alice\",\"head_block_num\":56,\"head_block_time\":\"2024-08-29T15:27:24.500\",\"privileged\":false,\"last_code_update\":\"1970-01-01T00:00:00.000\",\"created\":\"2024-08-29T14:06:02.000\",\"core_liquid_balance\":\"100.0000 TLOS\",\"ram_quota\":610645714,\"net_weight\":10000000,\"cpu_weight\":10000000,\"net_limit\":{\"used\":0,\"available\":\"95719449600\",\"max\":\"95719449600\",\"last_usage_update_time\":\"2024-08-29T14:06:02.000\",\"current_used\":0},\"cpu_limit\":{\"used\":0,\"available\":\"364783305600\",\"max\":\"364783305600\",\"last_usage_update_time\":\"2024-08-29T14:06:02.000\",\"current_used\":0},\"ram_usage\":3566,\"permissions\":[{\"perm_name\":\"active\",\"parent\":\"owner\",\"required_auth\":{\"threshold\":1,\"keys\":[{\"key\":\"EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc\",\"weight\":1}],\"accounts\":[],\"waits\":[]},\"linked_actions\":[]},{\"perm_name\":\"owner\",\"parent\":\"\",\"required_auth\":{\"threshold\":1,\"keys\":[{\"key\":\"EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc\",\"weight\":1}],\"accounts\":[],\"waits\":[]},\"linked_actions\":[]}],\"total_resources\":{\"owner\":\"alice\",\"net_weight\":\"1000.0000 TLOS\",\"cpu_weight\":\"1000.0000 TLOS\",\"ram_bytes\":610644314},\"self_delegated_bandwidth\":{\"from\":\"alice\",\"to\":\"alice\",\"net_weight\":\"1000.0000 TLOS\",\"cpu_weight\":\"1000.0000 TLOS\"},\"refund_request\":null,\"voter_info\":{\"owner\":\"alice\",\"proxy\":\"\",\"producers\":[],\"staked\":20000000,\"last_stake\":0,\"last_vote_weight\":\"0.00000000000000000\",\"proxied_vote_weight\":\"0.00000000000000000\",\"is_proxy\":0,\"flags1\":0,\"reserved2\":0,\"reserved3\":\"0 \"},\"rex_info\":null,\"subjective_cpu_bill_limit\":{\"used\":0,\"available\":0,\"max\":0,\"last_usage_update_time\":\"2000-01-01T00:00:00.000\",\"current_used\":0},\"eosio_any_linked_actions\":[]}";
+    let test_string3 = "{\"account_name\":\"alice\",\"head_block_num\":56,\"head_block_time\":\"2024-08-29T15:46:42.000\",\"privileged\":false,\"last_code_update\":\"1970-01-01T00:00:00.000\",\"created\":\"2024-08-29T14:06:02.000\",\"ram_quota\":610645714,\"net_weight\":10000000,\"cpu_weight\":10000000,\"net_limit\":{\"used\":0,\"available\":\"95719449600\",\"max\":\"95719449600\",\"last_usage_update_time\":\"2024-08-29T14:06:02.000\",\"current_used\":0},\"cpu_limit\":{\"used\":0,\"available\":\"364783305600\",\"max\":\"364783305600\",\"last_usage_update_time\":\"2024-08-29T14:06:02.000\",\"current_used\":0},\"ram_usage\":3566,\"permissions\":[{\"perm_name\":\"active\",\"parent\":\"owner\",\"required_auth\":{\"threshold\":1,\"keys\":[{\"key\":\"EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc\",\"weight\":1}],\"accounts\":[],\"waits\":[]},\"linked_actions\":[]},{\"perm_name\":\"owner\",\"parent\":\"\",\"required_auth\":{\"threshold\":1,\"keys\":[{\"key\":\"EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc\",\"weight\":1}],\"accounts\":[],\"waits\":[]},\"linked_actions\":[]}],\"total_resources\":{\"owner\":\"alice\",\"net_weight\":\"1000.0000 TLOS\",\"cpu_weight\":\"1000.0000 TLOS\",\"ram_bytes\":610644314},\"self_delegated_bandwidth\":{\"from\":\"alice\",\"to\":\"alice\",\"net_weight\":\"1000.0000 TLOS\",\"cpu_weight\":\"1000.0000 TLOS\"},\"refund_request\":null,\"voter_info\":{\"owner\":\"alice\",\"proxy\":\"\",\"producers\":[],\"staked\":20000000,\"last_stake\":0,\"last_vote_weight\":\"0.00000000000000000\",\"proxied_vote_weight\":\"0.00000000000000000\",\"is_proxy\":0,\"flags1\":0,\"reserved2\":0,\"reserved3\":\"0 \"},\"rex_info\":null,\"subjective_cpu_bill_limit\":{\"used\":0,\"available\":0,\"max\":0,\"last_usage_update_time\":\"2000-01-01T00:00:00.000\",\"current_used\":0},\"eosio_any_linked_actions\":[]}";
+    let res = serde_json::from_str::<AccountObject>(&test_string3).unwrap();
+    println!("{:#?}", res);
 }
