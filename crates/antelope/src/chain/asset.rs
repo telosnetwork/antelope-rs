@@ -431,6 +431,32 @@ where
     deserializer.deserialize_str(AssetVisitor)
 }
 
+pub(crate) fn deserialize_optional_asset<'de, D>(deserializer: D) -> Result<Option<Asset>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct OptionalAssetVisitor;
+
+    impl<'de> de::Visitor<'de> for OptionalAssetVisitor {
+        type Value = Option<Asset>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str(
+                "an optional string representing an asset in the format 'amount symbol_code'",
+            )
+        }
+
+        fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            Ok(Some(deserialize_asset(deserializer)?))
+        }
+    }
+
+    deserializer.deserialize_option(OptionalAssetVisitor)
+}
+
 #[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ExtendedAsset {
     quantity: Asset,

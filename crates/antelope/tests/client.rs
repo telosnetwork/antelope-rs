@@ -150,7 +150,7 @@ async fn chan_get_account() {
 
             assert_eq!(
                 account.core_liquid_balance,
-                Asset::from_string("128559.5000 TLOS")
+                Some(Asset::from_string("128559.5000 TLOS"))
             );
         }
         Err(e) => {

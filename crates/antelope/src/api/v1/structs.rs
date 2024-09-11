@@ -11,7 +11,7 @@ use crate::chain::public_key::PublicKey;
 use crate::chain::signature::Signature;
 use crate::chain::{
     action::{Action, PermissionLevel},
-    asset::{deserialize_asset, Asset},
+    asset::{deserialize_asset, deserialize_optional_asset, Asset},
     authority::Authority,
     block_id::{deserialize_block_id, deserialize_optional_block_id, BlockId},
     checksum::{deserialize_checksum256, Checksum160, Checksum256},
@@ -459,8 +459,12 @@ pub struct AccountObject {
     pub last_code_update: TimePoint,
     #[serde(deserialize_with = "deserialize_timepoint")]
     pub created: TimePoint,
-    #[serde(deserialize_with = "deserialize_asset")]
-    pub core_liquid_balance: Asset,
+    #[serde(
+        deserialize_with = "deserialize_optional_asset",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub core_liquid_balance: Option<Asset>,
     pub ram_quota: i64,
     pub net_weight: i64,
     pub cpu_weight: i64,
@@ -954,7 +958,7 @@ where
 mod tests {
     use crate::api::v1::structs::AccountObject;
 
-#[test]
+    #[test]
     fn deserialize_simple_account() {
         // This simple account response doesn't contain details about `total_resources`, `self_delegated_bandwidth`,
         // `refund_request`, `voter_info`, and `rex_info`.
@@ -1037,8 +1041,8 @@ mod tests {
         "#;
 
         let res = serde_json::from_str::<AccountObject>(&simple_account_json).unwrap();
-    println!("{:#?}", res);
-}
+        println!("{:#?}", res);
+    }
 
     #[test]
     fn deserialize_detailed_account() {
