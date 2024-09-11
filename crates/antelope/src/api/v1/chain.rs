@@ -128,7 +128,6 @@ impl<T: Provider> ChainAPI<T> {
                     Ok(block_response) => Ok(block_response),
                     Err(_serr) => {
                         // Attempt to parse the error response
-                        // println!("{:#?}", _serr);
                         match serde_json::from_str::<ErrorResponse>(&response) {
                             Ok(error_response) => Err(ClientError::SERVER(ServerError {
                                 error: error_response,
