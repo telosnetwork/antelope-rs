@@ -12,8 +12,13 @@ pub struct DefaultProvider {
 }
 
 impl DefaultProvider {
-    pub fn new(base_url: String) -> Result<Self, String> {
-        let client = Client::builder().build();
+    pub fn new(base_url: String, timeout: Option<u64>) -> Result<Self, String> {
+        let mut client_builder = Client::builder();
+        if timeout.is_some() {
+            client_builder =
+                client_builder.timeout(std::time::Duration::from_secs(timeout.unwrap()));
+        }
+        let client = client_builder.build();
         if client.is_err() {
             let err = client.err();
             let mut err_message = String::from("Error building http client");

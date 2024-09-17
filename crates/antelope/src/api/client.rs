@@ -40,15 +40,19 @@ pub struct APIClient<P: Provider> {
 }
 
 impl<P: Provider> APIClient<P> {
-    pub fn default_provider(base_url: String) -> Result<APIClient<DefaultProvider>, String> {
-        Self::default_provider_debug(base_url, false)
+    pub fn default_provider(
+        base_url: String,
+        timeout: Option<u64>,
+    ) -> Result<APIClient<DefaultProvider>, String> {
+        Self::default_provider_debug(base_url, timeout, false)
     }
 
     pub fn default_provider_debug(
         base_url: String,
+        timeout: Option<u64>,
         debug: bool,
     ) -> Result<APIClient<DefaultProvider>, String> {
-        let mut provider = DefaultProvider::new(base_url).unwrap();
+        let mut provider = DefaultProvider::new(base_url, timeout).unwrap();
         provider.set_debug(debug);
 
         APIClient::custom_provider(provider)
