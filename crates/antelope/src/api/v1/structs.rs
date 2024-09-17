@@ -440,6 +440,7 @@ impl GetTableRowsParams {
     }
 }
 
+#[derive(Debug)]
 pub struct GetTableRowsResponse<T> {
     pub rows: Vec<T>,
     pub more: bool,
