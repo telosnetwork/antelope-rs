@@ -9,6 +9,7 @@ pub enum KeyType {
     #[default]
     K1,
     R1,
+    WA,
     // ... other variants ...
 }
 
@@ -27,6 +28,10 @@ impl KeyTypeTrait for KeyType {
         if s == "R1" {
             return Ok(KeyType::R1);
         }
+        
+        if s == "WA" {
+            return Ok(KeyType::WA);
+        }
 
         Err(format!("Unknown key type {s}"))
     }
@@ -39,6 +44,11 @@ impl KeyTypeTrait for KeyType {
         if i == 1 {
             return Ok(KeyType::R1);
         }
+        
+        if i == 2 {
+            return Ok(KeyType::WA);
+        }
+        
         Err(format!("Unknown KeyType index {i}"))
     }
 
@@ -46,6 +56,7 @@ impl KeyTypeTrait for KeyType {
         match self {
             KeyType::K1 => 0,
             KeyType::R1 => 1,
+            KeyType::WA => 2,
         }
     }
 }
@@ -58,6 +69,9 @@ impl Display for KeyType {
             }
             KeyType::R1 => {
                 write!(f, "R1")
+            }
+            KeyType::WA => {
+                write!(f, "WA")
             }
         }
     }
@@ -73,6 +87,7 @@ impl Packer for KeyType {
         match self {
             KeyType::K1 => data[0] = 0u8,
             KeyType::R1 => data[0] = 1u8,
+            KeyType::WA => data[0] = 2u8,
         }
         self.size()
     }

@@ -74,6 +74,7 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
 
             Signature::from_r1_signature(signature, recovery)
         }
+        KeyType::WA => Err("Unsupported key type".to_string()),
     }
 }
 

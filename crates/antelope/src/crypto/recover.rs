@@ -36,5 +36,6 @@ pub fn recover_message(signature: &Signature, message_bytes: &Vec<u8>) -> Public
             let compressed_bytes = compressed.as_bytes();
             PublicKey::from_bytes(compressed_bytes.to_vec(), key_type)
         }
+        KeyType::WA => panic!("Unsupported key type"),
     }
 }
