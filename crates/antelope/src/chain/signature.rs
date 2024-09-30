@@ -9,6 +9,7 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 
+use crate::chain::varint::VarUint32;
 use crate::{
     base58,
     base58::encode_ripemd160_check,
@@ -20,7 +21,6 @@ use crate::{
     crypto::{recover::recover_message, verify::verify_message},
     util::slice_copy,
 };
-use crate::chain::varint::VarUint32;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Signature {
@@ -216,12 +216,12 @@ impl Packer for Signature {
                 let mut client_json = VarUint32::default();
                 size += client_json.unpack(&data[size..]); // read the varuint32 size of the client_json
                 size += client_json.value() as usize; // add the client_json size
-                // set value to be the whole payload (after the key type byte):
-                //      compact sig,
-                //      varuint32 auth data size,
-                //      auth data,
-                //      varuint32 client_json size,
-                //      client_json
+                                                      // set value to be the whole payload (after the key type byte):
+                                                      //      compact sig,
+                                                      //      varuint32 auth data size,
+                                                      //      auth data,
+                                                      //      varuint32 client_json size,
+                                                      //      client_json
                 self.value = data[1..size].to_vec();
             }
         }

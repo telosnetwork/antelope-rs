@@ -28,7 +28,7 @@ impl KeyTypeTrait for KeyType {
         if s == "R1" {
             return Ok(KeyType::R1);
         }
-        
+
         if s == "WA" {
             return Ok(KeyType::WA);
         }
@@ -44,11 +44,11 @@ impl KeyTypeTrait for KeyType {
         if i == 1 {
             return Ok(KeyType::R1);
         }
-        
+
         if i == 2 {
             return Ok(KeyType::WA);
         }
-        
+
         Err(format!("Unknown KeyType index {i}"))
     }
 
