@@ -316,27 +316,25 @@ fn signature() {
     assert_eq!(decoded_size, 66);
     assert_eq!(decoded_sig.to_string(), json);
 }
+
+#[test]
+fn signature_wa() {
+    let data = hex_to_bytes("0220d9132bbdb219e4e2d99af9c507e3597f86b615814f36672d501034861792bbcf21a46d1a2eb12bace4a29100b942f987494f3aefc8efb2d5af4d4d8de3e0871525aa14905af60ca17a1bb80e0cf9c3b46908a0f14f72567a2f140c3a3bd2ef074c010000006d737b226f726967696e223a2268747470733a2f2f6b656f73642e696e76616c6964222c2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a226f69567235794848304a4336453962446675347142735a6a527a70416c5131505a50436e5974766850556b3d227d");
+    let sig_str = "SIG_WA_2AAAuLJS3pLPgkQQPqLsehL6VeRBaAZS7NYM91UYRUrSAEfUvzKN7DCSwhjsDqe74cZNWKUUGAHGG8ddSA7cvUxChbfKxLSrDCpwe6MVUqz4PDdyCt5tXhEJmKekxG1o1ucY3LVj8Vi9rRbzAkKPCzWqC8cPcUtpLHNG8qUKkQrN4Xuwa9W8rsBiUKwZv1ToLyVhLrJe42pvHYBXicp4E8qec5E4m6SX11KuXERFcV48Mhiie2NyaxdtNtNzQ5XZ5hjBkxRujqejpF4SNHvdAGKRBbvhkiPLA25FD3xoCbrN26z72";
+
+    let sig = Signature::from_string(sig_str).unwrap();
+    let encoded = Encoder::pack(&sig);
+    assert_eq!(encoded, data);
+
+    let mut decoder = Decoder::new(data.as_slice());
+    let decoded_sig = &mut Signature::default();
+    let decoded_size = decoder.unpack(decoded_sig);
+    let decoded_sig_str = decoded_sig.to_string();
+    assert_eq!(decoded_size, 220);
+    assert_eq!(decoded_sig_str, sig_str);
+}
+
 /*
-test('signature (wa)', function () {
-    const sig =
-        'SIG_WA_2AAAuLJS3pLPgkQQPqLsehL6VeRBaAZS7NYM91UYRUrSAEfUvzKN7DCSwhjsDqe74cZNWKUU' +
-        'GAHGG8ddSA7cvUxChbfKxLSrDCpwe6MVUqz4PDdyCt5tXhEJmKekxG1o1ucY3LVj8Vi9rRbzAkKPCzW' +
-        'qC8cPcUtpLHNG8qUKkQrN4Xuwa9W8rsBiUKwZv1ToLyVhLrJe42pvHYBXicp4E8qec5E4m6SX11KuXE' +
-        'RFcV48Mhiie2NyaxdtNtNzQ5XZ5hjBkxRujqejpF4SNHvdAGKRBbvhkiPLA25FD3xoCbrN26z72'
-    const data =
-        '0220d9132bbdb219e4e2d99af9c507e3597f86b615814f36672d501034861792bbcf21a46d1a2eb12bace4a29100b942f987494f3aefc8' +
-        'efb2d5af4d4d8de3e0871525aa14905af60ca17a1bb80e0cf9c3b46908a0f14f72567a2f140c3a3bd2ef074c010000006d737b226f7269' +
-        '67696e223a2268747470733a2f2f6b656f73642e696e76616c6964222c2274797065223a22776562617574686e2e676574222c22636861' +
-        '6c6c656e6765223a226f69567235794848304a4336453962446675347142735a6a527a70416c5131505a50436e5974766850556b3d227d'
-    const object = Signature.from(sig)
-    const json = `"${sig}"`
-
-    assert.equal(Serializer.encode({object}).hexString, data)
-    assert.equal(JSON.stringify(Serializer.decode({data, type: Signature})), json)
-    assert.equal(JSON.stringify(Serializer.decode({json, type: 'signature'})), json)
-    assert.equal(JSON.stringify(object), json)
-})
-
 test('time point', function () {
     const data = 'f8b88a3cd5620400'
     const object = TimePoint.from(1234567890123000)
