@@ -53,7 +53,7 @@ impl Debug for MockProvider {
 
 #[async_trait::async_trait]
 impl Provider for MockProvider {
-    fn set_debug(&mut self, debug: bool) {
+    fn set_debug(&mut self, _debug: bool) {
         // TODO: Implement if we want debugging of the mock response in tests
     }
 

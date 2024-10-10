@@ -191,7 +191,7 @@ pub struct SendTransactionResponseExceptionStack {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponseError {
-    pub code: u32,
+    pub code: Option<u32>,
     pub name: String,
     pub what: String,
     pub stack: Option<Vec<SendTransactionResponseExceptionStack>>,
@@ -273,9 +273,11 @@ pub struct ActionTrace {
     pub receiver: Name,
     pub act: Action,
     pub context_free: bool,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub elapsed: u64,
     pub console: String,
     pub trx_id: String,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub block_num: u64,
     pub block_time: String,
     pub producer_block_id: Option<String>,
@@ -290,10 +292,14 @@ pub struct ActionReceipt {
     #[serde(deserialize_with = "deserialize_name")]
     pub receiver: Name,
     pub act_digest: String,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub global_sequence: u64,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub recv_sequence: u64,
     pub auth_sequence: Vec<AuthSequence>,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub code_sequence: u64,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub abi_sequence: u64,
 }
 
@@ -857,6 +863,44 @@ where
     }
 
     deserializer.deserialize_any(NumberToBoolVisitor)
+}
+
+fn deserialize_u64_from_string_or_u64<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct U64OrStringVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for U64OrStringVisitor {
+        type Value = u64;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("an integer or a string representation of an integer")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            value.parse::<u64>().map_err(E::custom)
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(value)
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            u64::try_from(value).map_err(|_| E::custom("u64 value too large for i64"))
+        }
+    }
+
+    deserializer.deserialize_any(U64OrStringVisitor)
 }
 
 fn deserialize_i64_from_string_or_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
