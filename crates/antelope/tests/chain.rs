@@ -108,12 +108,12 @@ fn block_id() {
         Ok(bytes) => match BlockId::from_bytes(&bytes) {
             Ok(block_id) => block_id,
             Err(err) => {
-                eprintln!("Error creating BlockId: {}", err);
+                print!("Error creating BlockId: {}", err);
                 return;
             }
         },
         Err(err) => {
-            eprintln!("Error decoding hex string: {}", err);
+            print!("Error decoding hex string: {}", err);
             return;
         }
     };
@@ -420,13 +420,13 @@ fn transaction() {
 */
 
 // fn print_values(perm: &PermissionLevel, other_perm: &PermissionLevel) {
-//     println!("------Testing to_string()------");
-//     println!("Permission 1: {}", perm.to_string());
-//     println!("Permission 2: {}", other_perm.to_string());
+//     info!("------Testing to_string()------");
+//     info!("Permission 1: {}", perm.to_string());
+//     info!("Permission 2: {}", other_perm.to_string());
 
-//     println!("--------Testing json()--------");
-//     println!("Permission 1: {:?}", perm.to_json());
-//     println!("Permission 2: {:?}", other_perm.to_json());
+//     info!("--------Testing json()--------");
+//     info!("Permission 1: {:?}", perm.to_json());
+//     info!("Permission 2: {:?}", other_perm.to_json());
 // }
 
 #[test]

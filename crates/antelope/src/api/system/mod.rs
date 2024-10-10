@@ -15,6 +15,7 @@ use crate::name;
 use crate::serializer::Encoder;
 use sha2::{Digest, Sha256};
 use std::path::Path;
+use tracing::info;
 
 #[derive(Debug, Default, Clone)]
 pub struct SystemAPI<T: Provider> {
@@ -124,7 +125,7 @@ impl<T: Provider> SystemAPI<T> {
         let mut hasher = Sha256::new();
         hasher.update(&wasm);
         let wasm_hash = hasher.finalize();
-        println!(
+        info!(
             "Setting contract for account: {:?}, with hash: {:?}",
             account.as_string(),
             wasm_hash

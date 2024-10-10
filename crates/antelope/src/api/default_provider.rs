@@ -1,8 +1,7 @@
-use std::fmt::{Debug, Formatter};
-
-use reqwest::Client;
-
 use crate::api::client::Provider;
+use reqwest::Client;
+use std::fmt::{Debug, Formatter};
+use tracing::info;
 
 #[derive(Default, Clone)]
 pub struct DefaultProvider {
@@ -43,7 +42,7 @@ impl Debug for DefaultProvider {
 impl Provider for DefaultProvider {
     async fn get(&self, path: String) -> Result<String, String> {
         if self.debug {
-            println!("GET {}", self.base_url.to_string() + &path);
+            info!("GET {}", self.base_url.to_string() + &path);
         }
 
         let res = self
@@ -54,7 +53,7 @@ impl Provider for DefaultProvider {
         if res.is_err() {
             let res_err = res.err().unwrap().to_string();
             if self.debug {
-                println!("Error: {}", res_err);
+                info!("Error: {}", res_err);
             }
 
             return Err(res_err);
@@ -62,7 +61,7 @@ impl Provider for DefaultProvider {
 
         let response = res.unwrap().text().await.unwrap();
         if self.debug {
-            println!("Response: {}", response);
+            info!("Response: {}", response);
         }
 
         Ok(response)
@@ -73,7 +72,7 @@ impl Provider for DefaultProvider {
         if body.is_some() {
             let body_str = body.unwrap();
             if self.debug {
-                println!("POST {} {}", self.base_url.to_string() + &path, body_str);
+                info!("POST {} {}", self.base_url.to_string() + &path, body_str);
             }
 
             builder = builder.body(body_str);
@@ -82,7 +81,7 @@ impl Provider for DefaultProvider {
         if res.is_err() {
             let err_str = res.err().unwrap().to_string();
             if self.debug {
-                println!("Error: {}", err_str);
+                info!("Error: {}", err_str);
             }
 
             return Err(err_str);
@@ -90,7 +89,7 @@ impl Provider for DefaultProvider {
 
         let response = res.unwrap().text().await.unwrap();
         if self.debug {
-            println!("Response: {}", response);
+            info!("Response: {}", response);
         }
 
         Ok(response)

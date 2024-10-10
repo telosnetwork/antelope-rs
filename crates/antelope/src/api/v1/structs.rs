@@ -1,11 +1,5 @@
 use std::collections::HashMap;
 
-use serde::de::{self, Visitor};
-use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{json, Value};
-use std::fmt;
-use std::mem::discriminant;
-
 use crate::chain::abi::ABI;
 use crate::chain::public_key::PublicKey;
 use crate::chain::signature::Signature;
@@ -21,6 +15,12 @@ use crate::chain::{
     transaction::TransactionHeader,
     varint::VarUint32,
 };
+use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::{json, Value};
+use std::fmt;
+use std::mem::discriminant;
+use tracing::info;
 
 #[derive(Debug)]
 pub enum ClientError<T> {
@@ -200,7 +200,7 @@ pub struct SendTransactionResponseError {
 
 impl SendTransactionResponseError {
     pub fn print_error(&self) {
-        self.details.iter().for_each(|d| println!("{:?}", d));
+        self.details.iter().for_each(|d| info!("{:?}", d));
     }
 
     pub fn get_stack(&self) -> String {

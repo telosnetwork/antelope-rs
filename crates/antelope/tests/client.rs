@@ -1,3 +1,4 @@
+use tracing::info;
 use antelope::api::client::DefaultProvider;
 use antelope::api::v1::structs::{ErrorResponse, IndexPosition, TableIndexType};
 use antelope::{
