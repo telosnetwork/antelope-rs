@@ -1,5 +1,7 @@
 use antelope::api::client::DefaultProvider;
-use antelope::api::v1::structs::{ErrorResponse, IndexPosition, SendTransactionResponse, TableIndexType};
+use antelope::api::v1::structs::{
+    ErrorResponse, IndexPosition, SendTransactionResponse, TableIndexType,
+};
 use antelope::{
     api::{
         client::APIClient,
@@ -267,13 +269,16 @@ fn test_send_transaction_response() {
         "error_code": null
       }
     }"#;
-    
+
     let parsed = serde_json::from_str::<SendTransactionResponse>(&response_json);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
     let traces = parsed.processed.action_traces;
     assert_eq!(traces.len(), 1usize);
-    assert_eq!(traces.first().unwrap().receipt.global_sequence, 10128941153u64);
+    assert_eq!(
+        traces.first().unwrap().receipt.global_sequence,
+        10128941153u64
+    );
 }
 
 #[test]
@@ -306,7 +311,8 @@ fn test_error_response_parsing() {
     let error_response = parsed_error.expect("Failed to parse JSON");
 
     assert_eq!(
-        error_response.error.code, Some(3050003),
+        error_response.error.code,
+        Some(3050003),
         "Error code did not match"
     );
     assert_eq!(

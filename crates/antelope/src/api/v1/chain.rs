@@ -184,7 +184,10 @@ impl<T: Provider> ChainAPI<T> {
                     Err(e) => {
                         // If parsing the error response also fails, consider it an encoding error
                         Err(ClientError::ENCODING(EncodingError {
-                            message: format!("Failed to parse response: {} Raw response was: {}", e, result),
+                            message: format!(
+                                "Failed to parse response: {} Raw response was: {}",
+                                e, result
+                            ),
                         }))
                     }
                 }
