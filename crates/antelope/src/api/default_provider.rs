@@ -1,11 +1,10 @@
 use crate::api::client::Provider;
 use reqwest::Client;
 use std::fmt::{Debug, Formatter};
-use tracing::info;
+use tracing::{debug};
 
 #[derive(Default, Clone)]
 pub struct DefaultProvider {
-    debug: bool,
     base_url: String,
     client: Client,
 }
@@ -25,7 +24,6 @@ impl DefaultProvider {
         let url = base_url.trim_end_matches('/');
 
         Ok(Self {
-            debug: false,
             base_url: String::from(url),
             client: client.unwrap(),
         })
@@ -41,10 +39,7 @@ impl Debug for DefaultProvider {
 #[async_trait::async_trait]
 impl Provider for DefaultProvider {
     async fn get(&self, path: String) -> Result<String, String> {
-        if self.debug {
-            info!("GET {}", self.base_url.to_string() + &path);
-        }
-
+        debug!("GET {}", self.base_url.to_string() + &path);
         let res = self
             .client
             .get(self.base_url.to_string() + &path)
@@ -52,18 +47,12 @@ impl Provider for DefaultProvider {
             .await;
         if res.is_err() {
             let res_err = res.err().unwrap().to_string();
-            if self.debug {
-                info!("Error: {}", res_err);
-            }
-
+            debug!("Error: {}", res_err);
             return Err(res_err);
         }
 
         let response = res.unwrap().text().await.unwrap();
-        if self.debug {
-            info!("Response: {}", response);
-        }
-
+        debug!("Response: {}", response);
         Ok(response)
     }
 
@@ -71,31 +60,18 @@ impl Provider for DefaultProvider {
         let mut builder = self.client.post(self.base_url.to_string() + &path);
         if body.is_some() {
             let body_str = body.unwrap();
-            if self.debug {
-                info!("POST {} {}", self.base_url.to_string() + &path, body_str);
-            }
-
+            debug!("POST {} {}", self.base_url.to_string() + &path, body_str);
             builder = builder.body(body_str);
         }
         let res = builder.send().await;
         if res.is_err() {
             let err_str = res.err().unwrap().to_string();
-            if self.debug {
-                info!("Error: {}", err_str);
-            }
-
+            debug!("Error: {}", err_str);
             return Err(err_str);
         }
 
         let response = res.unwrap().text().await.unwrap();
-        if self.debug {
-            info!("Response: {}", response);
-        }
-
+        debug!("Response: {}", response);
         Ok(response)
-    }
-
-    fn set_debug(&mut self, debug: bool) {
-        self.debug = debug;
     }
 }
