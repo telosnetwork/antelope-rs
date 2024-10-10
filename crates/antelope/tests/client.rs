@@ -1,4 +1,4 @@
-use antelope::api::v1::structs::{ErrorResponse};
+use antelope::api::v1::structs::ErrorResponse;
 use antelope::{
     api::{
         client::APIClient,

@@ -1,7 +1,7 @@
 use crate::api::client::Provider;
 use reqwest::Client;
 use std::fmt::{Debug, Formatter};
-use tracing::{debug};
+use tracing::debug;
 
 #[derive(Default, Clone)]
 pub struct DefaultProvider {
