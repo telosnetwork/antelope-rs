@@ -1152,11 +1152,7 @@ fn setcode() {
     hasher.update(&wasm);
     let wasm_hash = hasher.finalize();
     let wasm_hash_hex = bytes_to_hex(&wasm_hash.to_vec());
-    println!(
-        "Setting contract for account: {:?}, with hash: {:?}",
-        account.as_string(),
-        wasm_hash_hex
-    );
+
     assert_eq!(
         wasm_hash_hex,
         "295586a9f3b2de36d637dbde251106cee7b23d3fd1e4d0162df43c3bbaa6e800"
