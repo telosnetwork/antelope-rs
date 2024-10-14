@@ -39,6 +39,11 @@ pub struct APIClient<P: Provider> {
 }
 
 impl<P: Provider> APIClient<P> {
+    pub fn default_provider(base_url: String) -> Result<APIClient<DefaultProvider>, String> {
+        let provider = DefaultProvider::new(base_url)?;
+        APIClient::custom_provider(provider)
+    }
+
     pub fn custom_provider(provider: P) -> Result<Self, String> {
         Ok(APIClient {
             v1_chain: ChainAPI::new(provider),
