@@ -1085,7 +1085,7 @@ mod tests {
         }
         "#;
 
-        let res = serde_json::from_str::<AccountObject>(&simple_account_json).unwrap();
+        let res = serde_json::from_str::<AccountObject>(simple_account_json).unwrap();
         println!("{:#?}", res);
     }
 
@@ -1192,7 +1192,7 @@ mod tests {
         }
         "#;
 
-        let res = serde_json::from_str::<AccountObject>(&detailed_account_json).unwrap();
+        let res = serde_json::from_str::<AccountObject>(detailed_account_json).unwrap();
         println!("{:#?}", res);
     }
 
@@ -1299,7 +1299,7 @@ mod tests {
         }
         "#;
 
-        let res = serde_json::from_str::<AccountObject>(&detailed_account_json).unwrap();
+        let res = serde_json::from_str::<AccountObject>(detailed_account_json).unwrap();
         println!("{:#?}", res);
     }
 }

@@ -33,8 +33,9 @@ impl MockProvider {
         body: Option<String>,
     ) -> Result<String, String> {
         let mut to_hash = method.to_string() + &path;
-        if body.is_some() {
-            to_hash += body.unwrap().as_str();
+
+        if let Some(body) = body {
+            to_hash += body.as_str();
         }
 
         let filename = Checksum160::hash(to_hash.into_bytes()).to_string();

@@ -1,7 +1,4 @@
-use antelope::api::client::DefaultProvider;
-use antelope::api::v1::structs::{
-    ErrorResponse, IndexPosition, SendTransactionResponse, TableIndexType,
-};
+use antelope::api::v1::structs::{ErrorResponse, SendTransactionResponse};
 use antelope::{
     api::{
         client::APIClient,
@@ -122,15 +119,8 @@ async fn chain_send_transaction() {
     let failure_response = failed_result.err().unwrap();
     println!("{:?}", failure_response);
     match failure_response {
-        ClientError::SERVER(err) => {
-            assert_eq!(err.error.code, Some(3050003));
-        }
-        _ => {
-            assert!(
-                false,
-                "Failure response should be of type ClientError::SERVER"
-            )
-        }
+        ClientError::SERVER(err) => assert_eq!(err.error.code, Some(3050003)),
+        _ => panic!("Failure response should be of type ClientError::SERVER"),
     }
 }
 
@@ -270,7 +260,7 @@ fn test_send_transaction_response() {
       }
     }"#;
 
-    let parsed = serde_json::from_str::<SendTransactionResponse>(&response_json);
+    let parsed = serde_json::from_str::<SendTransactionResponse>(response_json);
     assert!(parsed.is_ok());
     let parsed = parsed.unwrap();
     let traces = parsed.processed.action_traces;
