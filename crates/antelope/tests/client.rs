@@ -22,9 +22,6 @@ async fn chain_get_info() {
 
     let result = client.v1_chain.get_info().await;
 
-    if let Err(e) = &result {
-        println!("Deserialization error: {:?}", e);
-    }
     assert!(result.is_ok());
 
     let result_unwrapped = result.unwrap();
@@ -117,7 +114,7 @@ async fn chain_send_transaction() {
         "Failed transaction result should be err"
     );
     let failure_response = failed_result.err().unwrap();
-    println!("{:?}", failure_response);
+
     match failure_response {
         ClientError::SERVER(err) => assert_eq!(err.error.code, Some(3050003)),
         _ => panic!("Failure response should be of type ClientError::SERVER"),
@@ -147,8 +144,7 @@ async fn chan_get_account() {
         }
         Err(e) => {
             // Log or handle errors here to understand parsing issues
-            println!("Failed to parse JSON: {:?}", e);
-            panic!("Parsing failed for the given JSON data.");
+            panic!("Failed to parse JSON: {:?}", e);
         }
     }
 }
@@ -160,9 +156,6 @@ pub async fn chain_get_abi() {
 
     let result = client.v1_chain.get_abi("eosio.token".to_string()).await;
 
-    if let Err(e) = &result {
-        println!("Deserialization error: {:?}", e);
-    }
     assert!(result.is_ok());
 
     let abi_object = result.unwrap();

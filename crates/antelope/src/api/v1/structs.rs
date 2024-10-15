@@ -21,6 +21,7 @@ use crate::chain::{
     transaction::TransactionHeader,
     varint::VarUint32,
 };
+use tracing::info;
 
 #[derive(Debug)]
 pub enum ClientError<T> {
@@ -200,7 +201,7 @@ pub struct SendTransactionResponseError {
 
 impl SendTransactionResponseError {
     pub fn print_error(&self) {
-        self.details.iter().for_each(|d| println!("{:?}", d));
+        self.details.iter().for_each(|d| info!("{:?}", d));
     }
 
     pub fn get_stack(&self) -> String {

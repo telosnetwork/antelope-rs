@@ -29,7 +29,6 @@ impl Display for HTTPMethod {
 
 #[async_trait::async_trait]
 pub trait Provider: Debug + Default + Sync + Send {
-    fn set_debug(&mut self, debug: bool);
     async fn post(&self, path: String, body: Option<String>) -> Result<String, String>;
     async fn get(&self, path: String) -> Result<String, String>;
 }
@@ -44,17 +43,7 @@ impl<P: Provider> APIClient<P> {
         base_url: String,
         timeout: Option<u64>,
     ) -> Result<APIClient<DefaultProvider>, String> {
-        Self::default_provider_debug(base_url, timeout, false)
-    }
-
-    pub fn default_provider_debug(
-        base_url: String,
-        timeout: Option<u64>,
-        debug: bool,
-    ) -> Result<APIClient<DefaultProvider>, String> {
-        let mut provider = DefaultProvider::new(base_url, timeout).unwrap();
-        provider.set_debug(debug);
-
+        let provider = DefaultProvider::new(base_url, timeout)?;
         APIClient::custom_provider(provider)
     }
 

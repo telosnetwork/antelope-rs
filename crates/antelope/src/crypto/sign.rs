@@ -1,3 +1,7 @@
+use crate::{
+    chain::{key_type::KeyType, signature::Signature},
+    crypto::curves::{create_k1_field_bytes, create_r1_field_bytes},
+};
 use digest::{
     consts::U32,
     core_api::{CoreWrapper, CtVariableCoreWrapper},
@@ -12,11 +16,7 @@ use k256::{ecdsa::signature::DigestSigner, Secp256k1};
 use p256::NistP256;
 use sha2::{Digest, OidSha256, Sha256, Sha256VarCore};
 use signature::Error;
-
-use crate::{
-    chain::{key_type::KeyType, signature::Signature},
-    crypto::curves::{create_k1_field_bytes, create_r1_field_bytes},
-};
+use tracing::info;
 
 pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Signature, String> {
     match key_type {
@@ -43,7 +43,7 @@ pub fn sign(secret: Vec<u8>, message: &Vec<u8>, key_type: KeyType) -> Result<Sig
                 }
 
                 if attempt % 10 == 0 {
-                    println!("Failed {} times to find canonical signature", attempt);
+                    info!("Failed {} times to find canonical signature", attempt);
                 }
 
                 if attempt > 100 {
