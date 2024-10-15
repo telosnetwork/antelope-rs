@@ -33,8 +33,9 @@ impl MockProvider {
         body: Option<String>,
     ) -> Result<String, String> {
         let mut to_hash = method.to_string() + &path;
-        if body.is_some() {
-            to_hash += body.unwrap().as_str();
+
+        if let Some(body) = body {
+            to_hash += body.as_str();
         }
 
         let filename = Checksum160::hash(to_hash.into_bytes()).to_string();
@@ -53,6 +54,10 @@ impl Debug for MockProvider {
 
 #[async_trait::async_trait]
 impl Provider for MockProvider {
+    fn set_debug(&mut self, _debug: bool) {
+        // TODO: Implement if we want debugging of the mock response in tests
+    }
+
     async fn post(&self, path: String, body: Option<String>) -> Result<String, String> {
         self.call(HTTPMethod::POST, path, body)
     }

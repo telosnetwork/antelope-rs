@@ -81,12 +81,12 @@ pub fn decode_public_key(value: &str) -> Result<(KeyType, Vec<u8>), String> {
         let key_type = match parts[1] {
             "K1" => KeyType::K1,
             "R1" => KeyType::R1,
-            // ... handle other key types ...
+            "WA" => KeyType::WA,
             _ => return Err("Invalid key type".to_string()),
         };
         let size = match key_type {
             KeyType::K1 | KeyType::R1 => Some(32),
-            // ... other cases ...
+            KeyType::WA => None, // ... other cases ...
         };
         let data = decode_ripemd160_check(parts[2], size, Option::from(key_type), false).unwrap();
         Ok((key_type, data))
@@ -113,7 +113,7 @@ pub fn decode_key(value: &str, ignore_checksum: bool) -> Result<(KeyType, Vec<u8
         };
         let size = match key_type {
             KeyType::K1 | KeyType::R1 => Some(32),
-            // ... other cases ...
+            KeyType::WA => None, // ... other cases ...
         };
         let data_result = decode_ripemd160_check(parts[2], size, Some(key_type), ignore_checksum);
         if data_result.is_err() {

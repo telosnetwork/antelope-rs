@@ -1,11 +1,17 @@
 use std::collections::HashMap;
 
+use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::{json, Value};
+use std::fmt;
+use std::mem::discriminant;
+
 use crate::chain::abi::ABI;
 use crate::chain::public_key::PublicKey;
 use crate::chain::signature::Signature;
 use crate::chain::{
     action::{Action, PermissionLevel},
-    asset::{deserialize_asset, Asset},
+    asset::{deserialize_asset, deserialize_optional_asset, Asset},
     authority::Authority,
     block_id::{deserialize_block_id, deserialize_optional_block_id, BlockId},
     checksum::{deserialize_checksum256, Checksum160, Checksum256},
@@ -15,11 +21,6 @@ use crate::chain::{
     transaction::TransactionHeader,
     varint::VarUint32,
 };
-use serde::de::{self, Visitor};
-use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{json, Value};
-use std::fmt;
-use std::mem::discriminant;
 use tracing::info;
 
 #[derive(Debug)]
@@ -191,7 +192,7 @@ pub struct SendTransactionResponseExceptionStack {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponseError {
-    pub code: u32,
+    pub code: Option<u32>,
     pub name: String,
     pub what: String,
     pub stack: Option<Vec<SendTransactionResponseExceptionStack>>,
@@ -273,9 +274,11 @@ pub struct ActionTrace {
     pub receiver: Name,
     pub act: Action,
     pub context_free: bool,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub elapsed: u64,
     pub console: String,
     pub trx_id: String,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub block_num: u64,
     pub block_time: String,
     pub producer_block_id: Option<String>,
@@ -290,10 +293,14 @@ pub struct ActionReceipt {
     #[serde(deserialize_with = "deserialize_name")]
     pub receiver: Name,
     pub act_digest: String,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub global_sequence: u64,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub recv_sequence: u64,
     pub auth_sequence: Vec<AuthSequence>,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub code_sequence: u64,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub abi_sequence: u64,
 }
 
@@ -440,6 +447,7 @@ impl GetTableRowsParams {
     }
 }
 
+#[derive(Debug)]
 pub struct GetTableRowsResponse<T> {
     pub rows: Vec<T>,
     pub more: bool,
@@ -459,8 +467,12 @@ pub struct AccountObject {
     pub last_code_update: TimePoint,
     #[serde(deserialize_with = "deserialize_timepoint")]
     pub created: TimePoint,
-    #[serde(deserialize_with = "deserialize_asset")]
-    pub core_liquid_balance: Asset,
+    #[serde(
+        deserialize_with = "deserialize_optional_asset",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub core_liquid_balance: Option<Asset>,
     pub ram_quota: i64,
     pub net_weight: i64,
     pub cpu_weight: i64,
@@ -529,7 +541,9 @@ pub struct AccountRexInfoMaturities {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountResourceLimit {
     used: i64,
+    #[serde(deserialize_with = "deserialize_i64_from_string_or_i64")]
     available: i64,
+    #[serde(deserialize_with = "deserialize_i64_from_string_or_i64")]
     max: i64,
     #[serde(
         deserialize_with = "deserialize_optional_timepoint",
@@ -650,6 +664,7 @@ pub struct AccountVoterInfo {
     #[serde(deserialize_with = "deserialize_vec_name")]
     producers: Vec<Name>,
     staked: Option<i64>,
+    last_stake: Option<i64>,
     #[serde(deserialize_with = "deserialize_f64_from_string")]
     last_vote_weight: f64,
     #[serde(deserialize_with = "deserialize_f64_from_string")]
@@ -851,6 +866,44 @@ where
     deserializer.deserialize_any(NumberToBoolVisitor)
 }
 
+fn deserialize_u64_from_string_or_u64<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct U64OrStringVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for U64OrStringVisitor {
+        type Value = u64;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("an integer or a string representation of an integer")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            value.parse::<u64>().map_err(E::custom)
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(value)
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            u64::try_from(value).map_err(|_| E::custom("u64 value too large for i64"))
+        }
+    }
+
+    deserializer.deserialize_any(U64OrStringVisitor)
+}
+
 fn deserialize_i64_from_string_or_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
 where
     D: Deserializer<'de>,
@@ -945,4 +998,309 @@ where
     }
 
     deserializer.deserialize_any(StringOrI64Visitor)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::api::v1::structs::AccountObject;
+
+    #[test]
+    fn deserialize_simple_account() {
+        // This simple account response doesn't contain details about `total_resources`, `self_delegated_bandwidth`,
+        // `refund_request`, `voter_info`, and `rex_info`.
+        // Such fields are null.
+        let simple_account_json = r#"
+        {
+            "account_name": "eosio",
+            "head_block_num": 56,
+            "head_block_time": "2024-08-29T15:27:24.500",
+            "privileged": true,
+            "last_code_update": "2024-08-29T14:06:02.000",
+            "created": "2019-08-07T12:00:00.000",
+            "core_liquid_balance": "99986000.0000 TLOS",
+            "ram_quota": -1,
+            "net_weight": -1,
+            "cpu_weight": -1,
+            "net_limit": {
+                "used": -1,
+                "available": -1,
+                "max": -1,
+                "last_usage_update_time": "2024-08-29T15:27:25.000",
+                "current_used": -1
+            },
+            "cpu_limit": {
+                "used": -1,
+                "available": -1,
+                "max": -1,
+                "last_usage_update_time": "2024-08-29T15:27:25.000",
+                "current_used": -1
+            },
+            "ram_usage": 3485037,
+            "permissions": [
+                {
+                    "perm_name": "active",
+                    "parent": "owner",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS5uHeBsURAT6bBXNtvwKtWaiDSDJSdSmc96rHVws5M1qqVCkAm6",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                },
+                {
+                    "perm_name": "owner",
+                    "parent": "",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS5uHeBsURAT6bBXNtvwKtWaiDSDJSdSmc96rHVws5M1qqVCkAm6",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                }
+            ],
+            "total_resources": null,
+            "self_delegated_bandwidth": null,
+            "refund_request": null,
+            "voter_info": null,
+            "rex_info": null,
+            "subjective_cpu_bill_limit": {
+                "used": 0,
+                "available": 0,
+                "max": 0,
+                "last_usage_update_time": "2000-01-01T00:00:00.000",
+                "current_used": 0
+            },
+            "eosio_any_linked_actions": []
+        }
+        "#;
+
+        let res = serde_json::from_str::<AccountObject>(simple_account_json).unwrap();
+        println!("{:#?}", res);
+    }
+
+    #[test]
+    fn deserialize_detailed_account() {
+        // This detailed account response contains additional fields compared to the simple account (see test above),
+        // in particular `total_resources`, `self_delegated_bandwidth`, `refund_request`, `voter_info`, and `rex_info`.
+        let detailed_account_json = r#"
+        {
+            "account_name": "alice",
+            "head_block_num": 56,
+            "head_block_time": "2024-08-29T15:27:24.500",
+            "privileged": false,
+            "last_code_update": "1970-01-01T00:00:00.000",
+            "created": "2024-08-29T14:06:02.000",
+            "core_liquid_balance": "100.0000 TLOS",
+            "ram_quota": 610645714,
+            "net_weight": 10000000,
+            "cpu_weight": 10000000,
+            "net_limit": {
+                "used": 0,
+                "available": "95719449600",
+                "max": "95719449600",
+                "last_usage_update_time": "2024-08-29T14:06:02.000",
+                "current_used": 0
+            },
+            "cpu_limit": {
+                "used": 0,
+                "available": "364783305600",
+                "max": "364783305600",
+                "last_usage_update_time": "2024-08-29T14:06:02.000",
+                "current_used": 0
+            },
+            "ram_usage": 3566,
+            "permissions": [
+                {
+                    "perm_name": "active",
+                    "parent": "owner",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                },
+                {
+                    "perm_name": "owner",
+                    "parent": "",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                }
+            ],
+            "total_resources": {
+                "owner": "alice",
+                "net_weight": "1000.0000 TLOS",
+                "cpu_weight": "1000.0000 TLOS",
+                "ram_bytes": 610644314
+            },
+            "self_delegated_bandwidth": {
+                "from": "alice",
+                "to": "alice",
+                "net_weight": "1000.0000 TLOS",
+                "cpu_weight": "1000.0000 TLOS"
+            },
+            "refund_request": null,
+            "voter_info": {
+                "owner": "alice",
+                "proxy": "",
+                "producers": [],
+                "staked": 20000000,
+                "last_stake": 0,
+                "last_vote_weight": "0.00000000000000000",
+                "proxied_vote_weight": "0.00000000000000000",
+                "is_proxy": 0,
+                "flags1": 0,
+                "reserved2": 0,
+                "reserved3": "0 "
+            },
+            "rex_info": null,
+            "subjective_cpu_bill_limit": {
+                "used": 0,
+                "available": 0,
+                "max": 0,
+                "last_usage_update_time": "2000-01-01T00:00:00.000",
+                "current_used": 0
+            },
+            "eosio_any_linked_actions": []
+        }
+        "#;
+
+        let res = serde_json::from_str::<AccountObject>(detailed_account_json).unwrap();
+        println!("{:#?}", res);
+    }
+
+    #[test]
+    fn deserialize_account_without_core_liquid_balance() {
+        // This simple account response doesn't contain details about `total_resources`, `self_delegated_bandwidth`,
+        // `refund_request`, `voter_info`, and `rex_info`.
+        // Such fields are null.
+        let detailed_account_json = r#"
+        {
+            "account_name": "alice",
+            "head_block_num": 56,
+            "head_block_time": "2024-08-29T15:46:42.000",
+            "privileged": false,
+            "last_code_update": "1970-01-01T00:00:00.000",
+            "created": "2024-08-29T14:06:02.000",
+            "ram_quota": 610645714,
+            "net_weight": 10000000,
+            "cpu_weight": 10000000,
+            "net_limit": {
+                "used": 0,
+                "available": "95719449600",
+                "max": "95719449600",
+                "last_usage_update_time": "2024-08-29T14:06:02.000",
+                "current_used": 0
+            },
+            "cpu_limit": {
+                "used": 0,
+                "available": "364783305600",
+                "max": "364783305600",
+                "last_usage_update_time": "2024-08-29T14:06:02.000",
+                "current_used": 0
+            },
+            "ram_usage": 3566,
+            "permissions": [
+                {
+                    "perm_name": "active",
+                    "parent": "owner",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                },
+                {
+                    "perm_name": "owner",
+                    "parent": "",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                }
+            ],
+            "total_resources": {
+                "owner": "alice",
+                "net_weight": "1000.0000 TLOS",
+                "cpu_weight": "1000.0000 TLOS",
+                "ram_bytes": 610644314
+            },
+            "self_delegated_bandwidth": {
+                "from": "alice",
+                "to": "alice",
+                "net_weight": "1000.0000 TLOS",
+                "cpu_weight": "1000.0000 TLOS"
+            },
+            "refund_request": null,
+            "voter_info": {
+                "owner": "alice",
+                "proxy": "",
+                "producers": [],
+                "staked": 20000000,
+                "last_stake": 0,
+                "last_vote_weight": "0.00000000000000000",
+                "proxied_vote_weight": "0.00000000000000000",
+                "is_proxy": 0,
+                "flags1": 0,
+                "reserved2": 0,
+                "reserved3": "0 "
+            },
+            "rex_info": null,
+            "subjective_cpu_bill_limit": {
+                "used": 0,
+                "available": 0,
+                "max": 0,
+                "last_usage_update_time": "2000-01-01T00:00:00.000",
+                "current_used": 0
+            },
+            "eosio_any_linked_actions": []
+        }
+        "#;
+
+        let res = serde_json::from_str::<AccountObject>(detailed_account_json).unwrap();
+        println!("{:#?}", res);
+    }
 }
