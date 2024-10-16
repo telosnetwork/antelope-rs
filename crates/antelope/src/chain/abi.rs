@@ -55,6 +55,7 @@ pub struct AbiField {
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, StructPacker)]
 pub struct AbiStruct {
     pub name: String,
+    #[serde(default)]
     pub base: String,
     pub fields: Vec<AbiField>,
 }
@@ -77,6 +78,7 @@ pub struct AbiAction {
 pub struct AbiTable {
     #[serde(deserialize_with = "deserialize_name")]
     pub name: Name,
+    #[serde(default)]
     pub index_type: String,
     #[serde(default)]
     pub key_names: Vec<String>,

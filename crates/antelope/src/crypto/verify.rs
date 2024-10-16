@@ -34,5 +34,6 @@ pub fn verify_message(signature: &Signature, message_bytes: &Vec<u8>, pub_key: &
             let verification = verifying_key.verify(message_bytes.as_slice(), &sig_result);
             verification.is_ok()
         }
+        KeyType::WA => panic!("Unsupported key type"),
     }
 }

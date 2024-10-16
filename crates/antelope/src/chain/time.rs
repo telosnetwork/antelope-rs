@@ -1,6 +1,7 @@
 use chrono::{NaiveDateTime, TimeZone, Utc};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use std::fmt;
+use std::str::FromStr;
 
 use crate::chain::{Encoder, Packer};
 
@@ -8,6 +9,14 @@ use crate::chain::{Encoder, Packer};
 pub struct TimePoint {
     /// elapsed in microseconds
     pub elapsed: u64,
+}
+
+impl FromStr for TimePoint {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        TimePoint::from_timestamp(s)
+    }
 }
 
 impl TimePoint {

@@ -1,4 +1,5 @@
 use core::mem::size_of;
+use serde::{Deserialize, Serialize};
 
 use crate::{chain::varint::VarUint32, util::slice_copy};
 
@@ -296,6 +297,40 @@ impl_packed!(u128);
 impl_packed!(f32);
 impl_packed!(f64);
 
+#[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Debug, Default)]
+pub struct Float128 {
+    pub data: [u8; 16],
+}
+
+impl Float128 {
+    pub fn new(data: [u8; 16]) -> Self {
+        Self { data }
+    }
+
+    pub fn data(&self) -> &[u8; 16] {
+        &self.data
+    }
+}
+
+impl Packer for Float128 {
+    fn size(&self) -> usize {
+        16
+    }
+
+    fn pack(&self, enc: &mut Encoder) -> usize {
+        let data = enc.alloc(self.size());
+        slice_copy(data, &self.data);
+        self.size()
+    }
+
+    fn unpack(&mut self, raw: &[u8]) -> usize {
+        let size = self.size();
+        assert!(raw.len() >= size, "Float128.unpack: buffer overflow!");
+        slice_copy(&mut self.data, &raw[..size]);
+        self.size()
+    }
+}
+
 /// Implement `Packer` for `String` type.
 impl Packer for String {
     /// Returns the size of this value in bytes.
@@ -425,5 +460,26 @@ where
         dec.unpack(&mut value);
         *self = Some(value);
         dec.get_pos()
+    }
+}
+
+/// Implement `Packer` for `Box<T>` type.
+impl<T> Packer for Box<T>
+where
+    T: Packer + Default,
+{
+    /// Returns the size of this value in bytes.
+    fn size(&self) -> usize {
+        (**self).size()
+    }
+
+    /// Packs this value into the given encoder.
+    fn pack(&self, enc: &mut Encoder) -> usize {
+        (**self).pack(enc)
+    }
+
+    /// Unpacks this value from the given data.
+    fn unpack(&mut self, data: &[u8]) -> usize {
+        (**self).unpack(data)
     }
 }

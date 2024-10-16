@@ -1,8 +1,7 @@
-use std::fmt::{Debug, Formatter};
-
-use reqwest::Client;
-
 use crate::api::client::Provider;
+use reqwest::Client;
+use std::fmt::{Debug, Formatter};
+use tracing::debug;
 
 #[derive(Default, Clone)]
 pub struct DefaultProvider {
@@ -11,8 +10,13 @@ pub struct DefaultProvider {
 }
 
 impl DefaultProvider {
-    pub fn new(base_url: String) -> Result<Self, String> {
-        let client = Client::builder().build();
+    pub fn new(base_url: String, timeout: Option<u64>) -> Result<Self, String> {
+        let mut client_builder = Client::builder();
+        if timeout.is_some() {
+            client_builder =
+                client_builder.timeout(std::time::Duration::from_secs(timeout.unwrap()));
+        }
+        let client = client_builder.build();
         if client.is_err() {
             let err = client.err();
             let mut err_message = String::from("Error building http client");
@@ -40,28 +44,39 @@ impl Debug for DefaultProvider {
 #[async_trait::async_trait]
 impl Provider for DefaultProvider {
     async fn get(&self, path: String) -> Result<String, String> {
+        debug!("GET {}", self.base_url.to_string() + &path);
         let res = self
             .client
             .get(self.base_url.to_string() + &path)
             .send()
             .await;
         if res.is_err() {
-            return Err(res.err().unwrap().to_string());
+            let res_err = res.err().unwrap().to_string();
+            debug!("Error: {}", res_err);
+            return Err(res_err);
         }
 
-        Ok(res.unwrap().text().await.unwrap())
+        let response = res.unwrap().text().await.unwrap();
+        debug!("Response: {}", response);
+        Ok(response)
     }
 
     async fn post(&self, path: String, body: Option<String>) -> Result<String, String> {
         let mut builder = self.client.post(self.base_url.to_string() + &path);
         if body.is_some() {
-            builder = builder.body(body.unwrap());
+            let body_str = body.unwrap();
+            debug!("POST {} {}", self.base_url.to_string() + &path, body_str);
+            builder = builder.body(body_str);
         }
         let res = builder.send().await;
         if res.is_err() {
-            return Err(res.err().unwrap().to_string());
+            let err_str = res.err().unwrap().to_string();
+            debug!("Error: {}", err_str);
+            return Err(err_str);
         }
 
-        Ok(res.unwrap().text().await.unwrap())
+        let response = res.unwrap().text().await.unwrap();
+        debug!("Response: {}", response);
+        Ok(response)
     }
 }

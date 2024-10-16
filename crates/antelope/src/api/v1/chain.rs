@@ -2,7 +2,10 @@ use std::fmt::Debug;
 
 use serde_json::{self, Value};
 
-use crate::api::v1::structs::{ABIResponse, EncodingError, GetBlockResponse, ServerError};
+use crate::api::v1::structs::{
+    ABIResponse, EncodingError, GetBlockResponse, GetTransactionStatusResponse, ServerError,
+};
+use crate::chain::checksum::{Checksum160, Checksum256};
 use crate::{
     api::{
         client::Provider,
@@ -123,7 +126,7 @@ impl<T: Provider> ChainAPI<T> {
             Ok(response) => {
                 match serde_json::from_str::<GetBlockResponse>(&response) {
                     Ok(block_response) => Ok(block_response),
-                    Err(_) => {
+                    Err(_serr) => {
                         // Attempt to parse the error response
                         match serde_json::from_str::<ErrorResponse>(&response) {
                             Ok(error_response) => Err(ClientError::SERVER(ServerError {
@@ -181,11 +184,51 @@ impl<T: Provider> ChainAPI<T> {
                     Err(e) => {
                         // If parsing the error response also fails, consider it an encoding error
                         Err(ClientError::ENCODING(EncodingError {
-                            message: format!("Failed to parse response: {}", e),
+                            message: format!(
+                                "Failed to parse response: {} Raw response was: {}",
+                                e, result
+                            ),
                         }))
                     }
                 }
             }
+        }
+    }
+
+    pub async fn get_transaction_status(
+        &self,
+        trx_id: Checksum256,
+    ) -> Result<GetTransactionStatusResponse, ClientError<ErrorResponse>> {
+        let payload = serde_json::json!({
+            "id": trx_id,
+        });
+
+        let result = self
+            .provider
+            .post(
+                String::from("/v1/chain/get_transaction_status"),
+                Some(payload.to_string()),
+            )
+            .await;
+
+        match result {
+            Ok(response) => {
+                match serde_json::from_str::<GetTransactionStatusResponse>(&response) {
+                    Ok(status_response) => Ok(status_response),
+                    Err(_) => {
+                        // Attempt to parse the error response
+                        match serde_json::from_str::<ErrorResponse>(&response) {
+                            Ok(error_response) => Err(ClientError::SERVER(ServerError {
+                                error: error_response,
+                            })),
+                            Err(_) => Err(ClientError::ENCODING(EncodingError {
+                                message: "Failed to parse JSON".into(),
+                            })),
+                        }
+                    }
+                }
+            }
+            Err(msg) => Err(ClientError::NETWORK(msg)),
         }
     }
 
@@ -198,7 +241,11 @@ impl<T: Provider> ChainAPI<T> {
             Some(params.to_json()),
         );
 
-        let json: Value = serde_json::from_str(result.await.unwrap().as_str()).unwrap();
+        let response = match result.await {
+            Ok(response) => response,
+            Err(_) => return Err(ClientError::NETWORK("Failed to get table rows".into())),
+        };
+        let json: Value = serde_json::from_str(response.as_str()).unwrap();
         let response_obj = JSONObject::new(json);
         let more = response_obj.get_bool("more")?;
         let next_key_str = response_obj.get_string("next_key")?;
@@ -213,13 +260,41 @@ impl<T: Provider> ChainAPI<T> {
             rows.push(row);
         }
 
-        let next_key = TableIndexType::NAME(name!(next_key_str.as_str()));
+        let mut next_key = None;
+
+        if !next_key_str.is_empty() {
+            match params.lower_bound {
+                Some(TableIndexType::NAME(_)) => {
+                    next_key = Some(TableIndexType::NAME(name!(next_key_str.as_str())));
+                }
+                Some(TableIndexType::UINT64(_)) => {
+                    next_key = Some(TableIndexType::UINT64(next_key_str.parse().unwrap()));
+                }
+                Some(TableIndexType::UINT128(_)) => {
+                    next_key = Some(TableIndexType::UINT128(next_key_str.parse().unwrap()));
+                }
+                Some(TableIndexType::CHECKSUM160(_)) => {
+                    next_key = Some(TableIndexType::CHECKSUM160(
+                        Checksum160::from_bytes(hex_to_bytes(&next_key_str).as_slice()).unwrap(),
+                    ));
+                }
+                Some(TableIndexType::CHECKSUM256(_)) => {
+                    next_key = Some(TableIndexType::CHECKSUM256(
+                        Checksum256::from_bytes(hex_to_bytes(&next_key_str).as_slice()).unwrap(),
+                    ));
+                }
+                Some(TableIndexType::FLOAT64(_)) => {
+                    next_key = Some(TableIndexType::FLOAT64(next_key_str.parse().unwrap()));
+                }
+                None => {}
+            };
+        }
 
         Ok(GetTableRowsResponse {
             rows,
             more,
             ram_payers: None,
-            next_key: Some(next_key),
+            next_key,
         })
     }
 }

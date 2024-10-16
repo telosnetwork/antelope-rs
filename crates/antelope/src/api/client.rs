@@ -39,8 +39,11 @@ pub struct APIClient<P: Provider> {
 }
 
 impl<P: Provider> APIClient<P> {
-    pub fn default_provider(base_url: String) -> Result<APIClient<DefaultProvider>, String> {
-        let provider = DefaultProvider::new(base_url).unwrap();
+    pub fn default_provider(
+        base_url: String,
+        timeout: Option<u64>,
+    ) -> Result<APIClient<DefaultProvider>, String> {
+        let provider = DefaultProvider::new(base_url, timeout)?;
         APIClient::custom_provider(provider)
     }
 

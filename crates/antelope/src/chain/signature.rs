@@ -1,10 +1,15 @@
+use core::fmt;
 use std::fmt::{Display, Formatter};
 
 use ecdsa::RecoveryId;
 use k256::Secp256k1;
 use p256::NistP256;
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{self, Visitor},
+    Deserialize, Deserializer, Serialize,
+};
 
+use crate::chain::varint::VarUint32;
 use crate::{
     base58,
     base58::encode_ripemd160_check,
@@ -70,13 +75,10 @@ impl Signature {
         }
         let parts: Vec<&str> = s.split('_').collect();
         let key_type = KeyType::from_string(parts[1]).unwrap();
-        let size: Option<usize> = Some(65);
-        // TODO: add back this logic when other key types are supported and have a
-        // different length match key_type {
-        //     KeyType::K1 | KeyType::R1 => {
-        //         size = Some(65);
-        //     }
-        // }
+        let size = match key_type {
+            KeyType::K1 | KeyType::R1 => Some(65),
+            KeyType::WA => None,
+        };
 
         let value =
             base58::decode_ripemd160_check(parts[2], size, Option::from(key_type), false).unwrap();
@@ -148,6 +150,30 @@ impl Signature {
     }
 }
 
+pub(crate) fn deserialize_signature<'de, D>(deserializer: D) -> Result<Signature, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct SignatureVisitor;
+
+    impl<'de> Visitor<'de> for SignatureVisitor {
+        type Value = Signature;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a hex string of length 64 (for 32 bytes)")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Signature::from_string(value).map_err(E::custom)
+        }
+    }
+
+    deserializer.deserialize_str(SignatureVisitor)
+}
+
 impl Display for Signature {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_string())
@@ -165,7 +191,7 @@ impl Default for Signature {
 
 impl Packer for Signature {
     fn size(&self) -> usize {
-        66
+        1 + self.value.len()
     }
 
     fn pack(&self, enc: &mut Encoder) -> usize {
@@ -176,10 +202,31 @@ impl Packer for Signature {
     }
 
     fn unpack(&mut self, data: &[u8]) -> usize {
+        self.key_type = KeyType::from_index(data[0]).unwrap();
+        match self.key_type {
+            KeyType::K1 | KeyType::R1 => {
+                self.value = data[1..66].to_vec();
+            }
+            KeyType::WA => {
+                let mut size = 66; // size to start = 1 byte for key type, 65 bytes for compact signature
+                let mut auth_data = VarUint32::default();
+                // unpack() returns how many bytes were read to unpack the value
+                size += auth_data.unpack(&data[size..]); // after the compact sig comes a varuint32 to tell us the size of the auth data
+                size += auth_data.value() as usize; // add the auth data size
+                let mut client_json = VarUint32::default();
+                size += client_json.unpack(&data[size..]); // read the varuint32 size of the client_json
+                size += client_json.value() as usize; // add the client_json size
+                                                      // set value to be the whole payload (after the key type byte):
+                                                      //      compact sig,
+                                                      //      varuint32 auth data size,
+                                                      //      auth data,
+                                                      //      varuint32 client_json size,
+                                                      //      client_json
+                self.value = data[1..size].to_vec();
+            }
+        }
         let size = self.size();
         assert!(data.len() >= size, "Signature::unpack: buffer overflow");
-        self.key_type = KeyType::from_index(data[0]).unwrap();
-        self.value = data[1..size].to_vec();
         self.size()
     }
 }

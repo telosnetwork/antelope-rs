@@ -104,23 +104,12 @@ fn asset() {
 fn block_id() {
     let string = "048865fb643bca3b644647177f0cf363f7956794d0a7ec3bc6d29d93d9637308";
 
-    let block_id = match hex::decode(string) {
-        Ok(bytes) => match BlockId::from_bytes(&bytes) {
-            Ok(block_id) => block_id,
-            Err(err) => {
-                eprintln!("Error creating BlockId: {}", err);
-                return;
-            }
-        },
-        Err(err) => {
-            eprintln!("Error decoding hex string: {}", err);
-            return;
-        }
-    };
+    let block_id_bytes = hex::decode(string).unwrap();
+    let block_id = BlockId::from_bytes(&block_id_bytes).unwrap();
 
-    //assert_eq!(block_id.to_string(), string);
     assert_eq!(block_id.block_num().to_string(), "76047867");
-    assert!(block_id.block_num() == 76047867);
+    assert_eq!(block_id.block_num(), 76047867);
+
     //assert!(block_id.block_num().equals(UInt32::from(76047867))); UInt32 not
     // implemented yet
 
@@ -420,13 +409,13 @@ fn transaction() {
 */
 
 // fn print_values(perm: &PermissionLevel, other_perm: &PermissionLevel) {
-//     println!("------Testing to_string()------");
-//     println!("Permission 1: {}", perm.to_string());
-//     println!("Permission 2: {}", other_perm.to_string());
+//     info!("------Testing to_string()------");
+//     info!("Permission 1: {}", perm.to_string());
+//     info!("Permission 2: {}", other_perm.to_string());
 
-//     println!("--------Testing json()--------");
-//     println!("Permission 1: {:?}", perm.to_json());
-//     println!("Permission 2: {:?}", other_perm.to_json());
+//     info!("--------Testing json()--------");
+//     info!("Permission 1: {:?}", perm.to_json());
+//     info!("Permission 2: {:?}", other_perm.to_json());
 // }
 
 #[test]

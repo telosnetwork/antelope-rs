@@ -4,21 +4,24 @@ use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
 use std::fmt;
+use std::mem::discriminant;
 
 use crate::chain::abi::ABI;
 use crate::chain::public_key::PublicKey;
 use crate::chain::signature::Signature;
 use crate::chain::{
     action::{Action, PermissionLevel},
-    asset::{deserialize_asset, Asset},
+    asset::{deserialize_asset, deserialize_optional_asset, Asset},
     authority::Authority,
     block_id::{deserialize_block_id, deserialize_optional_block_id, BlockId},
     checksum::{deserialize_checksum256, Checksum160, Checksum256},
     name::{deserialize_name, deserialize_optional_name, deserialize_vec_name, Name},
+    signature::deserialize_signature,
     time::{deserialize_optional_timepoint, deserialize_timepoint, TimePoint, TimePointSec},
     transaction::TransactionHeader,
     varint::VarUint32,
 };
+use tracing::info;
 
 #[derive(Debug)]
 pub enum ClientError<T> {
@@ -189,7 +192,7 @@ pub struct SendTransactionResponseExceptionStack {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponseError {
-    pub code: u32,
+    pub code: Option<u32>,
     pub name: String,
     pub what: String,
     pub stack: Option<Vec<SendTransactionResponseExceptionStack>>,
@@ -198,7 +201,7 @@ pub struct SendTransactionResponseError {
 
 impl SendTransactionResponseError {
     pub fn print_error(&self) {
-        self.details.iter().for_each(|d| println!("{:?}", d));
+        self.details.iter().for_each(|d| info!("{:?}", d));
     }
 
     pub fn get_stack(&self) -> String {
@@ -236,6 +239,32 @@ pub struct SendTransactionResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub enum TransactionState {
+    InBlock,
+    Irreversible,
+    LocallyApplied,
+    ForkedOut,
+    Unknown,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetTransactionStatusResponse {
+    pub state: TransactionState,
+    pub block_number: Option<u32>,
+    pub block_id: Option<BlockId>,
+    pub block_timestamp: Option<TimePoint>,
+    pub expiration: Option<TimePoint>,
+    pub head_number: u32,
+    pub head_id: BlockId,
+    pub head_timestamp: TimePoint,
+    pub irreversible_number: u32,
+    pub irreversible_id: BlockId,
+    pub irreversible_timestamp: TimePoint,
+    pub earliest_tracked_block_id: BlockId,
+    pub earliest_tracked_block_number: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ActionTrace {
     pub action_ordinal: u32,
     pub creator_action_ordinal: u32,
@@ -245,9 +274,11 @@ pub struct ActionTrace {
     pub receiver: Name,
     pub act: Action,
     pub context_free: bool,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub elapsed: u64,
     pub console: String,
     pub trx_id: String,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub block_num: u64,
     pub block_time: String,
     pub producer_block_id: Option<String>,
@@ -262,10 +293,14 @@ pub struct ActionReceipt {
     #[serde(deserialize_with = "deserialize_name")]
     pub receiver: Name,
     pub act_digest: String,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub global_sequence: u64,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub recv_sequence: u64,
     pub auth_sequence: Vec<AuthSequence>,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub code_sequence: u64,
+    #[serde(deserialize_with = "deserialize_u64_from_string_or_u64")]
     pub abi_sequence: u64,
 }
 
@@ -297,6 +332,23 @@ pub enum IndexPosition {
     TENTH,
 }
 
+impl IndexPosition {
+    pub fn to_json(&self) -> Value {
+        match self {
+            IndexPosition::PRIMARY => Value::String("primary".to_string()),
+            IndexPosition::SECONDARY => Value::String("secondary".to_string()),
+            IndexPosition::TERTIARY => Value::String("tertiary".to_string()),
+            IndexPosition::FOURTH => Value::String("fourth".to_string()),
+            IndexPosition::FIFTH => Value::String("fifth".to_string()),
+            IndexPosition::SIXTH => Value::String("sixth".to_string()),
+            IndexPosition::SEVENTH => Value::String("seventh".to_string()),
+            IndexPosition::EIGHTH => Value::String("eighth".to_string()),
+            IndexPosition::NINTH => Value::String("ninth".to_string()),
+            IndexPosition::TENTH => Value::String("tenth".to_string()),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum TableIndexType {
     NAME(Name),
@@ -305,6 +357,30 @@ pub enum TableIndexType {
     FLOAT64(f64),
     CHECKSUM256(Checksum256),
     CHECKSUM160(Checksum160),
+}
+
+impl TableIndexType {
+    pub fn to_json(&self) -> Value {
+        match self {
+            TableIndexType::NAME(name) => json!(name.to_string()),
+            TableIndexType::UINT64(value) => json!(value.to_string()),
+            TableIndexType::UINT128(value) => json!(value.to_string()),
+            TableIndexType::FLOAT64(value) => json!(value.to_string()),
+            TableIndexType::CHECKSUM256(value) => json!(value.to_index()),
+            TableIndexType::CHECKSUM160(value) => json!(value.as_string()),
+        }
+    }
+
+    pub fn get_key_type(&self) -> Value {
+        match self {
+            TableIndexType::NAME(_) => Value::String("name".to_string()),
+            TableIndexType::UINT64(_) => Value::String("i64".to_string()),
+            TableIndexType::UINT128(_) => Value::String("i128".to_string()),
+            TableIndexType::FLOAT64(_) => Value::String("float64".to_string()),
+            TableIndexType::CHECKSUM256(_) => Value::String("sha256".to_string()),
+            TableIndexType::CHECKSUM160(_) => Value::String("ripemd160".to_string()),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -326,17 +402,52 @@ pub struct GetTableRowsParams {
 impl GetTableRowsParams {
     pub fn to_json(&self) -> String {
         let mut req: HashMap<&str, Value> = HashMap::new();
-        req.insert("json", Value::Bool(false));
         req.insert("code", Value::String(self.code.to_string()));
         req.insert("table", Value::String(self.table.to_string()));
 
         let scope = self.scope.unwrap_or(self.code);
         req.insert("scope", Value::String(scope.to_string()));
 
+        req.insert("json", Value::Bool(false));
+
+        if let Some(limit) = &self.limit {
+            req.insert("limit", Value::String(limit.to_string()));
+        }
+
+        if let Some(reverse) = &self.reverse {
+            req.insert("reverse", Value::Bool(*reverse));
+        }
+
+        if self.lower_bound.is_some() || self.upper_bound.is_some() {
+            if self.upper_bound.is_none() {
+                let lower = self.lower_bound.as_ref().unwrap();
+                req.insert("key_type", lower.get_key_type());
+                req.insert("lower_bound", lower.to_json());
+            } else if self.lower_bound.is_none() {
+                let upper = self.upper_bound.as_ref().unwrap();
+                req.insert("key_type", upper.get_key_type());
+                req.insert("upper_bound", upper.to_json());
+            } else {
+                let lower = self.lower_bound.as_ref().unwrap();
+                let upper = self.upper_bound.as_ref().unwrap();
+                if discriminant(lower) != discriminant(upper) {
+                    panic!("lower_bound and upper_bound must be of the same type");
+                }
+                req.insert("key_type", lower.get_key_type());
+                req.insert("lower_bound", lower.to_json());
+                req.insert("upper_bound", upper.to_json());
+            }
+
+            if let Some(index_position) = &self.index_position {
+                req.insert("index_position", index_position.to_json());
+            }
+        }
+
         json!(req).to_string()
     }
 }
 
+#[derive(Debug)]
 pub struct GetTableRowsResponse<T> {
     pub rows: Vec<T>,
     pub more: bool,
@@ -356,8 +467,12 @@ pub struct AccountObject {
     pub last_code_update: TimePoint,
     #[serde(deserialize_with = "deserialize_timepoint")]
     pub created: TimePoint,
-    #[serde(deserialize_with = "deserialize_asset")]
-    pub core_liquid_balance: Asset,
+    #[serde(
+        deserialize_with = "deserialize_optional_asset",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub core_liquid_balance: Option<Asset>,
     pub ram_quota: i64,
     pub net_weight: i64,
     pub cpu_weight: i64,
@@ -426,7 +541,9 @@ pub struct AccountRexInfoMaturities {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountResourceLimit {
     used: i64,
+    #[serde(deserialize_with = "deserialize_i64_from_string_or_i64")]
     available: i64,
+    #[serde(deserialize_with = "deserialize_i64_from_string_or_i64")]
     max: i64,
     #[serde(
         deserialize_with = "deserialize_optional_timepoint",
@@ -547,6 +664,7 @@ pub struct AccountVoterInfo {
     #[serde(deserialize_with = "deserialize_vec_name")]
     producers: Vec<Name>,
     staked: Option<i64>,
+    last_stake: Option<i64>,
     #[serde(deserialize_with = "deserialize_f64_from_string")]
     last_vote_weight: f64,
     #[serde(deserialize_with = "deserialize_f64_from_string")]
@@ -566,19 +684,27 @@ pub struct ABIResponse {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GetBlockResponse {
+    #[serde(rename = "timestamp")]
+    #[serde(deserialize_with = "deserialize_timepoint")]
     pub time_point: TimePoint,
+    #[serde(deserialize_with = "deserialize_name")]
     pub producer: Name,
     pub confirmed: u16,
-    pub pevious: BlockId,
+    #[serde(deserialize_with = "deserialize_block_id")]
+    pub previous: BlockId,
+    #[serde(deserialize_with = "deserialize_checksum256")]
     pub transaction_mroot: Checksum256,
+    #[serde(deserialize_with = "deserialize_checksum256")]
     pub action_mroot: Checksum256,
     pub schedule_version: u32,
     pub new_producers: Option<NewProducers>,
     pub header_extensions: Option<HeaderExtension>,
     // pub new_protocol_features: any,
+    #[serde(deserialize_with = "deserialize_signature")]
     pub producer_signature: Signature,
     pub transactions: Vec<GetBlockResponseTransactionReceipt>,
     pub block_extensions: Option<Vec<BlockExtension>>,
+    #[serde(deserialize_with = "deserialize_block_id")]
     pub id: BlockId,
     pub block_num: u32,
     pub ref_block_prefix: u32,
@@ -603,7 +729,7 @@ pub struct HeaderExtension {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GetBlockResponseTransactionReceipt {
-    pub trx: TrxVariant, //TODO: Implement TxVarient
+    pub trx: String, //TODO: Implement TxVarient
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -740,6 +866,44 @@ where
     deserializer.deserialize_any(NumberToBoolVisitor)
 }
 
+fn deserialize_u64_from_string_or_u64<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct U64OrStringVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for U64OrStringVisitor {
+        type Value = u64;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("an integer or a string representation of an integer")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            value.parse::<u64>().map_err(E::custom)
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(value)
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            u64::try_from(value).map_err(|_| E::custom("u64 value too large for i64"))
+        }
+    }
+
+    deserializer.deserialize_any(U64OrStringVisitor)
+}
+
 fn deserialize_i64_from_string_or_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
 where
     D: Deserializer<'de>,
@@ -834,4 +998,309 @@ where
     }
 
     deserializer.deserialize_any(StringOrI64Visitor)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::api::v1::structs::AccountObject;
+
+    #[test]
+    fn deserialize_simple_account() {
+        // This simple account response doesn't contain details about `total_resources`, `self_delegated_bandwidth`,
+        // `refund_request`, `voter_info`, and `rex_info`.
+        // Such fields are null.
+        let simple_account_json = r#"
+        {
+            "account_name": "eosio",
+            "head_block_num": 56,
+            "head_block_time": "2024-08-29T15:27:24.500",
+            "privileged": true,
+            "last_code_update": "2024-08-29T14:06:02.000",
+            "created": "2019-08-07T12:00:00.000",
+            "core_liquid_balance": "99986000.0000 TLOS",
+            "ram_quota": -1,
+            "net_weight": -1,
+            "cpu_weight": -1,
+            "net_limit": {
+                "used": -1,
+                "available": -1,
+                "max": -1,
+                "last_usage_update_time": "2024-08-29T15:27:25.000",
+                "current_used": -1
+            },
+            "cpu_limit": {
+                "used": -1,
+                "available": -1,
+                "max": -1,
+                "last_usage_update_time": "2024-08-29T15:27:25.000",
+                "current_used": -1
+            },
+            "ram_usage": 3485037,
+            "permissions": [
+                {
+                    "perm_name": "active",
+                    "parent": "owner",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS5uHeBsURAT6bBXNtvwKtWaiDSDJSdSmc96rHVws5M1qqVCkAm6",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                },
+                {
+                    "perm_name": "owner",
+                    "parent": "",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS5uHeBsURAT6bBXNtvwKtWaiDSDJSdSmc96rHVws5M1qqVCkAm6",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                }
+            ],
+            "total_resources": null,
+            "self_delegated_bandwidth": null,
+            "refund_request": null,
+            "voter_info": null,
+            "rex_info": null,
+            "subjective_cpu_bill_limit": {
+                "used": 0,
+                "available": 0,
+                "max": 0,
+                "last_usage_update_time": "2000-01-01T00:00:00.000",
+                "current_used": 0
+            },
+            "eosio_any_linked_actions": []
+        }
+        "#;
+
+        let res = serde_json::from_str::<AccountObject>(simple_account_json).unwrap();
+        println!("{:#?}", res);
+    }
+
+    #[test]
+    fn deserialize_detailed_account() {
+        // This detailed account response contains additional fields compared to the simple account (see test above),
+        // in particular `total_resources`, `self_delegated_bandwidth`, `refund_request`, `voter_info`, and `rex_info`.
+        let detailed_account_json = r#"
+        {
+            "account_name": "alice",
+            "head_block_num": 56,
+            "head_block_time": "2024-08-29T15:27:24.500",
+            "privileged": false,
+            "last_code_update": "1970-01-01T00:00:00.000",
+            "created": "2024-08-29T14:06:02.000",
+            "core_liquid_balance": "100.0000 TLOS",
+            "ram_quota": 610645714,
+            "net_weight": 10000000,
+            "cpu_weight": 10000000,
+            "net_limit": {
+                "used": 0,
+                "available": "95719449600",
+                "max": "95719449600",
+                "last_usage_update_time": "2024-08-29T14:06:02.000",
+                "current_used": 0
+            },
+            "cpu_limit": {
+                "used": 0,
+                "available": "364783305600",
+                "max": "364783305600",
+                "last_usage_update_time": "2024-08-29T14:06:02.000",
+                "current_used": 0
+            },
+            "ram_usage": 3566,
+            "permissions": [
+                {
+                    "perm_name": "active",
+                    "parent": "owner",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                },
+                {
+                    "perm_name": "owner",
+                    "parent": "",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                }
+            ],
+            "total_resources": {
+                "owner": "alice",
+                "net_weight": "1000.0000 TLOS",
+                "cpu_weight": "1000.0000 TLOS",
+                "ram_bytes": 610644314
+            },
+            "self_delegated_bandwidth": {
+                "from": "alice",
+                "to": "alice",
+                "net_weight": "1000.0000 TLOS",
+                "cpu_weight": "1000.0000 TLOS"
+            },
+            "refund_request": null,
+            "voter_info": {
+                "owner": "alice",
+                "proxy": "",
+                "producers": [],
+                "staked": 20000000,
+                "last_stake": 0,
+                "last_vote_weight": "0.00000000000000000",
+                "proxied_vote_weight": "0.00000000000000000",
+                "is_proxy": 0,
+                "flags1": 0,
+                "reserved2": 0,
+                "reserved3": "0 "
+            },
+            "rex_info": null,
+            "subjective_cpu_bill_limit": {
+                "used": 0,
+                "available": 0,
+                "max": 0,
+                "last_usage_update_time": "2000-01-01T00:00:00.000",
+                "current_used": 0
+            },
+            "eosio_any_linked_actions": []
+        }
+        "#;
+
+        let res = serde_json::from_str::<AccountObject>(detailed_account_json).unwrap();
+        println!("{:#?}", res);
+    }
+
+    #[test]
+    fn deserialize_account_without_core_liquid_balance() {
+        // This simple account response doesn't contain details about `total_resources`, `self_delegated_bandwidth`,
+        // `refund_request`, `voter_info`, and `rex_info`.
+        // Such fields are null.
+        let detailed_account_json = r#"
+        {
+            "account_name": "alice",
+            "head_block_num": 56,
+            "head_block_time": "2024-08-29T15:46:42.000",
+            "privileged": false,
+            "last_code_update": "1970-01-01T00:00:00.000",
+            "created": "2024-08-29T14:06:02.000",
+            "ram_quota": 610645714,
+            "net_weight": 10000000,
+            "cpu_weight": 10000000,
+            "net_limit": {
+                "used": 0,
+                "available": "95719449600",
+                "max": "95719449600",
+                "last_usage_update_time": "2024-08-29T14:06:02.000",
+                "current_used": 0
+            },
+            "cpu_limit": {
+                "used": 0,
+                "available": "364783305600",
+                "max": "364783305600",
+                "last_usage_update_time": "2024-08-29T14:06:02.000",
+                "current_used": 0
+            },
+            "ram_usage": 3566,
+            "permissions": [
+                {
+                    "perm_name": "active",
+                    "parent": "owner",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                },
+                {
+                    "perm_name": "owner",
+                    "parent": "",
+                    "required_auth": {
+                        "threshold": 1,
+                        "keys": [
+                            {
+                                "key": "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc",
+                                "weight": 1
+                            }
+                        ],
+                        "accounts": [],
+                        "waits": []
+                    },
+                    "linked_actions": []
+                }
+            ],
+            "total_resources": {
+                "owner": "alice",
+                "net_weight": "1000.0000 TLOS",
+                "cpu_weight": "1000.0000 TLOS",
+                "ram_bytes": 610644314
+            },
+            "self_delegated_bandwidth": {
+                "from": "alice",
+                "to": "alice",
+                "net_weight": "1000.0000 TLOS",
+                "cpu_weight": "1000.0000 TLOS"
+            },
+            "refund_request": null,
+            "voter_info": {
+                "owner": "alice",
+                "proxy": "",
+                "producers": [],
+                "staked": 20000000,
+                "last_stake": 0,
+                "last_vote_weight": "0.00000000000000000",
+                "proxied_vote_weight": "0.00000000000000000",
+                "is_proxy": 0,
+                "flags1": 0,
+                "reserved2": 0,
+                "reserved3": "0 "
+            },
+            "rex_info": null,
+            "subjective_cpu_bill_limit": {
+                "used": 0,
+                "available": 0,
+                "max": 0,
+                "last_usage_update_time": "2000-01-01T00:00:00.000",
+                "current_used": 0
+            },
+            "eosio_any_linked_actions": []
+        }
+        "#;
+
+        let res = serde_json::from_str::<AccountObject>(detailed_account_json).unwrap();
+        println!("{:#?}", res);
+    }
 }

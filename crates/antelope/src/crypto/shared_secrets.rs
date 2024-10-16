@@ -33,5 +33,6 @@ pub fn shared_secret(
             );
             Ok(shared_secret.raw_secret_bytes().to_vec())
         }
+        KeyType::WA => Err("Unsupported key type".to_string()),
     }
 }

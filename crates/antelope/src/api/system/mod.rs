@@ -14,6 +14,8 @@ use crate::chain::private_key::PrivateKey;
 use crate::name;
 use crate::serializer::Encoder;
 use sha2::{Digest, Sha256};
+use std::path::Path;
+use tracing::info;
 
 #[derive(Debug, Default, Clone)]
 pub struct SystemAPI<T: Provider> {
@@ -104,8 +106,8 @@ impl<T: Provider> SystemAPI<T> {
         memo: Option<String>,
         private_key: PrivateKey,
     ) -> Result<SendTransactionResponse, ClientError<SendTransactionResponseError>> {
-        let wasm = std::fs::read(wasm_path).unwrap();
-        let abi_json_bytes = std::fs::read(abi_path).unwrap();
+        let wasm = std::fs::read(Path::new(wasm_path)).unwrap();
+        let abi_json_bytes = std::fs::read(Path::new(abi_path)).unwrap();
         let abi: ABI = serde_json::from_slice(&abi_json_bytes).unwrap();
         let abi_bytes = Encoder::pack(&abi);
         self.set_contract(account, wasm, abi_bytes, memo, private_key)
@@ -123,7 +125,7 @@ impl<T: Provider> SystemAPI<T> {
         let mut hasher = Sha256::new();
         hasher.update(&wasm);
         let wasm_hash = hasher.finalize();
-        println!(
+        info!(
             "Setting contract for account: {:?}, with hash: {:?}",
             account.as_string(),
             wasm_hash

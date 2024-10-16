@@ -135,6 +135,23 @@ impl Checksum256 {
     pub fn as_string(&self) -> String {
         bytes_to_hex(&self.data.to_vec())
     }
+
+    pub fn to_index(&self) -> String {
+        assert_eq!(self.data.len(), 32);
+
+        let (first_16, second_16) = self.data.split_at(16);
+
+        let mut first_reversed = first_16.to_vec();
+        first_reversed.reverse();
+
+        let mut second_reversed = second_16.to_vec();
+        second_reversed.reverse();
+
+        let mut new_vec = second_reversed;
+        new_vec.extend(first_reversed);
+
+        bytes_to_hex(&new_vec)
+    }
 }
 
 impl Display for Checksum256 {

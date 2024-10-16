@@ -1,4 +1,4 @@
-use antelope::api::v1::structs::ErrorResponse;
+use antelope::api::v1::structs::{ErrorResponse, SendTransactionResponse};
 use antelope::{
     api::{
         client::APIClient,
@@ -22,9 +22,6 @@ async fn chain_get_info() {
 
     let result = client.v1_chain.get_info().await;
 
-    if let Err(e) = &result {
-        println!("Deserialization error: {:?}", e);
-    }
     assert!(result.is_ok());
 
     let result_unwrapped = result.unwrap();
@@ -117,17 +114,10 @@ async fn chain_send_transaction() {
         "Failed transaction result should be err"
     );
     let failure_response = failed_result.err().unwrap();
-    println!("{:?}", failure_response);
+
     match failure_response {
-        ClientError::SERVER(err) => {
-            assert_eq!(err.error.code, 3050003);
-        }
-        _ => {
-            assert!(
-                false,
-                "Failure response should be of type ClientError::SERVER"
-            )
-        }
+        ClientError::SERVER(err) => assert_eq!(err.error.code, Some(3050003)),
+        _ => panic!("Failure response should be of type ClientError::SERVER"),
     }
 }
 
@@ -149,13 +139,12 @@ async fn chan_get_account() {
 
             assert_eq!(
                 account.core_liquid_balance,
-                Asset::from_string("128559.5000 TLOS")
+                Some(Asset::from_string("128559.5000 TLOS"))
             );
         }
         Err(e) => {
             // Log or handle errors here to understand parsing issues
-            println!("Failed to parse JSON: {:?}", e);
-            panic!("Parsing failed for the given JSON data.");
+            panic!("Failed to parse JSON: {:?}", e);
         }
     }
 }
@@ -167,9 +156,6 @@ pub async fn chain_get_abi() {
 
     let result = client.v1_chain.get_abi("eosio.token".to_string()).await;
 
-    if let Err(e) = &result {
-        println!("Deserialization error: {:?}", e);
-    }
     assert!(result.is_ok());
 
     let abi_object = result.unwrap();
@@ -192,6 +178,90 @@ pub async fn chain_get_abi() {
     // Check tables parsing
     assert_eq!(abi_object.abi.tables.len(), 2);
     assert_eq!(abi_object.abi.tables[0].name, name!("accounts"));
+}
+
+#[test]
+fn test_send_transaction_response() {
+    let response_json = r#"{
+      "transaction_id": "6eee2f00f7e7771c40f6b0b8f837557fcd9317711bed53279a65c7b8a20dcf91",
+      "processed": {
+        "id": "6eee2f00f7e7771c40f6b0b8f837557fcd9317711bed53279a65c7b8a20dcf91",
+        "block_num": 367207774,
+        "block_time": "2024-10-10T16:52:50.000",
+        "producer_block_id": null,
+        "receipt": {
+          "status": "executed",
+          "cpu_usage_us": 1423,
+          "net_usage_words": 36
+        },
+        "elapsed": 1423,
+        "net_usage": 288,
+        "scheduled": false,
+        "action_traces": [
+          {
+            "action_ordinal": 1,
+            "creator_action_ordinal": 0,
+            "closest_unnotified_ancestor_action_ordinal": 0,
+            "receipt": {
+              "receiver": "eosio.evm",
+              "act_digest": "8a73d9427ca99c95ce1d66588a6e3107c15db57b7e2358fd324fe6dcdc0c4296",
+              "global_sequence": "10128941153",
+              "recv_sequence": 4471374,
+              "auth_sequence": [
+                [
+                  "rpc.evm",
+                  4249842
+                ]
+              ],
+              "code_sequence": 5,
+              "abi_sequence": 2
+            },
+            "receiver": "eosio.evm",
+            "act": {
+              "account": "eosio.evm",
+              "name": "raw",
+              "authorization": [
+                {
+                  "actor": "rpc.evm",
+                  "permission": "rpc"
+                }
+              ],
+              "data": {
+                "ram_payer": "eosio.evm",
+                "tx": "f8ab82043c85792c395db082b62694eeca10921a5b3dcd2acb8ef2cb4b1b4d6a69b16e80b844095ea7b30000000000000000000000009ef9c57754ed079d750016b802dccd45d0ab66f8000000000000000000000000000000000000000000000000d02ab486cedc000074a0d1bb4f832c6ed0fb7abffc2133621d051c6af8084915701363fa63f307f64eeda07994e5abad4b1cdc5dea37b7c9ff59c9fa10017af29df222262463769d8fe51c",
+                "estimate_gas": 0,
+                "sender": null
+              },
+              "hex_data": "0000905b01ea3055ad01f8ab82043c85792c395db082b62694eeca10921a5b3dcd2acb8ef2cb4b1b4d6a69b16e80b844095ea7b30000000000000000000000009ef9c57754ed079d750016b802dccd45d0ab66f8000000000000000000000000000000000000000000000000d02ab486cedc000074a0d1bb4f832c6ed0fb7abffc2133621d051c6af8084915701363fa63f307f64eeda07994e5abad4b1cdc5dea37b7c9ff59c9fa10017af29df222262463769d8fe51c0000"
+            },
+            "context_free": false,
+            "elapsed": 1249,
+            "console": "RECIPT DATA",
+            "trx_id": "6eee2f00f7e7771c40f6b0b8f837557fcd9317711bed53279a65c7b8a20dcf91",
+            "block_num": 367207774,
+            "block_time": "2024-10-10T16:52:50.000",
+            "producer_block_id": null,
+            "account_ram_deltas": [],
+            "except": null,
+            "error_code": null,
+            "return_value_hex_data": ""
+          }
+        ],
+        "account_ram_delta": null,
+        "except": null,
+        "error_code": null
+      }
+    }"#;
+
+    let parsed = serde_json::from_str::<SendTransactionResponse>(response_json);
+    assert!(parsed.is_ok());
+    let parsed = parsed.unwrap();
+    let traces = parsed.processed.action_traces;
+    assert_eq!(traces.len(), 1usize);
+    assert_eq!(
+        traces.first().unwrap().receipt.global_sequence,
+        10128941153u64
+    );
 }
 
 #[test]
@@ -224,7 +294,8 @@ fn test_error_response_parsing() {
     let error_response = parsed_error.expect("Failed to parse JSON");
 
     assert_eq!(
-        error_response.error.code, 3050003,
+        error_response.error.code,
+        Some(3050003),
         "Error code did not match"
     );
     assert_eq!(
