@@ -3,3 +3,4 @@
 //pub mod crypto;
 //pub mod serializer;
 pub mod mock_provider;
+pub mod ship_types;

@@ -14,6 +14,7 @@ mod utils;
 use utils::mock_provider::MockProvider;
 
 use crate::utils::mock_provider;
+use crate::utils::mock_provider::{make_mock_transaction, sign_mock_transaction};
 
 #[tokio::test]
 async fn chain_get_info() {
@@ -70,9 +71,8 @@ async fn chain_send_transaction() {
     let client = APIClient::custom_provider(mock_provider).unwrap();
     //let client = APIClient::default_provider(String::from("https://testnet.telos.caleos.io")).unwrap();
     let info = client.v1_chain.get_info().await.unwrap();
-    let transaction =
-        mock_provider::make_mock_transaction(&info, Asset::from_string("0.0420 TLOS"));
-    let signed_transaction = mock_provider::sign_mock_transaction(&transaction, &info);
+    let transaction = make_mock_transaction(&info, Asset::from_string("0.0420 TLOS"));
+    let signed_transaction = sign_mock_transaction(&transaction, &info);
     let result = client.v1_chain.send_transaction(signed_transaction).await;
     assert!(result.is_ok(), "Transaction result should be ok");
     let send_trx_response = result.unwrap();

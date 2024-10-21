@@ -118,6 +118,9 @@ pub fn n2s(value: u64) -> String {
         }
         i -= 1;
     }
+    if i == 0 {
+        return String::from("");
+    }
     String::from_utf8(s[0..i + 1].to_vec()).unwrap()
 }
 
