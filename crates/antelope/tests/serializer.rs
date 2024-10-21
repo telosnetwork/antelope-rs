@@ -80,12 +80,10 @@ fn name() {
     assert_eq!(name1, name2);
     let name3 = Name::from_u64(6712742083569909760);
     assert_eq!(name1, name3);
-    // TODO: The typescript lib produces empty string, are they the same? (. vs
-    // '')
-    assert_eq!(Name::from_u64(0).to_string(), ".");
-    /*
-    assert.equal(JSON.stringify(Name.from(UInt64.from(0))), """");
-     */
+    assert_eq!(Name::from_u64(0).to_string(), "");
+    assert_eq!(name!(".me").to_string(), ".me");
+    assert_eq!(name!("you").to_string(), "you");
+    assert_eq!(name!("you.me").to_string(), "you.me");
 }
 /*
 
