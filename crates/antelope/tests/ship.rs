@@ -1,6 +1,6 @@
+use crate::utils::ship_types::{ActionTrace, TransactionTrace};
 use antelope::chain::Packer;
 use antelope::util::{bytes_to_hex, hex_to_bytes};
-use crate::utils::ship_types::{ActionTrace, TransactionTrace};
 
 mod utils;
 
