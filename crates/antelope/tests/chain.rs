@@ -21,9 +21,13 @@ fn name() {
     let zero_name_string = zero_name.to_string();
     assert_eq!(zero_name_string, "", "Name(0) should be empty string");
 
+    let you_name = Name::new_from_str("you");
+    let you_name_string = you_name.to_string();
+    assert_eq!(you_name_string, "you", "Name(0) should be empty string");
+
     let dot_me_name = Name::new_from_str(".me");
-    let name_name_string = dot_me_name.to_string();
-    assert_eq!(zero_name_string, "me", "Name(0) should be empty string");
+    let dot_me_name_string = dot_me_name.to_string();
+    assert_eq!(dot_me_name_string, ".me", "Name(0) should be empty string");
 }
 
 #[test]
