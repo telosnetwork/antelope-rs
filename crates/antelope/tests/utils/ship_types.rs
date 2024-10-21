@@ -6,11 +6,11 @@ use antelope::chain::varint::VarUint32;
 use antelope::chain::{Decoder, Encoder};
 use antelope::serializer::packer::Float128;
 use antelope::serializer::Packer;
-use antelope::util::{bytes_to_hex, hex_to_bytes, slice_copy};
 use antelope::{EnumPacker, StructPacker};
 use serde::{Deserialize, Serialize};
 use std::option::Option;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Serialize, Deserialize, EnumPacker)]
 pub enum ShipRequest {
     GetStatus(GetStatusRequestV0),

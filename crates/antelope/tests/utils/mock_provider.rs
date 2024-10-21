@@ -63,6 +63,7 @@ impl Provider for MockProvider {
     }
 }
 
+#[allow(dead_code)]
 pub fn make_mock_transaction(info: &GetInfoResponse, asset_to_transfer: Asset) -> Transaction {
     let trx_header = info.get_transaction_header(90);
 
@@ -96,6 +97,7 @@ pub fn make_mock_transaction(info: &GetInfoResponse, asset_to_transfer: Asset) -
     }
 }
 
+#[allow(dead_code)]
 pub fn sign_mock_transaction(trx: &Transaction, info: &GetInfoResponse) -> SignedTransaction {
     let private_key =
         PrivateKey::from_str("5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9", false).unwrap();
