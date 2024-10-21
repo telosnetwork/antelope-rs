@@ -16,6 +16,17 @@ use antelope::{
 use antelope_client_macros::StructPacker;
 
 #[test]
+fn name() {
+    let zero_name = Name::from_u64(0);
+    let zero_name_string = zero_name.to_string();
+    assert_eq!(zero_name_string, "", "Name(0) should be empty string");
+    
+    let dot_me_name = Name::new_from_str(".me");
+    let name_name_string = dot_me_name.to_string();
+    assert_eq!(zero_name_string, "me", "Name(0) should be empty string");
+}
+
+#[test]
 fn asset() {
     // TODO: Should asset support negative values?
     //assert_eq!(Asset::from_string("-1.2345 NEGS").to_string(), "-1.2345 NEGS");
