@@ -257,7 +257,7 @@ pub struct GetTransactionStatusResponse {
     pub block_id: Option<BlockId>,
     #[serde(deserialize_with = "deserialize_optional_timepoint", default)]
     pub block_timestamp: Option<TimePoint>,
-    #[serde(deserialize_with = "deserialize_optional_timepoint")]
+    #[serde(deserialize_with = "deserialize_optional_timepoint", default)]
     pub expiration: Option<TimePoint>,
     pub head_number: u32,
     #[serde(deserialize_with = "deserialize_block_id")]
