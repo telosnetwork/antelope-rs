@@ -215,14 +215,14 @@ impl<T: Provider> ChainAPI<T> {
             Ok(response) => {
                 match serde_json::from_str::<GetTransactionStatusResponse>(&response) {
                     Ok(status_response) => Ok(status_response),
-                    Err(_) => {
+                    Err(err) => {
                         // Attempt to parse the error response
                         match serde_json::from_str::<ErrorResponse>(&response) {
                             Ok(error_response) => Err(ClientError::SERVER(ServerError {
                                 error: error_response,
                             })),
                             Err(_) => Err(ClientError::ENCODING(EncodingError {
-                                message: "Failed to parse JSON".into(),
+                                message: err.to_string(),
                             })),
                         }
                     }
