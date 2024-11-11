@@ -429,6 +429,31 @@ pub async fn chain_get_transaction_status() {
 }
 
 #[tokio::test]
+async fn test_get_transaction_status_locally_applied() {
+    // This test checks the deserialization of a `get_transaction_status` response
+    // when the transaction is in the `LOCALLY_APPLIED` state. This means, for instance,
+    // that the `block_id` field is missing.
+
+    let mock_provider = MockProvider {};
+    let client = APIClient::custom_provider(mock_provider).unwrap();
+
+    let response = client
+        .v1_chain
+        .get_transaction_status(
+            Checksum256::from_hex(
+                "ed7cd6ad6298cbbf653963d8e1a5dc16ee4ca45fc8aaee6caa3663a56db55bbd",
+            )
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.state, TransactionState::LocallyApplied);
+    // The test doesn't require specific assertions, it's only meant to check that the
+    // deserialization doesn't fail due to missing optional fields.
+}
+
+#[tokio::test]
 pub async fn chain_get_table_rows() {
     #[derive(StructPacker, Default)]
     struct UserRow {

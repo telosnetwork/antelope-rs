@@ -1,0 +1,12 @@
+{
+    "state": "LOCALLY_APPLIED",
+    "expiration": "2024-11-11T15:48:45.000",
+    "head_number": 74,
+    "head_id": "0000004a20d15beeed9f047ba176b588f90810191a25a69370b57bbf15509e63",
+    "head_timestamp": "2024-11-11T15:47:15.000",
+    "irreversible_number": 73,
+    "irreversible_id": "000000492b18ee4126e5a157da6ee0c93a24c9a0c2cc3c7207900207c99741bc",
+    "irreversible_timestamp": "2024-11-11T15:47:14.500",
+    "earliest_tracked_block_id": "0000004a20d15beeed9f047ba176b588f90810191a25a69370b57bbf15509e63",
+    "earliest_tracked_block_number": 74
+}
