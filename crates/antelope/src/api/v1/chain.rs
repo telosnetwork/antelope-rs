@@ -200,7 +200,7 @@ impl<T: Provider> ChainAPI<T> {
         trx_id: Checksum256,
     ) -> Result<GetTransactionStatusResponse, ClientError<ErrorResponse>> {
         let payload = serde_json::json!({
-            "id": trx_id,
+            "id": trx_id.as_string(),
         });
 
         let result = self
