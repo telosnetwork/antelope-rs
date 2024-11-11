@@ -1,4 +1,6 @@
-use antelope::api::v1::structs::{ErrorResponse, SendTransactionResponse};
+use antelope::api::v1::structs::{ErrorResponse, SendTransactionResponse, TransactionState};
+use antelope::chain::block_id::BlockId;
+use antelope::chain::time::TimePoint;
 use antelope::{
     api::{
         client::APIClient,
@@ -349,6 +351,81 @@ fn test_error_response_parsing() {
         detail2.method, "exec_one",
         "Second detail method did not match"
     );
+}
+
+#[tokio::test]
+pub async fn chain_get_transaction_status() {
+    let mock_provider = MockProvider {};
+    let client = APIClient::custom_provider(mock_provider).unwrap();
+
+    let response = client
+        .v1_chain
+        .get_transaction_status(
+            Checksum256::from_hex(
+                "8c0803ae790dab82be21cf5cbfc0dddc9a3bc37a13e8cdfdb8e1325070260d05",
+            )
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.state, TransactionState::Irreversible);
+    assert_eq!(response.block_number, Some(75));
+    assert_eq!(
+        response.block_id,
+        BlockId::from_bytes(
+            hex::decode("0000004b280bbfb8f03477c1ac6c9f2a42f7a8406f0339b50f535b649680fb51")
+                .unwrap()
+                .as_slice()
+        )
+        .ok()
+    );
+    assert_eq!(
+        response.block_timestamp.unwrap(),
+        TimePoint::from_timestamp("2024-11-11T11:47:38.000").unwrap()
+    );
+    assert_eq!(
+        response.expiration.unwrap(),
+        TimePoint::from_timestamp("2024-11-11T11:49:07.000").unwrap()
+    );
+    assert_eq!(response.head_number, 164);
+    assert_eq!(
+        response.head_id,
+        BlockId::from_bytes(
+            hex::decode("000000a446ce1758ec9d04aca27f21ee370bd9fe3e00c2e49f5aeb50f1a30347")
+                .unwrap()
+                .as_slice()
+        )
+        .unwrap()
+    );
+    assert_eq!(
+        response.head_timestamp,
+        TimePoint::from_timestamp("2024-11-11T11:48:22.500").unwrap()
+    );
+    assert_eq!(response.irreversible_number, 163);
+    assert_eq!(
+        response.irreversible_id,
+        BlockId::from_bytes(
+            hex::decode("000000a3369447a5bcf4f9f2c0edd22afa515acdb3839fba45c3c1a165fdcaf8")
+                .unwrap()
+                .as_slice()
+        )
+        .unwrap()
+    );
+    assert_eq!(
+        response.irreversible_timestamp,
+        TimePoint::from_timestamp("2024-11-11T11:48:22.000").unwrap()
+    );
+    assert_eq!(
+        response.earliest_tracked_block_id,
+        BlockId::from_bytes(
+            hex::decode("0000004a259960be4e410f69ed3c4730ef0e5712500d3056ac25badc69ee0e57")
+                .unwrap()
+                .as_slice()
+        )
+        .unwrap()
+    );
+    assert_eq!(response.earliest_tracked_block_number, 74);
 }
 
 #[tokio::test]
