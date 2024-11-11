@@ -238,7 +238,7 @@ pub struct SendTransactionResponse {
     pub processed: ProcessedTransaction,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionState {
     LocallyApplied,
@@ -253,15 +253,23 @@ pub enum TransactionState {
 pub struct GetTransactionStatusResponse {
     pub state: TransactionState,
     pub block_number: Option<u32>,
+    #[serde(deserialize_with = "deserialize_optional_block_id")]
     pub block_id: Option<BlockId>,
+    #[serde(deserialize_with = "deserialize_optional_timepoint")]
     pub block_timestamp: Option<TimePoint>,
+    #[serde(deserialize_with = "deserialize_optional_timepoint")]
     pub expiration: Option<TimePoint>,
     pub head_number: u32,
+    #[serde(deserialize_with = "deserialize_block_id")]
     pub head_id: BlockId,
+    #[serde(deserialize_with = "deserialize_timepoint")]
     pub head_timestamp: TimePoint,
     pub irreversible_number: u32,
+    #[serde(deserialize_with = "deserialize_block_id")]
     pub irreversible_id: BlockId,
+    #[serde(deserialize_with = "deserialize_timepoint")]
     pub irreversible_timestamp: TimePoint,
+    #[serde(deserialize_with = "deserialize_block_id")]
     pub earliest_tracked_block_id: BlockId,
     pub earliest_tracked_block_number: u32,
 }
