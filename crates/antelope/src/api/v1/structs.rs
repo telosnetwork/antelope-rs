@@ -239,11 +239,13 @@ pub struct SendTransactionResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionState {
-    InBlock,
-    Irreversible,
     LocallyApplied,
     ForkedOut,
+    InBlock,
+    Irreversible,
+    Failed,
     Unknown,
 }
 
