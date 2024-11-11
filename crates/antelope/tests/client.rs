@@ -454,6 +454,31 @@ async fn test_get_transaction_status_locally_applied() {
 }
 
 #[tokio::test]
+async fn test_get_transaction_status_unknown() {
+    // This test checks the deserialization of a `get_transaction_status` response
+    // when the transaction is in the `UNKNOWN` state. This means, for instance,
+    // that the `expiration` field is missing.
+
+    let mock_provider = MockProvider {};
+    let client = APIClient::custom_provider(mock_provider).unwrap();
+
+    let response = client
+        .v1_chain
+        .get_transaction_status(
+            Checksum256::from_hex(
+                "01320dfb16105aa87973a2aac02297e0666f9d369970eb70a5c7e3d2cc50e9ff",
+            )
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.state, TransactionState::Unknown);
+    // The test doesn't require specific assertions, it's only meant to check that the
+    // deserialization doesn't fail due to missing optional fields.
+}
+
+#[tokio::test]
 pub async fn chain_get_table_rows() {
     #[derive(StructPacker, Default)]
     struct UserRow {

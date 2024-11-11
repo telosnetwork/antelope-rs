@@ -1,0 +1,11 @@
+{
+    "state": "UNKNOWN",
+    "head_number": 595,
+    "head_id": "00000253f5fe093b8abfdbd010fd0ec0f89b9fa06d15efe506edc3281b85a213",
+    "head_timestamp": "2024-11-11T17:32:04.000",
+    "irreversible_number": 594,
+    "irreversible_id": "000002522d22c6492ba523b519863ab624d057b584fd36ff385605cd187a981f",
+    "irreversible_timestamp": "2024-11-11T17:32:03.500",
+    "earliest_tracked_block_id": "0000004b8e26bf867e2e68ad8055f3d993aefae5961775883ee3b5e7cf76584b",
+    "earliest_tracked_block_number": 75
+}
