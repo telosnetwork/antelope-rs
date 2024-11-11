@@ -253,9 +253,9 @@ pub enum TransactionState {
 pub struct GetTransactionStatusResponse {
     pub state: TransactionState,
     pub block_number: Option<u32>,
-    #[serde(deserialize_with = "deserialize_optional_block_id")]
+    #[serde(deserialize_with = "deserialize_optional_block_id", default)]
     pub block_id: Option<BlockId>,
-    #[serde(deserialize_with = "deserialize_optional_timepoint")]
+    #[serde(deserialize_with = "deserialize_optional_timepoint", default)]
     pub block_timestamp: Option<TimePoint>,
     #[serde(deserialize_with = "deserialize_optional_timepoint")]
     pub expiration: Option<TimePoint>,
