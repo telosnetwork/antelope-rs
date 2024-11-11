@@ -122,7 +122,7 @@ async fn chain_send_transaction() {
 }
 
 #[tokio::test]
-async fn chan_get_account() {
+async fn chain_get_account() {
     // Setup - replace `APIClient::custom_provider(provider)` with your actual client initialization logic
     let mock_provider = MockProvider {};
     let client = APIClient::custom_provider(mock_provider).expect("Failed to create API client");
