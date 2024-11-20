@@ -225,6 +225,12 @@ pub struct SendTransactionResponseErrorDetails {
     pub method: String,
 }
 
+pub struct SendTransaction2Options {
+    pub return_failure_trace: bool,
+    pub retry_trx: bool,
+    pub retry_trx_num_blocks: u64,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorResponse {
     pub code: u16,
@@ -234,6 +240,12 @@ pub struct ErrorResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponse {
+    pub transaction_id: String,
+    pub processed: ProcessedTransaction,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SendTransaction2Response {
     pub transaction_id: String,
     pub processed: ProcessedTransaction,
 }

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use serde_json::{self, Value};
+use serde_json::{self, json, Value};
 
 use crate::api::v1::structs::{
     ABIResponse, EncodingError, GetBlockResponse, GetTransactionStatusResponse, ServerError,
@@ -24,6 +24,8 @@ use crate::{
     serializer::formatter::{JSONObject, ValueTo},
     util::hex_to_bytes,
 };
+
+use super::structs::{SendTransaction2Options, SendTransaction2Response};
 
 #[derive(Debug, Default, Clone)]
 pub struct ChainAPI<T: Provider> {
@@ -190,6 +192,61 @@ impl<T: Provider> ChainAPI<T> {
                             ),
                         }))
                     }
+                }
+            }
+        }
+    }
+
+    pub async fn send_transaction2(
+        &self,
+        trx: SignedTransaction,
+        options: Option<SendTransaction2Options>,
+    ) -> Result<SendTransaction2Response, ClientError<SendTransactionResponseError>> {
+        // Convert transaction to a PackedTransaction if necessary
+        let packed = PackedTransaction::from_signed(trx, CompressionType::ZLIB)
+            .map_err(|_| ClientError::encoding("Failed to pack transaction".into()))?;
+
+        // Convert PackedTransaction to JSON
+        let trx_json = packed.to_json();
+
+        // Set up default options or use provided ones
+        let opts = options.unwrap_or(SendTransaction2Options {
+            return_failure_trace: true,
+            retry_trx: false,
+            retry_trx_num_blocks: 0,
+        });
+
+        // Create request body with options
+        let request_body = json!({
+            "return_failure_trace": opts.return_failure_trace,
+            "retry_trx": opts.retry_trx,
+            "retry_trx_num_blocks": opts.retry_trx_num_blocks,
+            "transaction": trx_json,
+        });
+
+        // Convert request body to string
+        let request_body_str = serde_json::to_string(&request_body)
+            .map_err(|_| ClientError::encoding("Failed to serialize request body".into()))?;
+
+        // Send the request to the endpoint
+        let result = self
+            .provider
+            .post(String::from("/v1/chain/send_transaction2"), Some(request_body_str))
+            .await
+            .map_err(|_| ClientError::NETWORK("Failed to send transaction".into()))?;
+
+        // Deserialize the response
+        match serde_json::from_str::<SendTransaction2Response>(&result) {
+            Ok(response) => Ok(response),
+            Err(_) => {
+                // Try to parse an error response
+                match serde_json::from_str::<ErrorResponse>(&result) {
+                    Ok(error_response) => Err(ClientError::SERVER(ServerError {
+                        error: error_response.error,
+                    })),
+                    Err(e) => Err(ClientError::ENCODING(EncodingError {
+                        message: format!("Failed to parse response: {}", e),
+                    })),
                 }
             }
         }
