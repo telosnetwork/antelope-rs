@@ -619,7 +619,7 @@ fn transaction_signature_verification() {
         // Create the signature of the transaction
         let message = transaction.signing_digest(&chain_id);
         let signature = private_key.sign_message(&message.to_vec());
-        println!("Alice signature: {}", signature.to_string());
+        println!("Alice signature: {}", signature);
         let recovered_public_key = signature.recover_message(&message.to_vec());
         assert_eq!(recovered_public_key.to_legacy_string(None).unwrap(), "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc");
     }
@@ -640,13 +640,13 @@ fn transaction_signature_verification() {
 
         // Decode the signature
         let signature = Signature::from_bytes(encoded_signature.to_vec(), KeyType::K1);
-        println!("Expected signature: {}", signature.to_string());
+        println!("Expected signature: {}", signature);
         assert_eq!(signature.to_string(), "SIG_K1_JuSZfHNg6b68ag1znsoJvBARmqMR34AJ6KPpZMoiEFZ38paAqQpwiqjmen7yFkEefWNVWqjD3pCJrAntXXDLkNkpxe8Uyf");
 
         // Try to compute the same signature
         let private_key = PrivateKey::from_str("5KWu5C8FDdNcoCLta3hXuyDKJcxAgaaza3MLkwRJWwEz9C2dn5u", true).unwrap();
         let computed_signature = private_key.sign_message(&signing_data);
-        println!("Computed signature: {}", computed_signature.to_string());
+        println!("Computed signature: {}", computed_signature);
         assert_eq!(computed_signature, signature);
 
         // Recover the public key from the signature
