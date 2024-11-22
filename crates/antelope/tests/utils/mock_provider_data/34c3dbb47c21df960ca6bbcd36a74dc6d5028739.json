@@ -1,0 +1,15 @@
+{
+    "state": "IRREVERSIBLE",
+    "block_number": 75,
+    "block_id": "0000004b280bbfb8f03477c1ac6c9f2a42f7a8406f0339b50f535b649680fb51",
+    "block_timestamp": "2024-11-11T11:47:38.000",
+    "expiration": "2024-11-11T11:49:07.000",
+    "head_number": 164,
+    "head_id": "000000a446ce1758ec9d04aca27f21ee370bd9fe3e00c2e49f5aeb50f1a30347",
+    "head_timestamp": "2024-11-11T11:48:22.500",
+    "irreversible_number": 163,
+    "irreversible_id": "000000a3369447a5bcf4f9f2c0edd22afa515acdb3839fba45c3c1a165fdcaf8",
+    "irreversible_timestamp": "2024-11-11T11:48:22.000",
+    "earliest_tracked_block_id": "0000004a259960be4e410f69ed3c4730ef0e5712500d3056ac25badc69ee0e57",
+    "earliest_tracked_block_number": 74
+}
