@@ -29,7 +29,7 @@ pub struct Signature {
 }
 
 impl Signature {
-    pub const RECOVERY_ID_ADDITION: u8 = 27;
+    pub const RECOVERY_ID_ADDITION: u8 = 31;
 
     pub fn recovery_id(&self) -> u8 {
         self.value[0]
