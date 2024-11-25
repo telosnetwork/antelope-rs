@@ -9,7 +9,7 @@ use crate::{
         action::Action, checksum::Checksum256, signature::Signature, time::TimePointSec,
         varint::VarUint32, Decoder, Encoder, Packer,
     },
-    util::{bytes_to_hex, zlib_compress},
+    util::zlib_compress,
 };
 
 #[derive(Clone, Eq, PartialEq, Default, StructPacker, Serialize, Deserialize)]
@@ -63,12 +63,12 @@ pub struct SignedTransaction {
 
 #[derive(PartialEq)]
 pub enum CompressionType {
-    ZLIB,
     NONE,
+    ZLIB,
 }
 
 impl CompressionType {
-    pub fn index(&self) -> usize {
+    pub fn index(&self) -> u8 {
         match self {
             CompressionType::NONE => 0,
             CompressionType::ZLIB => 1,
@@ -79,7 +79,7 @@ impl CompressionType {
 #[derive(Clone, Eq, PartialEq, Default, StructPacker, Serialize, Deserialize)]
 pub struct PackedTransaction {
     signatures: Vec<Signature>,
-    compression: Option<u8>,
+    compression: u8,
     packed_context_free_data: Vec<u8>,
     packed_transaction: Vec<u8>,
 }
@@ -98,7 +98,7 @@ impl PackedTransaction {
 
         Ok(Self {
             signatures: signed.signatures,
-            compression: Some(compression.index() as u8),
+            compression: compression.index(),
             packed_transaction,
             packed_context_free_data,
         })
@@ -108,19 +108,17 @@ impl PackedTransaction {
         let mut trx: HashMap<&str, Value> = HashMap::new();
         let signatures: Vec<String> = self.signatures.iter().map(|sig| sig.to_string()).collect();
         trx.insert("signatures", json!(signatures));
-        if self.compression.is_some() {
-            trx.insert(
-                "compression",
-                Value::Number(self.compression.unwrap().into()),
-            );
-        }
+        trx.insert(
+            "compression",
+            Value::Number(self.compression.into()),
+        );
         trx.insert(
             "packed_context_free_data",
-            Value::String(bytes_to_hex(&self.packed_context_free_data)),
+            Value::String(hex::encode(&self.packed_context_free_data)),
         );
         trx.insert(
             "packed_trx",
-            Value::String(bytes_to_hex(&self.packed_transaction)),
+            Value::String(hex::encode(&self.packed_transaction)),
         );
         json!(trx).to_string()
     }

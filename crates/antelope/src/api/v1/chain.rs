@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use log::info;
 
 use serde_json::{self, json, Value};
 
@@ -36,8 +37,6 @@ impl<T: Provider> ChainAPI<T> {
     pub fn new(provider: T) -> Self {
         ChainAPI { provider }
     }
-
-    // pub async fn get_abi(&self) -> Result<
 
     pub async fn get_account(
         &self,
@@ -157,6 +156,8 @@ impl<T: Provider> ChainAPI<T> {
         }
     }
 
+    /// send_transaction sends transaction to telos using /v1/chain/send_transaction
+    /// and using ZLIB compression type.
     pub async fn send_transaction(
         &self,
         trx: SignedTransaction,
@@ -197,6 +198,8 @@ impl<T: Provider> ChainAPI<T> {
         }
     }
 
+    /// send_transaction2 sends transaction to telos using /v1/chain/send_transaction2
+    /// which enables retry in case of transaction failure using ZLIB compression type.
     pub async fn send_transaction2(
         &self,
         trx: SignedTransaction,
