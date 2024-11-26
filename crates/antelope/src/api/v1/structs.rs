@@ -485,7 +485,7 @@ impl TableIndexType {
             TableIndexType::UINT64(value) => json!(value.to_string()),
             TableIndexType::UINT128(value) => json!(value.to_string()),
             TableIndexType::FLOAT64(value) => json!(value.to_string()),
-            TableIndexType::CHECKSUM256(value) => json!(value.to_index()),
+            TableIndexType::CHECKSUM256(value) => json!(value.as_string()),
             TableIndexType::CHECKSUM160(value) => json!(value.as_string()),
         }
     }
