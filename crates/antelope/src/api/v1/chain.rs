@@ -283,6 +283,11 @@ impl<T: Provider> ChainAPI<T> {
                         Checksum256::from_bytes(hex_to_bytes(&next_key_str).as_slice()).unwrap(),
                     ));
                 }
+                Some(TableIndexType::CHECKSUM256RSDK(_)) => {
+                    next_key = Some(TableIndexType::CHECKSUM256RSDK(
+                        Checksum256::from_bytes(hex_to_bytes(&next_key_str).as_slice()).unwrap(),
+                    ));
+                }
                 Some(TableIndexType::FLOAT64(_)) => {
                     next_key = Some(TableIndexType::FLOAT64(next_key_str.parse().unwrap()));
                 }

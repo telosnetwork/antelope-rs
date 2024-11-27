@@ -34,7 +34,7 @@ dependencies = [
 
 [[package]]
 name = "antelope-client"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "antelope-client-macros 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "async-trait",

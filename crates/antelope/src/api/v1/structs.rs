@@ -366,6 +366,7 @@ pub enum TableIndexType {
     UINT128(u128),
     FLOAT64(f64),
     CHECKSUM256(Checksum256),
+    CHECKSUM256RSDK(Checksum256),
     CHECKSUM160(Checksum160),
 }
 
@@ -376,7 +377,8 @@ impl TableIndexType {
             TableIndexType::UINT64(value) => json!(value.to_string()),
             TableIndexType::UINT128(value) => json!(value.to_string()),
             TableIndexType::FLOAT64(value) => json!(value.to_string()),
-            TableIndexType::CHECKSUM256(value) => json!(value.to_index()),
+            TableIndexType::CHECKSUM256(value) => json!(value.as_string()),
+            TableIndexType::CHECKSUM256RSDK(value) => json!(value.to_index()),
             TableIndexType::CHECKSUM160(value) => json!(value.as_string()),
         }
     }
@@ -388,6 +390,7 @@ impl TableIndexType {
             TableIndexType::UINT128(_) => Value::String("i128".to_string()),
             TableIndexType::FLOAT64(_) => Value::String("float64".to_string()),
             TableIndexType::CHECKSUM256(_) => Value::String("sha256".to_string()),
+            TableIndexType::CHECKSUM256RSDK(_) => Value::String("sha256".to_string()),
             TableIndexType::CHECKSUM160(_) => Value::String("ripemd160".to_string()),
         }
     }
