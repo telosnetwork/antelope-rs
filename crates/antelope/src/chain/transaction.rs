@@ -104,7 +104,7 @@ impl PackedTransaction {
         })
     }
 
-    pub fn to_json(&self) -> String {
+    pub fn to_json(&self) -> Value {
         let mut trx: HashMap<&str, Value> = HashMap::new();
         let signatures: Vec<String> = self.signatures.iter().map(|sig| sig.to_string()).collect();
         trx.insert("signatures", json!(signatures));
@@ -120,6 +120,6 @@ impl PackedTransaction {
             "packed_trx",
             Value::String(hex::encode(&self.packed_transaction)),
         );
-        json!(trx).to_string()
+        json!(trx)
     }
 }

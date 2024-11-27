@@ -22,6 +22,7 @@ use crate::chain::{
     varint::VarUint32,
 };
 use tracing::info;
+use crate::chain::transaction::PackedTransaction;
 
 #[derive(Debug)]
 pub enum ClientError<T> {
@@ -228,8 +229,34 @@ pub struct SendTransactionResponseErrorDetails {
 pub struct SendTransaction2Options {
     pub return_failure_trace: bool,
     pub retry_trx: bool,
-    pub retry_trx_num_blocks: u64,
+    pub retry_trx_num_blocks: u32,
 }
+
+#[derive(Serialize)]
+pub struct SendTransaction2Request {
+    pub return_failure_trace: bool,
+    pub retry_trx: bool,
+    pub retry_trx_num_blocks: u32,
+    pub transaction: Value,
+}
+
+impl SendTransaction2Request {
+    pub fn build(trx: PackedTransaction, options: Option<SendTransaction2Options>) -> SendTransaction2Request {
+        let opts = options.unwrap_or(SendTransaction2Options {
+            return_failure_trace: true,
+            retry_trx: false,
+            retry_trx_num_blocks: 0,
+        });
+
+        SendTransaction2Request {
+            return_failure_trace: opts.return_failure_trace,
+            retry_trx: opts.retry_trx,
+            retry_trx_num_blocks: opts.retry_trx_num_blocks,
+            transaction: trx.to_json(),
+        }
+    }
+}
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorResponse {
@@ -480,9 +507,9 @@ pub struct AccountObject {
     #[serde(deserialize_with = "deserialize_timepoint")]
     pub created: TimePoint,
     #[serde(
-        deserialize_with = "deserialize_optional_asset",
-        default,
-        skip_serializing_if = "Option::is_none"
+    deserialize_with = "deserialize_optional_asset",
+    default,
+    skip_serializing_if = "Option::is_none"
     )]
     pub core_liquid_balance: Option<Asset>,
     pub ram_quota: i64,
@@ -514,30 +541,31 @@ pub struct AccountRexInfo {
     matured_rex: i64,
     rex_maturities: Vec<AccountRexInfoMaturities>,
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountRexInfoMaturities {
     #[serde(
-        deserialize_with = "deserialize_optional_timepoint",
-        default,
-        skip_serializing_if = "Option::is_none"
+    deserialize_with = "deserialize_optional_timepoint",
+    default,
+    skip_serializing_if = "Option::is_none"
     )]
     key: Option<TimePoint>,
     #[serde(
-        deserialize_with = "deserialize_optional_i64_from_string",
-        default,
-        skip_serializing_if = "Option::is_none"
+    deserialize_with = "deserialize_optional_i64_from_string",
+    default,
+    skip_serializing_if = "Option::is_none"
     )]
     value: Option<i64>,
     #[serde(
-        deserialize_with = "deserialize_optional_timepoint",
-        default,
-        skip_serializing_if = "Option::is_none"
+    deserialize_with = "deserialize_optional_timepoint",
+    default,
+    skip_serializing_if = "Option::is_none"
     )]
     first: Option<TimePoint>,
     #[serde(
-        deserialize_with = "deserialize_optional_i64_from_string",
-        default,
-        skip_serializing_if = "Option::is_none"
+    deserialize_with = "deserialize_optional_i64_from_string",
+    default,
+    skip_serializing_if = "Option::is_none"
     )]
     second: Option<i64>,
 }
@@ -558,15 +586,15 @@ pub struct AccountResourceLimit {
     #[serde(deserialize_with = "deserialize_i64_from_string_or_i64")]
     max: i64,
     #[serde(
-        deserialize_with = "deserialize_optional_timepoint",
-        default,
-        skip_serializing_if = "Option::is_none"
+    deserialize_with = "deserialize_optional_timepoint",
+    default,
+    skip_serializing_if = "Option::is_none"
     )]
     last_usage_update_time: Option<TimePoint>,
     #[serde(
-        deserialize_with = "deserialize_optional_i64_from_string",
-        default,
-        skip_serializing_if = "Option::is_none"
+    deserialize_with = "deserialize_optional_i64_from_string",
+    default,
+    skip_serializing_if = "Option::is_none"
     )]
     current_used: Option<i64>,
 }
@@ -721,6 +749,7 @@ pub struct GetBlockResponse {
     pub block_num: u32,
     pub ref_block_prefix: u32,
 }
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct NewProducers {
     pub version: u32,
@@ -815,8 +844,8 @@ pub struct BlockExtension {
 // }
 
 fn deserialize_number_or_string<'de, D>(deserializer: D) -> Result<String, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     let value = Value::deserialize(deserializer)?;
     match value {
@@ -827,8 +856,8 @@ where
 }
 
 fn deserialize_f64_from_string<'de, D>(deserializer: D) -> Result<f64, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     struct StringToF64Visitor;
 
@@ -840,8 +869,8 @@ where
         }
 
         fn visit_str<E>(self, value: &str) -> Result<f64, E>
-        where
-            E: de::Error,
+            where
+                E: de::Error,
         {
             value.parse::<f64>().map_err(de::Error::custom)
         }
@@ -851,8 +880,8 @@ where
 }
 
 fn deserialize_bool_from_number<'de, D>(deserializer: D) -> Result<bool, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     struct NumberToBoolVisitor;
 
@@ -864,8 +893,8 @@ where
         }
 
         fn visit_u64<E>(self, value: u64) -> Result<bool, E>
-        where
-            E: de::Error,
+            where
+                E: de::Error,
         {
             match value {
                 0 => Ok(false),
@@ -879,8 +908,8 @@ where
 }
 
 fn deserialize_u64_from_string_or_u64<'de, D>(deserializer: D) -> Result<u64, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     struct U64OrStringVisitor;
 
@@ -892,22 +921,22 @@ where
         }
 
         fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
+            where
+                E: serde::de::Error,
         {
             value.parse::<u64>().map_err(E::custom)
         }
 
         fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
+            where
+                E: serde::de::Error,
         {
             Ok(value)
         }
 
         fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
+            where
+                E: serde::de::Error,
         {
             u64::try_from(value).map_err(|_| E::custom("u64 value too large for i64"))
         }
@@ -917,8 +946,8 @@ where
 }
 
 fn deserialize_i64_from_string_or_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     struct I64OrStringVisitor;
 
@@ -930,22 +959,22 @@ where
         }
 
         fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
+            where
+                E: serde::de::Error,
         {
             value.parse::<i64>().map_err(E::custom)
         }
 
         fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
+            where
+                E: serde::de::Error,
         {
             Ok(value)
         }
 
         fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
+            where
+                E: serde::de::Error,
         {
             i64::try_from(value).map_err(|_| E::custom("u64 value too large for i64"))
         }
@@ -955,8 +984,8 @@ where
 }
 
 fn deserialize_optional_i64_from_string<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
-where
-    D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
 {
     struct StringOrI64Visitor;
 
@@ -970,22 +999,22 @@ where
         }
 
         fn visit_str<E>(self, value: &str) -> Result<Option<i64>, E>
-        where
-            E: de::Error,
+            where
+                E: de::Error,
         {
             value.parse::<i64>().map(Some).map_err(de::Error::custom)
         }
 
         fn visit_i64<E>(self, value: i64) -> Result<Option<i64>, E>
-        where
-            E: de::Error,
+            where
+                E: de::Error,
         {
             Ok(Some(value))
         }
 
         fn visit_u64<E>(self, value: u64) -> Result<Option<i64>, E>
-        where
-            E: de::Error,
+            where
+                E: de::Error,
         {
             if value <= i64::MAX as u64 {
                 Ok(Some(value as i64))
@@ -995,15 +1024,15 @@ where
         }
 
         fn visit_none<E>(self) -> Result<Option<i64>, E>
-        where
-            E: de::Error,
+            where
+                E: de::Error,
         {
             Ok(None)
         }
 
         fn visit_unit<E>(self) -> Result<Option<i64>, E>
-        where
-            E: de::Error,
+            where
+                E: de::Error,
         {
             Ok(None)
         }

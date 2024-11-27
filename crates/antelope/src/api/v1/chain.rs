@@ -1,12 +1,8 @@
 use std::fmt::Debug;
+
 use log::info;
+use serde_json::{self, Value};
 
-use serde_json::{self, json, Value};
-
-use crate::api::v1::structs::{
-    ABIResponse, EncodingError, GetBlockResponse, GetTransactionStatusResponse, ServerError,
-};
-use crate::chain::checksum::{Checksum160, Checksum256};
 use crate::{
     api::{
         client::Provider,
@@ -17,14 +13,16 @@ use crate::{
         },
     },
     chain::{
+        Decoder,
         name::Name,
-        transaction::{CompressionType, PackedTransaction, SignedTransaction},
-        Decoder, Packer,
+        Packer, transaction::{CompressionType, PackedTransaction, SignedTransaction},
     },
     name,
     serializer::formatter::{JSONObject, ValueTo},
     util::hex_to_bytes,
 };
+use crate::api::v1::structs::{ABIResponse, EncodingError, GetBlockResponse, GetTransactionStatusResponse, SendTransaction2Request, ServerError};
+use crate::chain::checksum::{Checksum160, Checksum256};
 
 use super::structs::{SendTransaction2Options, SendTransaction2Response};
 
@@ -168,7 +166,7 @@ impl<T: Provider> ChainAPI<T> {
         let trx_json = packed.to_json();
         let result = self
             .provider
-            .post(String::from("/v1/chain/send_transaction"), Some(trx_json))
+            .post(String::from("/v1/chain/send_transaction"), Some(trx_json.to_string()))
             .await
             .map_err(|_| ClientError::NETWORK("Failed to send transaction".into()))?;
 
@@ -206,26 +204,11 @@ impl<T: Provider> ChainAPI<T> {
         options: Option<SendTransaction2Options>,
     ) -> Result<SendTransaction2Response, ClientError<SendTransactionResponseError>> {
         // Convert transaction to a PackedTransaction if necessary
-        let packed = PackedTransaction::from_signed(trx, CompressionType::ZLIB)
+        let packed_transaction = PackedTransaction::from_signed(trx, CompressionType::ZLIB)
             .map_err(|_| ClientError::encoding("Failed to pack transaction".into()))?;
 
-        // Convert PackedTransaction to JSON
-        let trx_json = packed.to_json();
-
-        // Set up default options or use provided ones
-        let opts = options.unwrap_or(SendTransaction2Options {
-            return_failure_trace: true,
-            retry_trx: false,
-            retry_trx_num_blocks: 0,
-        });
-
-        // Create request body with options
-        let request_body = json!({
-            "return_failure_trace": opts.return_failure_trace,
-            "retry_trx": opts.retry_trx,
-            "retry_trx_num_blocks": opts.retry_trx_num_blocks,
-            "transaction": trx_json,
-        });
+        // // Create request body with options
+        let request_body = SendTransaction2Request::build(packed_transaction, options);
 
         // Convert request body to string
         let request_body_str = serde_json::to_string(&request_body)
