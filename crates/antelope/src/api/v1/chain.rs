@@ -1,30 +1,31 @@
 use std::fmt::Debug;
 
-use log::info;
 use serde_json::{self, Value};
 
+use crate::api::v1::structs::{
+    ABIResponse, EncodingError, GetBlockResponse, GetTransactionStatusResponse,
+    SendTransaction2Request, ServerError,
+};
+use crate::chain::checksum::{Checksum160, Checksum256};
 use crate::{
     api::{
         client::Provider,
         v1::structs::{
-            AccountObject, ClientError, ErrorResponse, GetInfoResponse, GetTableRowsParams,
-            GetTableRowsResponse, SendTransactionResponse, SendTransactionResponseError,
-            TableIndexType,
+            AccountObject, ClientError, ErrorResponse, ErrorResponse2, GetInfoResponse,
+            GetTableRowsParams, GetTableRowsResponse, SendTransaction2Options,
+            SendTransaction2Response, SendTransactionResponse, SendTransactionResponse2Error,
+            SendTransactionResponseError, TableIndexType,
         },
     },
     chain::{
-        Decoder,
         name::Name,
-        Packer, transaction::{CompressionType, PackedTransaction, SignedTransaction},
+        transaction::{CompressionType, PackedTransaction, SignedTransaction},
+        Decoder, Packer,
     },
     name,
     serializer::formatter::{JSONObject, ValueTo},
     util::hex_to_bytes,
 };
-use crate::api::v1::structs::{ABIResponse, EncodingError, GetBlockResponse, GetTransactionStatusResponse, SendTransaction2Request, ServerError};
-use crate::chain::checksum::{Checksum160, Checksum256};
-
-use super::structs::{SendTransaction2Options, SendTransaction2Response};
 
 #[derive(Debug, Default, Clone)]
 pub struct ChainAPI<T: Provider> {
@@ -202,7 +203,7 @@ impl<T: Provider> ChainAPI<T> {
         &self,
         trx: SignedTransaction,
         options: Option<SendTransaction2Options>,
-    ) -> Result<SendTransaction2Response, ClientError<SendTransactionResponseError>> {
+    ) -> Result<SendTransaction2Response, ClientError<SendTransactionResponse2Error>> {
         // Convert transaction to a PackedTransaction if necessary
         let packed_transaction = PackedTransaction::from_signed(trx, CompressionType::ZLIB)
             .map_err(|_| ClientError::encoding("Failed to pack transaction".into()))?;
@@ -217,16 +218,26 @@ impl<T: Provider> ChainAPI<T> {
         // Send the request to the endpoint
         let result = self
             .provider
-            .post(String::from("/v1/chain/send_transaction2"), Some(request_body_str))
+            .post(
+                String::from("/v1/chain/send_transaction2"),
+                Some(request_body_str),
+            )
             .await
             .map_err(|_| ClientError::NETWORK("Failed to send transaction".into()))?;
 
+        // tracing::warn!("Result of the send_transaction2: {result}");
+
         // Deserialize the response
         match serde_json::from_str::<SendTransaction2Response>(&result) {
-            Ok(response) => Ok(response),
-            Err(_) => {
+            Ok(response) => match response.processed.except {
+                Some(error) => Err(ClientError::SERVER(ServerError { error })),
+                None => Ok(response),
+            },
+            Err(error) => {
+                // tracing::error!("Failed to deserialize send_transactions2 response: {error}");
+
                 // Try to parse an error response
-                match serde_json::from_str::<ErrorResponse>(&result) {
+                match serde_json::from_str::<ErrorResponse2>(&result) {
                     Ok(error_response) => Err(ClientError::SERVER(ServerError {
                         error: error_response.error,
                     })),

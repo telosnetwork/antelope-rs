@@ -177,8 +177,11 @@ fn deserialize_data<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let data: Value = Deserialize::deserialize(deserializer)?;
-    let serialized_str = serde_json::to_string(&data).map_err(serde::de::Error::custom)?;
+    // TODO: This is just for temporary debugging
+    let Ok(data): Result<Value, _> = Deserialize::deserialize(deserializer) else {
+	return Ok(vec![])
+    };
+    let serialized_str = serde_json::to_string(&data).unwrap_or("".to_string());
     Ok(serialized_str.into_bytes())
 }
 
