@@ -50,7 +50,7 @@ where
 {
     struct BlockIdVisitor;
 
-    impl<'de> Visitor<'de> for BlockIdVisitor {
+    impl Visitor<'_> for BlockIdVisitor {
         type Value = BlockId;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

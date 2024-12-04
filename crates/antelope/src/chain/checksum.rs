@@ -81,7 +81,7 @@ where
 {
     struct Checksum256Visitor;
 
-    impl<'de> Visitor<'de> for Checksum256Visitor {
+    impl Visitor<'_> for Checksum256Visitor {
         type Value = Checksum256;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -129,7 +129,7 @@ impl Checksum256 {
     }
 
     pub fn hash(bytes: Vec<u8>) -> Self {
-        return Checksum256::from_bytes(Sha256::digest(bytes).as_slice()).unwrap();
+        Checksum256::from_bytes(Sha256::digest(bytes).as_slice()).unwrap()
     }
 
     pub fn as_string(&self) -> String {
@@ -200,7 +200,7 @@ impl Checksum512 {
     }
 
     pub fn hash(bytes: Vec<u8>) -> Self {
-        return Checksum512::from_bytes(Sha512::digest(bytes).as_slice());
+        Checksum512::from_bytes(Sha512::digest(bytes).as_slice())
     }
 
     pub fn as_string(&self) -> String {

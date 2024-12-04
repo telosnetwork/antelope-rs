@@ -251,7 +251,7 @@ where
 {
     struct NameVisitor;
 
-    impl<'de> serde::de::Visitor<'de> for NameVisitor {
+    impl serde::de::Visitor<'_> for NameVisitor {
         type Value = Name;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

@@ -156,7 +156,7 @@ where
 {
     struct SignatureVisitor;
 
-    impl<'de> Visitor<'de> for SignatureVisitor {
+    impl Visitor<'_> for SignatureVisitor {
         type Value = Signature;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

@@ -47,7 +47,7 @@ impl ValueTo {
 
     pub fn hex_bytes(v: Option<&Value>) -> Result<Vec<u8>, EncodingError> {
         let value = Self::string(v)?;
-        return Ok(hex_to_bytes(value.as_str()));
+        Ok(hex_to_bytes(value.as_str()))
     }
 
     pub fn u32(v: Option<&Value>) -> Result<u32, EncodingError> {

@@ -412,7 +412,7 @@ where
 {
     struct AssetVisitor;
 
-    impl<'de> de::Visitor<'de> for AssetVisitor {
+    impl de::Visitor<'_> for AssetVisitor {
         type Value = Asset;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
