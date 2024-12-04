@@ -103,7 +103,7 @@ where
 {
     struct PublicKeyVisitor;
 
-    impl<'de> serde::de::Visitor<'de> for PublicKeyVisitor {
+    impl serde::de::Visitor<'_> for PublicKeyVisitor {
         type Value = PublicKey;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

@@ -830,7 +830,7 @@ where
 {
     struct StringToF64Visitor;
 
-    impl<'de> Visitor<'de> for StringToF64Visitor {
+    impl Visitor<'_> for StringToF64Visitor {
         type Value = f64;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -854,7 +854,7 @@ where
 {
     struct NumberToBoolVisitor;
 
-    impl<'de> Visitor<'de> for NumberToBoolVisitor {
+    impl Visitor<'_> for NumberToBoolVisitor {
         type Value = bool;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -882,7 +882,7 @@ where
 {
     struct U64OrStringVisitor;
 
-    impl<'de> serde::de::Visitor<'de> for U64OrStringVisitor {
+    impl serde::de::Visitor<'_> for U64OrStringVisitor {
         type Value = u64;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -920,7 +920,7 @@ where
 {
     struct I64OrStringVisitor;
 
-    impl<'de> serde::de::Visitor<'de> for I64OrStringVisitor {
+    impl serde::de::Visitor<'_> for I64OrStringVisitor {
         type Value = i64;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -958,7 +958,7 @@ where
 {
     struct StringOrI64Visitor;
 
-    impl<'de> Visitor<'de> for StringOrI64Visitor {
+    impl Visitor<'_> for StringOrI64Visitor {
         type Value = Option<i64>;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

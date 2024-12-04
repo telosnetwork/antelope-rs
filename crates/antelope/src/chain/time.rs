@@ -93,7 +93,7 @@ where
 {
     struct TimePointVisitor;
 
-    impl<'de> de::Visitor<'de> for TimePointVisitor {
+    impl de::Visitor<'_> for TimePointVisitor {
         type Value = TimePoint;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -119,7 +119,7 @@ where
 {
     struct OptionalTimePointVisitor;
 
-    impl<'de> de::Visitor<'de> for OptionalTimePointVisitor {
+    impl de::Visitor<'_> for OptionalTimePointVisitor {
         type Value = Option<TimePoint>;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
