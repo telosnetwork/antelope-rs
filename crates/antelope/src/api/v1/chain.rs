@@ -3,16 +3,18 @@ use std::fmt::Debug;
 use serde_json::{self, Value};
 
 use crate::api::v1::structs::{
-    ABIResponse, EncodingError, GetBlockResponse, GetTransactionStatusResponse, ServerError,
+    ABIResponse, EncodingError, GetBlockResponse, GetTransactionStatusResponse,
+    SendTransaction2Request, ServerError,
 };
 use crate::chain::checksum::{Checksum160, Checksum256};
 use crate::{
     api::{
         client::Provider,
         v1::structs::{
-            AccountObject, ClientError, ErrorResponse, GetInfoResponse, GetTableRowsParams,
-            GetTableRowsResponse, SendTransactionResponse, SendTransactionResponseError,
-            TableIndexType,
+            AccountObject, ClientError, ErrorResponse, ErrorResponse2, GetInfoResponse,
+            GetTableRowsParams, GetTableRowsResponse, SendTransaction2Options,
+            SendTransaction2Response, SendTransactionResponse, SendTransactionResponse2Error,
+            SendTransactionResponseError, TableIndexType,
         },
     },
     chain::{
@@ -34,8 +36,6 @@ impl<T: Provider> ChainAPI<T> {
     pub fn new(provider: T) -> Self {
         ChainAPI { provider }
     }
-
-    // pub async fn get_abi(&self) -> Result<
 
     pub async fn get_account(
         &self,
@@ -155,6 +155,8 @@ impl<T: Provider> ChainAPI<T> {
         }
     }
 
+    /// send_transaction sends transaction to telos using /v1/chain/send_transaction
+    /// and using ZLIB compression type.
     pub async fn send_transaction(
         &self,
         trx: SignedTransaction,
@@ -165,7 +167,10 @@ impl<T: Provider> ChainAPI<T> {
         let trx_json = packed.to_json();
         let result = self
             .provider
-            .post(String::from("/v1/chain/send_transaction"), Some(trx_json))
+            .post(
+                String::from("/v1/chain/send_transaction"),
+                Some(trx_json.to_string()),
+            )
             .await
             .map_err(|_| ClientError::NETWORK("Failed to send transaction".into()))?;
 
@@ -190,6 +195,55 @@ impl<T: Provider> ChainAPI<T> {
                             ),
                         }))
                     }
+                }
+            }
+        }
+    }
+
+    /// send_transaction2 sends transaction to telos using /v1/chain/send_transaction2
+    /// which enables retry in case of transaction failure using ZLIB compression type.
+    pub async fn send_transaction2(
+        &self,
+        trx: SignedTransaction,
+        options: Option<SendTransaction2Options>,
+    ) -> Result<SendTransaction2Response, ClientError<SendTransactionResponse2Error>> {
+        let packed_transaction = PackedTransaction::from_signed(trx, CompressionType::ZLIB)
+            .map_err(|_| ClientError::encoding("Failed to pack transaction".into()))?;
+
+        let request_body = SendTransaction2Request::build(packed_transaction, options);
+
+        let request_body_str = serde_json::to_string(&request_body)
+            .map_err(|_| ClientError::encoding("Failed to serialize request body".into()))?;
+
+        // Send the request to the endpoint
+        let result = self
+            .provider
+            .post(
+                String::from("/v1/chain/send_transaction2"),
+                Some(request_body_str),
+            )
+            .await
+            .map_err(|_| ClientError::NETWORK("Failed to send transaction".into()))?;
+
+        // tracing::warn!("Result of the send_transaction2: {result}");
+
+        // Deserialize the response
+        match serde_json::from_str::<SendTransaction2Response>(&result) {
+            Ok(response) => match response.processed.except {
+                Some(error) => Err(ClientError::SERVER(ServerError { error })),
+                None => Ok(response),
+            },
+            Err(error) => {
+                tracing::error!("Failed to deserialize send_transactions2 response: {error}");
+
+                // Try to parse an error response
+                match serde_json::from_str::<ErrorResponse2>(&result) {
+                    Ok(error_response) => Err(ClientError::SERVER(ServerError {
+                        error: error_response.error,
+                    })),
+                    Err(e) => Err(ClientError::ENCODING(EncodingError {
+                        message: format!("Failed to parse response: {}", e),
+                    })),
                 }
             }
         }
