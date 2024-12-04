@@ -9,6 +9,7 @@ use std::mem::discriminant;
 use crate::chain::abi::ABI;
 use crate::chain::public_key::PublicKey;
 use crate::chain::signature::Signature;
+use crate::chain::transaction::PackedTransaction;
 use crate::chain::{
     action::{Action, PermissionLevel},
     asset::{deserialize_asset, deserialize_optional_asset, Asset},
@@ -173,6 +174,22 @@ pub struct ProcessedTransaction {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ProcessedTransaction2 {
+    pub id: String,
+    pub block_num: u64,
+    pub block_time: String,
+    pub producer_block_id: Option<String>,
+    pub receipt: Option<ProcessedTransactionReceipt>,
+    pub elapsed: u64,
+    pub net_usage: u32,
+    pub scheduled: bool,
+    pub action_traces: Vec<Value>,
+    pub account_ram_delta: Option<Value>,
+    pub except: Option<SendTransactionResponse2Error>,
+    pub error_code: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponseExceptionStackContext {
     pub level: String,
     pub file: String,
@@ -191,12 +208,27 @@ pub struct SendTransactionResponseExceptionStack {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct SendTransactionResponse2ExceptionStack {
+    pub context: SendTransactionResponseExceptionStackContext,
+    pub format: String,
+    pub data: Value,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponseError {
     pub code: Option<u32>,
     pub name: String,
     pub what: String,
     pub stack: Option<Vec<SendTransactionResponseExceptionStack>>,
     pub details: Vec<SendTransactionResponseErrorDetails>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SendTransactionResponse2Error {
+    pub code: Option<u32>,
+    pub name: String,
+    pub message: String,
+    pub stack: Vec<SendTransactionResponse2ExceptionStack>,
 }
 
 impl SendTransactionResponseError {
@@ -225,6 +257,40 @@ pub struct SendTransactionResponseErrorDetails {
     pub method: String,
 }
 
+pub struct SendTransaction2Options {
+    pub return_failure_trace: bool,
+    pub retry_trx: bool,
+    pub retry_trx_num_blocks: u32,
+}
+
+#[derive(Serialize)]
+pub struct SendTransaction2Request {
+    pub return_failure_trace: bool,
+    pub retry_trx: bool,
+    pub retry_trx_num_blocks: u32,
+    pub transaction: Value,
+}
+
+impl SendTransaction2Request {
+    pub fn build(
+        trx: PackedTransaction,
+        options: Option<SendTransaction2Options>,
+    ) -> SendTransaction2Request {
+        let opts = options.unwrap_or(SendTransaction2Options {
+            return_failure_trace: true,
+            retry_trx: false,
+            retry_trx_num_blocks: 0,
+        });
+
+        SendTransaction2Request {
+            return_failure_trace: opts.return_failure_trace,
+            retry_trx: opts.retry_trx,
+            retry_trx_num_blocks: opts.retry_trx_num_blocks,
+            transaction: trx.to_json(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorResponse {
     pub code: u16,
@@ -233,9 +299,22 @@ pub struct ErrorResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ErrorResponse2 {
+    pub code: u16,
+    pub message: String,
+    pub error: SendTransactionResponse2Error,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponse {
     pub transaction_id: String,
     pub processed: ProcessedTransaction,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SendTransaction2Response {
+    pub transaction_id: String,
+    pub processed: ProcessedTransaction2,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
