@@ -11,10 +11,10 @@ use crate::{
     api::{
         client::Provider,
         v1::structs::{
-            AccountObject, ClientError, ErrorResponse, ErrorResponse2, GetInfoResponse,
-            GetTableRowsParams, GetTableRowsResponse, SendTransaction2Options,
-            SendTransaction2Response, SendTransactionResponse, SendTransactionResponse2Error,
-            SendTransactionResponseError, TableIndexType,
+            AccountObject, ClientError, ErrorResponse, GetInfoResponse, GetTableRowsParams,
+            GetTableRowsResponse, SendTransaction2Options, SendTransaction2Response,
+            SendTransactionResponse, SendTransactionResponse2Error, SendTransactionResponseError,
+            TableIndexType,
         },
     },
     chain::{
@@ -237,9 +237,9 @@ impl<T: Provider> ChainAPI<T> {
                 tracing::error!("Failed to deserialize send_transactions2 response: {error}");
 
                 // Try to parse an error response
-                match serde_json::from_str::<ErrorResponse2>(&result) {
+                match serde_json::from_str::<ErrorResponse>(&result) {
                     Ok(error_response) => Err(ClientError::SERVER(ServerError {
-                        error: error_response.error,
+                        error: error_response.error.into(),
                     })),
                     Err(e) => Err(ClientError::ENCODING(EncodingError {
                         message: format!("Failed to parse response: {}", e),
