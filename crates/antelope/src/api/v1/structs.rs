@@ -214,6 +214,17 @@ pub struct SendTransactionResponse2ExceptionStack {
     pub data: Value,
 }
 
+impl From<SendTransactionResponseExceptionStack> for SendTransactionResponse2ExceptionStack {
+    fn from(value: SendTransactionResponseExceptionStack) -> Self {
+        let data: Value = serde_json::from_str(&value.data).expect("Failed to parse JSON");
+        Self {
+            context: value.context,
+            format: value.format,
+            data,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SendTransactionResponseError {
     pub code: Option<u32>,
@@ -229,6 +240,25 @@ pub struct SendTransactionResponse2Error {
     pub name: String,
     pub message: String,
     pub stack: Vec<SendTransactionResponse2ExceptionStack>,
+    pub details: Vec<SendTransactionResponseErrorDetails>,
+}
+
+impl From<SendTransactionResponseError> for SendTransactionResponse2Error {
+    fn from(value: SendTransactionResponseError) -> Self {
+        let stack = value
+            .stack
+            .unwrap_or_default()
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<_>>();
+        Self {
+            code: value.code,
+            name: value.name,
+            message: value.what,
+            stack,
+            details: value.details,
+        }
+    }
 }
 
 impl SendTransactionResponseError {
