@@ -240,7 +240,7 @@ pub struct SendTransactionResponse2Error {
     pub name: String,
     pub message: String,
     pub stack: Vec<SendTransactionResponse2ExceptionStack>,
-    pub details: Vec<SendTransactionResponseErrorDetails>,
+    pub details: Option<Vec<SendTransactionResponseErrorDetails>>,
 }
 
 impl From<SendTransactionResponseError> for SendTransactionResponse2Error {
@@ -256,7 +256,7 @@ impl From<SendTransactionResponseError> for SendTransactionResponse2Error {
             name: value.name,
             message: value.what,
             stack,
-            details: value.details,
+            details: Some(value.details),
         }
     }
 }
