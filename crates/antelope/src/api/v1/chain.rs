@@ -151,7 +151,10 @@ impl<T: Provider> ChainAPI<T> {
                 let message = format!("Failed to parse JSON: {}", e);
                 ClientError::encoding(message)
             }),
-            Err(_) => Err(ClientError::encoding("Request failed".into())),
+            Err(error) => Err(ClientError::encoding(format!(
+                "Request failed, reason: {}",
+                error
+            ))),
         }
     }
 
