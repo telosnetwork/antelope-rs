@@ -151,7 +151,10 @@ impl<T: Provider> ChainAPI<T> {
                 let message = format!("Failed to parse JSON: {}", e);
                 ClientError::encoding(message)
             }),
-            Err(_) => Err(ClientError::encoding("Request failed".into())),
+            Err(error) => Err(ClientError::encoding(format!(
+                "Request failed, reason: {}",
+                error
+            ))),
         }
     }
 
@@ -297,7 +300,12 @@ impl<T: Provider> ChainAPI<T> {
 
         let response = match result.await {
             Ok(response) => response,
-            Err(_) => return Err(ClientError::NETWORK("Failed to get table rows".into())),
+            Err(error) => {
+                return Err(ClientError::NETWORK(format!(
+                    "Failed to get table rows, reason: {}",
+                    error
+                )))
+            }
         };
         let json: Value = serde_json::from_str(response.as_str()).unwrap();
         let response_obj = JSONObject::new(json);
