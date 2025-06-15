@@ -1,15 +1,17 @@
 use crate::api::client::{APIClient, Provider};
-use crate::api::v1::structs::{ClientError, SendTransactionResponse, SendTransactionResponseError};
+use crate::api::v1::structs::SendTransactionResponse;
 use crate::chain::action::Action;
 use crate::chain::private_key::PrivateKey;
 use crate::chain::transaction::{SignedTransaction, Transaction};
+
+use super::v1::structs::ChainAPIError;
 
 pub async fn transact<T: Provider>(
     api_client: &APIClient<T>,
     actions: Vec<Action>,
     private_key: PrivateKey,
-) -> Result<SendTransactionResponse, ClientError<SendTransactionResponseError>> {
-    let info = api_client.v1_chain.get_info().await.unwrap();
+) -> Result<SendTransactionResponse, ChainAPIError> {
+    let info = api_client.v1_chain.get_info().await?;
     let trx_header = info.get_transaction_header(90);
     let trx = Transaction {
         header: trx_header,
@@ -22,7 +24,10 @@ pub async fn transact<T: Provider>(
 
     let signed = SignedTransaction {
         transaction: trx,
-        signatures: vec![private_key.sign_message(&sign_data)],
+        signatures: vec![
+            private_key.sign_message(&sign_data)
+                .map_err(ChainAPIError::Signing)?
+        ],
         context_free_data: vec![],
     };
 

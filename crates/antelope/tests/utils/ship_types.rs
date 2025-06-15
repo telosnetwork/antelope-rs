@@ -1,11 +1,12 @@
 use antelope::chain::checksum::Checksum256;
+use antelope::chain::float::Float128;
 use antelope::chain::name::Name;
 use antelope::chain::public_key::PublicKey;
 use antelope::chain::signature::Signature;
 use antelope::chain::varint::VarUint32;
-use antelope::chain::{Decoder, Encoder};
-use antelope::serializer::packer::Float128;
-use antelope::serializer::Packer;
+use antelope::serializer::{
+    Decoder, Encoder, Packer, PackerError,
+};
 use antelope::{EnumPacker, StructPacker};
 use serde::{Deserialize, Serialize};
 use std::option::Option;
@@ -67,8 +68,8 @@ impl Packer for GetStatusRequestV0 {
         0
     }
 
-    fn unpack(&mut self, _data: &[u8]) -> usize {
-        0
+    fn unpack(&mut self, _data: &[u8]) -> Result<usize, PackerError> {
+        Ok(0)
     }
 }
 

@@ -1,58 +1,52 @@
-use std::fmt::{Display, Formatter};
-
+use std::{
+    convert::TryFrom,
+    fmt::{Display, Formatter, LowerHex},
+    str::FromStr,
+};
 use serde::{Deserialize, Serialize};
 
-use crate::chain::{Encoder, Packer};
+use crate::{
+    check_unpack_len,
+    packer_error,
+    serializer::{Encoder, Packer, PackerError},
+};
 
-#[derive(Clone, Debug, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialOrd, Ord, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KeyType {
     #[default]
     K1,
     R1,
     WA,
-    // ... other variants ...
 }
 
-pub trait KeyTypeTrait {
-    fn from_string(s: &str) -> Result<KeyType, String>;
-    fn from_index(i: u8) -> Result<KeyType, String>;
-    fn to_index(&self) -> u8;
+impl FromStr for KeyType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "K1" => Ok(KeyType::K1),
+            "R1" => Ok(KeyType::R1),
+            "WA" => Ok(KeyType::WA),
+            _ => Err(format!("unknown key type '{s}'")),
+        }
+    }
 }
 
-impl KeyTypeTrait for KeyType {
-    fn from_string(s: &str) -> Result<KeyType, String> {
-        if s == "K1" {
-            return Ok(KeyType::K1);
-        }
+impl TryFrom<u8> for KeyType {
+    type Error = String;
 
-        if s == "R1" {
-            return Ok(KeyType::R1);
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(KeyType::K1),
+            1 => Ok(KeyType::R1),
+            2 => Ok(KeyType::WA),
+            i => Err(format!("unknown KeyType index {i}")),
         }
-
-        if s == "WA" {
-            return Ok(KeyType::WA);
-        }
-
-        Err(format!("Unknown key type {s}"))
     }
+}
 
-    fn from_index(i: u8) -> Result<KeyType, String> {
-        if i == 0 {
-            return Ok(KeyType::K1);
-        }
-
-        if i == 1 {
-            return Ok(KeyType::R1);
-        }
-
-        if i == 2 {
-            return Ok(KeyType::WA);
-        }
-
-        Err(format!("Unknown KeyType index {i}"))
-    }
-
-    fn to_index(&self) -> u8 {
+impl KeyType {
+    pub fn to_index(self) -> u8 {
         match self {
             KeyType::K1 => 0,
             KeyType::R1 => 1,
@@ -63,41 +57,35 @@ impl KeyTypeTrait for KeyType {
 
 impl Display for KeyType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            KeyType::K1 => {
-                write!(f, "K1")
-            }
-            KeyType::R1 => {
-                write!(f, "R1")
-            }
-            KeyType::WA => {
-                write!(f, "WA")
-            }
-        }
+        f.write_str(match self {
+            KeyType::K1 => "K1",
+            KeyType::R1 => "R1",
+            KeyType::WA => "WA",
+        })
+    }
+}
+
+impl LowerHex for KeyType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:x}", self.to_index())
     }
 }
 
 impl Packer for KeyType {
     fn size(&self) -> usize {
-        1usize
+        1
     }
 
     fn pack(&self, enc: &mut Encoder) -> usize {
-        let data = enc.alloc(self.size());
-        match self {
-            KeyType::K1 => data[0] = 0u8,
-            KeyType::R1 => data[0] = 1u8,
-            KeyType::WA => data[0] = 2u8,
-        }
+        let buf = enc.alloc(self.size());
+        buf[0] = self.to_index();
         self.size()
     }
 
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(
-            data.len() >= self.size(),
-            "KeyType::unpack: buffer overflow"
-        );
-        *self = KeyType::from_index(data[0]).unwrap();
-        self.size()
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, data, 1);
+        *self = KeyType::try_from(data[0])
+            .map_err(|e| packer_error!("KeyType index error: {e}"))?;
+        Ok(1)
     }
 }

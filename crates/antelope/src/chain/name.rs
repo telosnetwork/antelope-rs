@@ -1,219 +1,150 @@
 use std::{
-    fmt,
-    fmt::{Display, Formatter},
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
+use serde::{
+    de::{self, SeqAccess, Visitor, Error as SerdeDeError},
+    ser::Error as SerdeSerError,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
+use thiserror::Error;
+
+use crate::{
+    check_unpack_len,
+    serializer::{Encoder, Packer, PackerError},
 };
 
-use serde::de::SeqAccess;
-use serde::{Deserialize, Deserializer, Serialize};
+const INVALID_NAME_CHAR: u8 = 0xff;
+const INVALID_NAME: u64 = 0xFFFF_FFFF_FFFF_FFFF;
 
-use crate::serializer::{Encoder, Packer};
+pub const CHAR_MAP: [u8; 32] = [
+    b'.', b'1', b'2', b'3', b'4', b'5', b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i',
+    b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v', b'w', b'x',
+    b'y', b'z',
+];
 
-const INVALID_NAME_CHAR: u8 = 0xffu8;
-
-/// a helper function that converts a single ASCII character to
-/// a symbol used by the eosio::name object.
-/// ".12345abcdefghijklmnopqrstuvwxyz"
+#[inline]
 pub const fn char_to_index(c: u8) -> u8 {
-    match c as char {
-        'a'..='z' => (c - b'a') + 6,
-        '1'..='5' => (c - b'1') + 1,
-        '.' => 0,
+    match c {
+        b'a'..=b'z' => (c - b'a') + 6,
+        b'1'..=b'5' => (c - b'1') + 1,
+        b'.' => 0,
         _ => INVALID_NAME_CHAR,
     }
 }
 
-const INVALID_NAME: u64 = 0xFFFF_FFFF_FFFF_FFFFu64;
-
-// converts a static string to an `name` object.
-pub const fn static_str_to_name(s: &'static str) -> u64 {
-    let mut value: u64 = 0;
-    let _s = s.as_bytes();
-
-    if _s.len() > 13 {
-        return INVALID_NAME;
-    }
-
-    if _s.is_empty() {
+pub const fn str_to_name(s: &str) -> u64 {
+    let bytes = s.as_bytes();
+    let len = bytes.len();
+    if len == 0 {
         return 0;
     }
-
-    let mut n = _s.len();
-    if n == 13 {
-        n = 12;
+    if len > 13 {
+        return INVALID_NAME;
     }
-
-    let mut i = 0usize;
-
-    loop {
-        if i >= n {
-            break;
-        }
-        let tmp = char_to_index(_s[i]) as u64;
-        if tmp == INVALID_NAME_CHAR as u64 {
+    let mut value = 0u64;
+    let mut i = 0;
+    let n = if len == 13 { 12 } else { len };
+    while i < n {
+        let idx = char_to_index(bytes[i]) as u64;
+        if idx == INVALID_NAME_CHAR as u64 {
             return INVALID_NAME;
         }
-        value <<= 5;
-        value |= tmp;
-
+        value = (value << 5) | idx;
         i += 1;
     }
     value <<= 4 + 5 * (12 - n);
-
-    if _s.len() == 13 {
-        let tmp = char_to_index(_s[12]) as u64;
-        if tmp == INVALID_NAME_CHAR as u64 {
+    if len == 13 {
+        let idx = char_to_index(bytes[12]) as u64;
+        if idx == INVALID_NAME_CHAR as u64 || idx > 0x0f {
             return INVALID_NAME;
         }
-        if tmp > 0x0f {
-            return INVALID_NAME;
-        }
-        value |= tmp;
+        value |= idx;
     }
-
     value
 }
 
-/// similar to static_str_to_name,
-/// but also checks the validity of the resulting `name` object.
-pub fn static_str_to_name_checked(s: &'static str) -> u64 {
-    let n = static_str_to_name(s);
-    assert_ne!(n, INVALID_NAME, "bad name");
-    n
+#[derive(Debug, Error)]
+pub enum NameError {
+    #[error("invalid name")]
+    InvalidName,
+    #[error("utf8 error: {0}")]
+    Utf8(#[from] std::string::FromUtf8Error),
 }
 
-// a shorthand for static_str_to_name_checked.
-pub fn s2n(s: &'static str) -> u64 {
-    static_str_to_name_checked(s)
+pub fn str_to_name_checked(s: &str) -> Result<u64, NameError> {
+    let v = str_to_name(s);
+    if v == INVALID_NAME {
+        Err(NameError::InvalidName)
+    } else {
+        Ok(v)
+    }
 }
 
-// ".12345abcdefghijklmnopqrstuvwxyz"
-pub const CHAR_MAP: [u8; 32] = [
-    46, 49, 50, 51, 52, 53, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
-    112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,
-];
 
-/// converts an `name` object to a string.
-pub fn n2s(value: u64) -> String {
-    // 13 dots
-    let mut s: [u8; 13] = [46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46]; //'.'
-    let mut tmp = value;
+pub fn name_to_string(mut value: u64) -> Result<String, NameError> {
+    // zero is the “empty” name
+    if value == 0 {
+        return Ok(String::new());
+    }
+
+    let mut buf = [b'.'; 13];
     for i in 0..13 {
-        let c: u8 = if i == 0 {
-            CHAR_MAP[(tmp & 0x0f) as usize]
+        let index = if i == 0 {
+            (value & 0x0f) as usize
         } else {
-            CHAR_MAP[(tmp & 0x1f) as usize]
+            (value & 0x1f) as usize
         };
-        s[12 - i] = c;
-        if i == 0 {
-            tmp >>= 4
-        } else {
-            tmp >>= 5
-        }
+        buf[12 - i] = CHAR_MAP[index];
+        value >>= if i == 0 { 4 } else { 5 };
     }
 
-    let mut i = s.len() - 1;
-    while i != 0 {
-        if s[i] != b'.' {
-            break;
-        }
-        i -= 1;
-    }
-    if i == 0 {
-        return String::from("");
-    }
-    String::from_utf8(s[0..i + 1].to_vec()).unwrap()
+    let last = buf.iter()
+        .rposition(|&c| c != b'.')
+        .ok_or(NameError::InvalidName)? + 1;
+
+    String::from_utf8(buf[..last].to_vec()).map_err(NameError::Utf8)
 }
 
-fn str_to_name(s: &str) -> u64 {
-    let mut value: u64 = 0;
-    let _s = s.as_bytes();
 
-    if _s.len() > 13 {
-        return INVALID_NAME;
-    }
-
-    if _s.is_empty() {
-        return 0;
-    }
-
-    let mut n = _s.len();
-    if n == 13 {
-        n = 12;
-    }
-
-    let mut i = 0usize;
-
-    loop {
-        if i >= n {
-            break;
-        }
-        let tmp = char_to_index(_s[i]) as u64;
-        if tmp == 0xff {
-            return INVALID_NAME;
-        }
-        value <<= 5;
-        value |= tmp;
-
-        i += 1;
-    }
-    value <<= 4 + 5 * (12 - n);
-
-    if _s.len() == 13 {
-        let tmp = char_to_index(_s[12]) as u64;
-        if tmp == 0xff {
-            return INVALID_NAME;
-        }
-        if tmp > 0x0f {
-            return INVALID_NAME;
-        }
-        value |= tmp;
-    }
-
-    value
-}
-
-fn str_to_name_checked(s: &str) -> u64 {
-    let n = str_to_name(s);
-    assert_ne!(n, INVALID_NAME, "bad name string");
-    n
-}
-
-/// a wrapper around a 64-bit unsigned integer that represents a name in the
-/// Antelope blockchain
 #[repr(C, align(8))]
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Name {
-    pub n: u64,
+    n: u64,
 }
 
 impl Name {
-    pub fn new(s: &'static str) -> Self {
-        Name { n: s2n(s) }
-    }
-
+    #[inline]
     pub fn value(&self) -> u64 {
         self.n
     }
 
-    pub fn from_u64(n: u64) -> Self {
-        assert_ne!(n, INVALID_NAME, "bad name value");
+    pub fn as_str(&self) -> Result<String, NameError> {
+        name_to_string(self.n)
+    }
+}
+
+impl FromStr for Name {
+    type Err = NameError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Name { n: str_to_name_checked(s)? })
+    }
+}
+
+impl From<u64> for Name {
+    #[inline]
+    fn from(n: u64) -> Self {
         Name { n }
-    }
-
-    pub fn new_from_str(s: &str) -> Self {
-        Name {
-            n: str_to_name_checked(s),
-        }
-    }
-
-    pub fn as_string(&self) -> String {
-        n2s(self.n)
     }
 }
 
 impl Display for Name {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_string())
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.as_str() {
+            Ok(s) => write!(f, "{s}"),
+            Err(_) => Err(fmt::Error),
+        }
     }
 }
 
@@ -226,16 +157,18 @@ impl Packer for Name {
         self.n.pack(enc)
     }
 
-    fn unpack(&mut self, raw: &[u8]) -> usize {
-        assert!(raw.len() >= 8, "Name.unpack: buffer overflow!");
-        self.n = u64::from_ne_bytes(raw[0..8].try_into().unwrap());
-        8
+    fn unpack(&mut self, raw: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, raw, 8);
+        let mut buf = [0u8; 8];
+        buf.copy_from_slice(&raw[..8]);
+        self.n = u64::from_le_bytes(buf);
+        Ok(8)
     }
 }
 
 impl PartialOrd for Name {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(self.n.cmp(&other.n))
     }
 }
 
@@ -249,24 +182,24 @@ pub(crate) fn deserialize_name<'de, D>(deserializer: D) -> Result<Name, D::Error
 where
     D: Deserializer<'de>,
 {
-    struct NameVisitor;
+    struct VisitorImpl;
 
-    impl serde::de::Visitor<'_> for NameVisitor {
+    impl Visitor<'_> for VisitorImpl {
         type Value = Name;
 
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a string representing an EOSIO name")
+        fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+            formatter.write_str("EOSIO name string")
         }
 
-        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        fn visit_str<E>(self, v: &str) -> Result<Name, E>
         where
-            E: serde::de::Error,
+            E: de::Error,
         {
-            Ok(Name::new_from_str(v))
+            Name::from_str(v).map_err(E::custom)
         }
     }
 
-    deserializer.deserialize_str(NameVisitor)
+    deserializer.deserialize_str(VisitorImpl)
 }
 
 pub(crate) fn deserialize_optional_name<'de, D>(deserializer: D) -> Result<Option<Name>, D::Error>
@@ -274,47 +207,77 @@ where
     D: Deserializer<'de>,
 {
     let opt: Option<String> = Option::deserialize(deserializer)?;
-    let result = opt.map(|s| Name::new_from_str(&s));
-    Ok(result)
+    match opt {
+        Some(s) => Ok(Some(Name::from_str(&s).map_err(D::Error::custom)?)),
+        None => Ok(None),
+    }
 }
 
 pub(crate) fn deserialize_vec_name<'de, D>(deserializer: D) -> Result<Vec<Name>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    struct VecNameVisitor;
+    struct SeqVisitor;
 
-    impl<'de> serde::de::Visitor<'de> for VecNameVisitor {
+    impl<'de> Visitor<'de> for SeqVisitor {
         type Value = Vec<Name>;
 
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a vector of strings representing EOSIO names")
+        fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+            formatter.write_str("sequence of EOSIO name strings")
         }
 
         fn visit_seq<S>(self, mut seq: S) -> Result<Vec<Name>, S::Error>
         where
             S: SeqAccess<'de>,
         {
-            let mut names = Vec::new();
-
-            while let Some(elem) = seq.next_element::<String>()? {
-                names.push(Name::new_from_str(&elem));
+            let mut v = Vec::new();
+            while let Some(s) = seq.next_element::<String>()? {
+                v.push(Name::from_str(&s).map_err(S::Error::custom)?);
             }
-
-            Ok(names)
+            Ok(v)
         }
     }
 
-    deserializer.deserialize_seq(VecNameVisitor)
+    deserializer.deserialize_seq(SeqVisitor)
+}
+
+pub(crate) fn serialize_name<S>(name: &Name, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&name.as_str().map_err(S::Error::custom)?)
+}
+
+#[allow(dead_code)]
+pub(crate) fn serialize_optional_name<S>(
+    opt: &Option<Name>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match opt {
+        Some(name) => serializer.serialize_some(&name.as_str().map_err(S::Error::custom)?),
+        None => serializer.serialize_none(),
+    }
+}
+
+#[allow(dead_code)]
+pub(crate) fn serialize_vec_name<S>(
+    names: &[Name],
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let strs: Vec<_> = names
+        .iter()
+        .map(|n| n.as_str().map_err(S::Error::custom))
+        .collect::<Result<_, _>>()?;
+    serializer.collect_seq(strs)
 }
 
 pub const SAME_PAYER: Name = Name { n: 0 };
-pub const ACTIVE: Name = Name {
-    n: static_str_to_name("active"),
-};
-pub const OWNER: Name = Name {
-    n: static_str_to_name("owner"),
-};
-pub const CODE: Name = Name {
-    n: static_str_to_name("eosio.code"),
-};
+pub const ACTIVE: Name = Name { n: str_to_name("active") };
+pub const OWNER: Name = Name { n: str_to_name("owner") };
+pub const CODE: Name = Name { n: str_to_name("eosio.code") };

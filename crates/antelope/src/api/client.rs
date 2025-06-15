@@ -3,9 +3,11 @@ use std::fmt::{Debug, Display, Formatter};
 pub use crate::api::default_provider::DefaultProvider;
 use crate::api::util::transact;
 use crate::api::v1::chain::ChainAPI;
-use crate::api::v1::structs::{ClientError, SendTransactionResponse, SendTransactionResponseError};
+use crate::api::v1::structs::SendTransactionResponse;
 use crate::chain::action::Action;
 use crate::chain::private_key::PrivateKey;
+use thiserror::Error;
+use super::v1::structs::ChainAPIError;
 
 pub enum HTTPMethod {
     GET,
@@ -27,10 +29,27 @@ impl Display for HTTPMethod {
 
 // TODO: Make this return an APIResponse with status code, timing, etc..
 
+#[derive(Debug, Error)]
+pub struct ProviderError {
+    pub message: String
+}
+
+impl Display for ProviderError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl From<String> for ProviderError {
+    fn from(value: String) -> Self {
+        ProviderError { message: value }
+    }
+}
+
 #[async_trait::async_trait]
 pub trait Provider: Debug + Default + Sync + Send {
-    async fn post(&self, path: String, body: Option<String>) -> Result<String, String>;
-    async fn get(&self, path: String) -> Result<String, String>;
+    async fn post(&self, path: String, body: Option<String>) -> Result<String, ProviderError>;
+    async fn get(&self, path: String) -> Result<String, ProviderError>;
 }
 
 #[derive(Debug, Default, Clone)]
@@ -57,7 +76,7 @@ impl<P: Provider> APIClient<P> {
         &self,
         actions: Vec<Action>,
         private_key: PrivateKey,
-    ) -> Result<SendTransactionResponse, ClientError<SendTransactionResponseError>> {
+    ) -> Result<SendTransactionResponse, ChainAPIError> {
         transact(self, actions, private_key).await
     }
 }

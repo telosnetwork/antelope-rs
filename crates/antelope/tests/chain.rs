@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use antelope::chain::authority::{Authority, KeyWeight, WaitWeight};
 use antelope::chain::key_type::KeyType;
 use antelope::chain::private_key::PrivateKey;
@@ -7,16 +8,18 @@ use antelope::{
     chain::{
         action::{Action, PermissionLevel},
         asset::{Asset, Symbol},
-        block_id::BlockId,
-        checksum::{Checksum160, Checksum256, Checksum512},
+        checksum::{Checksum160, Checksum256, Checksum512, BlockId},
         name::Name,
         transaction::{Transaction, TransactionHeader},
-        Decoder, Encoder, Packer,
     },
     name,
-    util::{bytes_to_hex, hex_to_bytes},
+    util::bytes_to_hex,
 };
+use antelope::serializer::{Decoder, Encoder, Packer, PackerError};
 use antelope_client_macros::StructPacker;
+
+mod utils;
+use utils::hex_to_bytes;
 
 #[test]
 fn asset() {
@@ -28,17 +31,17 @@ fn asset() {
     // DUCKS') assert.equal(Asset.from('-0.0000000000001 DUCKS').toString(),
     // '-0.0000000000001 DUCKS')
     assert_eq!(
-        Asset::from_string("0.0000000000000 DUCKS").to_string(),
+        Asset::from_str("0.0000000000000 DUCKS").unwrap().to_string(),
         "0.0000000000000 DUCKS"
     );
     assert_eq!(
-        Asset::from_string("99999999999 DUCKS").to_string(),
+        Asset::from_str("99999999999 DUCKS").unwrap().to_string(),
         "99999999999 DUCKS"
     );
 
-    let asset = Asset::from_string("1.000000000 FOO");
+    let asset = Asset::from_str("1.000000000 FOO").unwrap();
     assert_eq!(asset.amount(), 1000000000);
-    let new_asset = asset + asset;
+    let new_asset = asset.try_add(asset).unwrap();
     assert_eq!(new_asset.amount(), 2000000000);
     /* TODO: Support negative?
     asset.value = -100
@@ -46,7 +49,7 @@ fn asset() {
     assert.equal(asset.units.toString(), '-100000000000')
     */
 
-    let symbol = Symbol::new("K", 10);
+    let symbol = Symbol::try_from(("K", 10)).unwrap();
     assert_eq!(symbol.code().to_string(), "K");
     assert_eq!(symbol.precision(), 10);
     assert_eq!(symbol.to_string(), "10,K");
@@ -54,7 +57,7 @@ fn asset() {
     let symbol_bytes = Encoder::pack(&symbol);
     let mut symbol_decoder = Decoder::new(symbol_bytes.as_slice());
     let symbol_unpacked = &mut Symbol::default();
-    symbol_decoder.unpack(symbol_unpacked);
+    symbol_decoder.unpack(symbol_unpacked).unwrap();
     assert_eq!(symbol.to_string(), symbol_unpacked.to_string());
     /*
        // test null asset
@@ -107,8 +110,7 @@ fn asset() {
 fn block_id() {
     let string = "048865fb643bca3b644647177f0cf363f7956794d0a7ec3bc6d29d93d9637308";
 
-    let block_id_bytes = hex::decode(string).unwrap();
-    let block_id = BlockId::from_bytes(&block_id_bytes).unwrap();
+    let block_id = BlockId::from_str(string).unwrap();
 
     assert_eq!(block_id.block_num().to_string(), "76047867");
     assert_eq!(block_id.block_num(), 76047867);
@@ -255,7 +257,7 @@ fn transaction() {
     let transfer_data = Transfer {
         from: name!("foo"),
         to: name!("bar"),
-        quantity: Asset::from_string("1.0000 EOS"),
+        quantity: Asset::from_str("1.0000 EOS").unwrap(),
         memo: String::from("hello"),
     };
 
@@ -288,7 +290,7 @@ fn transaction() {
 
     let transfer_decoded = &mut Transfer::default();
     let mut decoder = Decoder::new(&transaction.actions[0].data);
-    decoder.unpack(transfer_decoded);
+    decoder.unpack(transfer_decoded).unwrap();
     assert_eq!(transfer_decoded.from, name!("foo"));
     /*
 
@@ -424,17 +426,17 @@ fn transaction() {
 #[test]
 fn permission_level() {
     // Create PermissionLevel from 'foo@bar'
-    let perm = PermissionLevel::new(Name::new_from_str("foo"), Name::new_from_str("bar"));
+    let perm = PermissionLevel::new(name!("foo"), name!("bar"));
 
     // Test equals with itself
     assert_eq!(perm, perm.clone());
 
     // Test equals with equivalent ActorPermission
-    let other_perm = PermissionLevel::new(Name::new_from_str("foo"), Name::new_from_str("bar"));
+    let other_perm = PermissionLevel::new(name!("foo"), name!("bar"));
     assert_eq!(perm, other_perm);
 
     // Test equals with different PermissionLevel
-    let different_perm = PermissionLevel::new(Name::new_from_str("bar"), Name::new_from_str("moo"));
+    let different_perm = PermissionLevel::new(name!("bar"), name!("moo"));
     assert_ne!(perm, different_perm);
 }
 
@@ -555,7 +557,7 @@ fn transaction_signing_data_and_digest() {
         }],
         extension: vec![],
     };
-    let chain_id = Checksum256::from_bytes(
+    let chain_id = Checksum256::try_from(
         hex_to_bytes("2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840").as_slice(),
     )
     .unwrap();
@@ -598,7 +600,7 @@ fn transaction_signature_verification() {
 
     // Decoding the transaction
     let mut transaction = Transaction::default();
-    transaction.unpack(encoded_transaction.as_slice());
+    transaction.unpack(encoded_transaction.as_slice()).unwrap();
 
     println!("CHAIN ID: {}", bytes_to_hex(&chain_id.to_vec()));
     println!();
@@ -606,15 +608,15 @@ fn transaction_signature_verification() {
     // Decoding checks
     {
         let action = transaction.actions.first().unwrap();
-        let sender = action.authorization.first().unwrap().actor.as_string();
-        println!("Contract account: {}", action.account.as_string());
-        println!("Action name: {}", action.name.as_string());
+        let sender = action.authorization.first().unwrap().actor.as_str().unwrap();
+        println!("Contract account: {}", action.account.as_str().unwrap());
+        println!("Action name: {}", action.name.as_str().unwrap());
         println!("Sender: {}", sender);
         println!("Request data: {:?}", action.data);
         println!();
 
-        assert_eq!(action.account.as_string(), "eosio.aggreq");
-        assert_eq!(action.name.as_string(), "requestaggr");
+        assert_eq!(action.account.as_str().unwrap(), "eosio.aggreq");
+        assert_eq!(action.name.as_str().unwrap(), "requestaggr");
         assert_eq!(sender, "alice");
         assert_eq!(
             action.data,
@@ -625,9 +627,9 @@ fn transaction_signature_verification() {
     // Alice account checks
     {
         let private_key =
-            PrivateKey::from_str("5KWu5C8FDdNcoCLta3hXuyDKJcxAgaaza3MLkwRJWwEz9C2dn5u", false)
+            PrivateKey::from_str("5KWu5C8FDdNcoCLta3hXuyDKJcxAgaaza3MLkwRJWwEz9C2dn5u")
                 .unwrap();
-        let public_key = private_key.to_public();
+        let public_key = private_key.to_public().unwrap();
         assert_eq!(
             public_key.to_legacy_string(None).unwrap(),
             "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc"
@@ -635,8 +637,8 @@ fn transaction_signature_verification() {
 
         // Create a sample signature
         let message = b"I like turtles";
-        let signature = private_key.sign_message(&message.to_vec());
-        let recovered_public_key = signature.recover_message(&message.to_vec());
+        let signature = private_key.sign_message(&message.to_vec()).unwrap();
+        let recovered_public_key = signature.recover_message(&message.to_vec()).unwrap();
         assert_eq!(
             recovered_public_key.to_legacy_string(None).unwrap(),
             "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc"
@@ -644,9 +646,9 @@ fn transaction_signature_verification() {
 
         // Create the signature of the transaction
         let message = transaction.signing_digest(&chain_id);
-        let signature = private_key.sign_message(&message.to_vec());
+        let signature = private_key.sign_message(&message.to_vec()).unwrap();
         println!("Alice signature: {}", signature);
-        let recovered_public_key = signature.recover_message(&message.to_vec());
+        let recovered_public_key = signature.recover_message(&message.to_vec()).unwrap();
         assert_eq!(
             recovered_public_key.to_legacy_string(None).unwrap(),
             "EOS77jzbmLuakAHpm2Q5ew8EL7Y7gGkfSzqJCmCNDDXWEsBP3xnDc"
@@ -678,20 +680,20 @@ fn transaction_signature_verification() {
         assert_eq!(signing_digest, expected_signing_digest);
 
         // Decode the signature
-        let signature = Signature::from_bytes(encoded_signature.to_vec(), KeyType::K1);
+        let signature = Signature::try_from((encoded_signature.to_vec(), KeyType::K1)).unwrap();
         println!("Expected signature: {}", signature);
         assert_eq!(signature.to_string(), "SIG_K1_JuSZfHNg6b68ag1znsoJvBARmqMR34AJ6KPpZMoiEFZ38paAqQpwiqjmen7yFkEefWNVWqjD3pCJrAntXXDLkNkpxe8Uyf");
 
         // Try to compute the same signature
         let private_key =
-            PrivateKey::from_str("5KWu5C8FDdNcoCLta3hXuyDKJcxAgaaza3MLkwRJWwEz9C2dn5u", true)
+            PrivateKey::from_str("5KWu5C8FDdNcoCLta3hXuyDKJcxAgaaza3MLkwRJWwEz9C2dn5u")
                 .unwrap();
-        let computed_signature = private_key.sign_message(&signing_data);
+        let computed_signature = private_key.sign_message(&signing_data).unwrap();
         println!("Computed signature: {}", computed_signature);
         assert_eq!(computed_signature, signature);
 
         // Recover the public key from the signature
-        let public_key = signature.recover_message(&signing_data);
+        let public_key = signature.recover_message(&signing_data).unwrap();
         println!("Public key: {}", public_key.to_legacy_string(None).unwrap());
         assert_eq!(
             public_key.to_legacy_string(None).unwrap(),
@@ -699,11 +701,11 @@ fn transaction_signature_verification() {
         );
 
         // Verify the signature
-        assert!(signature.verify_message(&signing_data, &public_key));
+        assert!(signature.verify_message(&signing_data, &public_key).is_ok());
 
         // Check that the verification fails if we change a byte of the signing digest
         signing_data[0] += 1;
-        assert!(!signature.verify_message(&signing_data, &public_key));
+        assert!(signature.verify_message(&signing_data, &public_key).is_err());
     }
 }
 
@@ -923,14 +925,14 @@ fn authority() {
         threshold: 21,
         keys: vec![
             KeyWeight {
-                key: PublicKey::new_from_str(
+                key: PublicKey::from_str(
                     "EOS6RrvujLQN1x5Tacbep1KAk8zzKpSThAQXBCKYFfGUYeABhJRin",
                 )
                 .unwrap(),
                 weight: 20,
             },
             KeyWeight {
-                key: PublicKey::new_from_str(
+                key: PublicKey::from_str(
                     "PUB_R1_82ua5qburg82c9eWY1qZVNUAAD6VPHsTMoPMGDrk7s4BQgxEoc",
                 )
                 .unwrap(),

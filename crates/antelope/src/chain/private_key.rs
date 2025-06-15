@@ -1,44 +1,25 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, LowerHex};
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    base58::{decode_key, encode_check, encode_ripemd160_check},
-    chain::{
-        checksum::Checksum512, key_type::KeyType, public_key::PublicKey, signature::Signature,
-    },
-    crypto::{
-        generate::generate, get_public::get_public, shared_secrets::shared_secret, sign::sign,
-    },
-};
+use crate::crypto::shared_secrets::SharedSecretError;
+use crate::crypto::sign::SignError;
+use crate::{base58::{decode_key, encode_check, encode_ripemd160_check}, chain::{
+    checksum::Checksum512, key_type::KeyType, public_key::PublicKey, signature::Signature,
+}, crypto::{
+    generate::generate, shared_secrets::shared_secret, sign::sign,
+}, define_error};
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+use super::public_key::PublicKeyParsingError;
+
+#[derive(Default, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PrivateKey {
     pub key_type: KeyType,
-    value: Vec<u8>,
+    pub value: Vec<u8>,
 }
 
 impl PrivateKey {
-    // TODO: should this be done via the ToString trait?
-    //   If so, should other structs also do that?
-    //   Also if so, should from on this and other structs use the From trait?
-    pub fn as_string(&self) -> String {
-        let type_str = self.key_type.to_string();
-        let encoded = encode_ripemd160_check(
-            self.value.to_vec(),
-            Option::from(self.key_type.to_string().as_str()),
-        );
-        format!("PVT_{type_str}_{encoded}")
-    }
-
-    pub fn to_bytes(&self) -> Vec<u8> {
-        self.value.to_vec()
-    }
-
-    pub fn to_hex(&self) -> String {
-        hex::encode(&self.value)
-    }
-
     pub fn to_wif(&self) -> Result<String, String> {
         if !matches!(self.key_type, KeyType::K1) {
             return Err(String::from("Unable to generate WIF for non-k1 key"));
@@ -50,54 +31,88 @@ impl PrivateKey {
         Ok(encode_check(to_encode))
     }
 
-    pub fn to_public(&self) -> PublicKey {
-        let compressed = get_public(self.value.to_vec(), self.key_type).unwrap();
-        PublicKey::from_bytes(compressed, self.key_type)
+    pub fn to_public(&self) -> Result<PublicKey, PublicKeyParsingError> {
+        PublicKey::try_from(self)
     }
 
-    pub fn from_bytes(bytes: Vec<u8>, key_type: KeyType) -> Self {
+    /// # Safety
+    /// Only call if you know key is a valid PrivateKey if not an invalid key will be
+    /// instantiated with no errors
+    pub unsafe fn from_str_unchecked(key: &str) -> PrivateKey {
+        let decoded = decode_key(key, true)
+            .unwrap_unchecked();
         PrivateKey {
-            key_type,
-            value: bytes,
-        }
-    }
-
-    pub fn from_str(key: &str, ignore_checksum: bool) -> Result<Self, String> {
-        let decode_result = decode_key(key, ignore_checksum);
-        if decode_result.is_err() {
-            let err_message = decode_result.err().unwrap_or(String::from("Unknown error"));
-            return Err(format!("Failed to decode private key: {err_message}"));
-        }
-
-        let decoded = decode_result.unwrap();
-        Ok(PrivateKey {
             key_type: decoded.0,
             value: decoded.1,
-        })
+        }
     }
 
-    pub fn sign_message(&self, message: &Vec<u8>) -> Signature {
-        sign(self.value.to_vec(), message, self.key_type).unwrap()
+    pub fn sign_message(&self, message: &[u8]) -> Result<Signature, SignError> {
+        sign(&self.value, message, self.key_type)
     }
 
-    pub fn shared_secret(&self, their_pub: &PublicKey) -> Checksum512 {
-        Checksum512::hash(shared_secret(&self.to_bytes(), &their_pub.value, self.key_type).unwrap())
+    pub fn shared_secret(&self, their_pub: &PublicKey) -> Result<Checksum512, SharedSecretError> {
+        Ok(Checksum512::hash(
+            shared_secret(&self.value, &their_pub.value, self.key_type)?
+        ))
     }
 
     pub fn random(key_type: KeyType) -> Result<Self, String> {
-        let secret_bytes = generate(key_type);
-        Ok(Self::from_bytes(secret_bytes.unwrap(), key_type))
+        let secret_bytes = generate(key_type)?;
+        Ok(Self::from((secret_bytes[1..].to_vec(), key_type)))
+    }
+}
+
+impl From<(Vec<u8>, KeyType)> for PrivateKey {
+    fn from(value: (Vec<u8>, KeyType)) -> Self {
+        let (value, key_type) = value;
+        PrivateKey { key_type, value }
+    }
+}
+
+impl TryFrom<&[u8]> for PrivateKey {
+    type Error = String;
+
+    fn try_from(data: &[u8]) -> Result<Self, Self::Error> {
+        let key_type = KeyType::try_from(data[0])?;
+        Ok(PrivateKey::from((data[1..].to_vec(), key_type)))
     }
 }
 
 impl Display for PrivateKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_string())
+        let type_str = self.key_type.to_string();
+        let encoded = encode_ripemd160_check(
+            self.value.to_vec(),
+            Option::from(self.key_type.to_string().as_str()),
+        );
+        write!(f, "PVT_{type_str}_{encoded}")
+    }
+}
+
+impl LowerHex for PrivateKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", hex::encode(&self.value))
     }
 }
 
 impl Debug for PrivateKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_string())
+        write!(f, "{self}")
+    }
+}
+
+define_error!(PrivateKeyParsingError);
+
+impl FromStr for PrivateKey {
+    type Err = PrivateKeyParsingError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let (key_type, value) = decode_key(value, false)
+            .map_err(|e| PrivateKeyParsingError::new(e.to_string()))?;
+
+        Ok(PrivateKey {
+            key_type, value
+        })
     }
 }

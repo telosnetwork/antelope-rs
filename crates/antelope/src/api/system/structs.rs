@@ -1,9 +1,8 @@
-use crate::chain::asset::{Asset, Symbol};
+use crate::chain::asset::Asset;
 use crate::chain::authority::Authority;
 use crate::chain::binary_extension::BinaryExtension;
 use crate::chain::name::Name;
-use crate::chain::public_key::PublicKey;
-use crate::chain::{Decoder, Encoder, Packer};
+use crate::serializer::{Decoder, Encoder, Packer, PackerError};
 use antelope_client_macros::StructPacker;
 
 pub struct CreateAccountParams {
@@ -15,23 +14,6 @@ pub struct CreateAccountParams {
     pub stake_net: Asset,
     pub stake_cpu: Asset,
     pub transfer: bool,
-}
-
-impl CreateAccountParams {
-    pub fn testing(name: Name, creator: Name, public_key: PublicKey) -> Self {
-        let owner = Authority::new_single_key(public_key);
-        let active = owner.clone();
-        CreateAccountParams {
-            name,
-            creator,
-            owner,
-            active,
-            ram_bytes: 10_048_576,
-            stake_net: Asset::new(10_000, Symbol::new("TLOS", 4)),
-            stake_cpu: Asset::new(10_000, Symbol::new("TLOS", 4)),
-            transfer: true,
-        }
-    }
 }
 
 #[derive(Debug, Clone, StructPacker)]

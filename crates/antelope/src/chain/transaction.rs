@@ -7,8 +7,9 @@ use serde_json::{json, Value};
 use crate::{
     chain::{
         action::Action, checksum::Checksum256, signature::Signature, time::TimePointSec,
-        varint::VarUint32, Decoder, Encoder, Packer,
+        varint::VarUint32
     },
+    serializer::{Decoder, Encoder, Packer, PackerError},
     util::{bytes_to_hex, zlib_compress},
 };
 
@@ -78,10 +79,10 @@ impl CompressionType {
 
 #[derive(Clone, Eq, PartialEq, Default, StructPacker, Serialize, Deserialize)]
 pub struct PackedTransaction {
-    signatures: Vec<Signature>,
-    compression: Option<u8>,
-    packed_context_free_data: Vec<u8>,
-    packed_transaction: Vec<u8>,
+    pub signatures: Vec<Signature>,
+    pub compression: Option<u8>,
+    pub packed_context_free_data: Vec<u8>,
+    pub packed_transaction: Vec<u8>,
 }
 
 impl PackedTransaction {
@@ -108,10 +109,10 @@ impl PackedTransaction {
         let mut trx: HashMap<&str, Value> = HashMap::new();
         let signatures: Vec<String> = self.signatures.iter().map(|sig| sig.to_string()).collect();
         trx.insert("signatures", json!(signatures));
-        if self.compression.is_some() {
+        if let Some(compression) = self.compression {
             trx.insert(
                 "compression",
-                Value::Number(self.compression.unwrap().into()),
+                Value::Number(compression.into()),
             );
         }
         trx.insert(

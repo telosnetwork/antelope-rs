@@ -12,7 +12,7 @@ pub fn get_public(priv_key: Vec<u8>, curve_type: KeyType) -> Result<Vec<u8>, Str
     match curve_type {
         KeyType::K1 => {
             let secret_key = k256::SecretKey::from_bytes(&create_k1_field_bytes(&priv_key))
-                .expect("invalid private key");
+                .map_err(|e| format!("invalid private key: {e}"))?;
             let scalar = k256::NonZeroScalar::from(secret_key);
             let public_key = k256::PublicKey::from_secret_scalar(&scalar);
             let encoded_point = public_key.to_encoded_point(true);
@@ -20,7 +20,7 @@ pub fn get_public(priv_key: Vec<u8>, curve_type: KeyType) -> Result<Vec<u8>, Str
         }
         KeyType::R1 => {
             let secret_key = p256::SecretKey::from_bytes(&create_r1_field_bytes(&priv_key))
-                .expect("invalid private key");
+                .map_err(|e| format!("invalid private key: {e}"))?;
             let scalar = p256::NonZeroScalar::from(secret_key);
             let public_key = p256::elliptic_curve::PublicKey::from_secret_scalar(&scalar);
             let encoded_point = public_key.to_encoded_point(true);

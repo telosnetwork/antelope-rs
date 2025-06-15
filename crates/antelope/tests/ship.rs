@@ -1,8 +1,9 @@
 use crate::utils::ship_types::{ActionTrace, TransactionTrace};
-use antelope::chain::Packer;
-use antelope::util::{bytes_to_hex, hex_to_bytes};
+use antelope::serializer::Packer;
+use antelope::util::bytes_to_hex;
 
 mod utils;
+use utils::hex_to_bytes;
 
 // TODO: This is for testing a non-utf8 string, https://github.com/telosnetwork/antelope-rs/issues/42
 #[ignore]
@@ -36,6 +37,6 @@ fn traces() {
 
 fn decode<T: Packer + Default>(raw: &[u8]) -> T {
     let mut result = T::default();
-    result.unpack(raw);
+    result.unpack(raw).unwrap();
     result
 }

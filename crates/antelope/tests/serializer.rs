@@ -1,19 +1,32 @@
+use std::str::FromStr;
 use crate::test_bytes::{EXPECTED_SETCODE_BYTES_HEX, EXPECTED_WASM_BYTES_HEX};
 use antelope::api::system::structs::SetCodeAction;
 use antelope::chain::abi::ABI;
 use antelope::chain::binary_extension::BinaryExtension;
 use antelope::{
-    chain::{name::Name, signature::Signature, Decoder, Encoder},
+    chain::{name::Name, signature::Signature},
     name,
-    serializer::Packer,
-    util,
-    util::{bytes_to_hex, hex_to_bytes},
+    serializer::{Encoder, Decoder, Packer, PackerError},
+    util::bytes_to_hex,
 };
 use antelope_client_macros::{EnumPacker, StructPacker};
 use digest::Digest;
 use sha2::Sha256;
 
 mod test_bytes;
+
+mod utils;
+use utils::hex_to_bytes;
+
+const TEST_ABI: &str = include_str!("typestresser.abi.json");
+
+#[test]
+fn test_abi_json() {
+    let abi: ABI = serde_json::from_str(TEST_ABI).expect("Type Stresser ABI deserialization failed");
+    let abi_str = serde_json::to_string(&abi).expect("Type Stresser ABI serialization failed");
+    let new_abi = serde_json::from_str(abi_str.as_str()).expect("Type Stresser ABI deserialization failed");
+    assert_eq!(abi, new_abi);
+}
 
 #[test]
 fn array() {
@@ -63,24 +76,24 @@ fn bytes() {
     let data_bytes = hex_to_bytes(data);
     let mut decoder = Decoder::new(data_bytes.as_slice());
     let mut bytes2 = Vec::<u8>::default();
-    decoder.unpack(&mut bytes2);
+    decoder.unpack(&mut bytes2).unwrap();
     assert_eq!(bytes, bytes2);
 }
 
 #[test]
 fn name() {
     let data = "000000005c73285d";
-    let name1 = Name::new_from_str("foobar");
+    let name1 = name!("foobar");
 
     assert_eq!(bytes_to_hex(&Encoder::pack(&name1)), data);
     let data_bytes = hex_to_bytes(data);
     let mut decoder = Decoder::new(data_bytes.as_slice());
     let mut name2 = Name::default();
-    decoder.unpack(&mut name2);
+    decoder.unpack(&mut name2).unwrap();
     assert_eq!(name1, name2);
-    let name3 = Name::from_u64(6712742083569909760);
+    let name3 = Name::try_from(6712742083569909760u64).unwrap();
     assert_eq!(name1, name3);
-    assert_eq!(Name::from_u64(0).to_string(), "");
+    assert_eq!(Name::try_from(0).unwrap().to_string(),  "");
     assert_eq!(name!(".me").to_string(), ".me");
     assert_eq!(name!("you").to_string(), "you");
     assert_eq!(name!("you.me").to_string(), "you.me");
@@ -244,7 +257,7 @@ fn string() {
     //let decoded =
     // Serializer::decode(serializable_to_encode_args(Box::new(object)));
 
-    assert_eq!(encoded, util::hex_to_bytes(data));
+    assert_eq!(encoded, hex_to_bytes(data));
 
     /*
     test('string', function () {
@@ -303,14 +316,14 @@ fn signature() {
         hex_to_bytes("00205150a67288c3b393fdba9061b05019c54b12bdac295fc83bebad7cd63c7bb67d5cb8cc220564da006240a58419f64d06a5c6e1fc62889816a6c3dfdd231ed389");
     let json =
         "SIG_K1_KfPLgpw35iX8nfDzhbcmSBCr7nEGNEYXgmmempQspDJYBCKuAEs5rm3s4ZuLJY428Ca8ZhvR2Dkwu118y3NAoMDxhicRj9";
-    let sig = Signature::from_string(json).unwrap();
+    let sig = Signature::from_str(json).unwrap();
 
     let encoded = Encoder::pack(&sig);
     assert_eq!(encoded, data);
 
     let mut decoder = Decoder::new(data.as_slice());
     let decoded_sig = &mut Signature::default();
-    let decoded_size = decoder.unpack(decoded_sig);
+    let decoded_size = decoder.unpack(decoded_sig).unwrap();
     assert_eq!(decoded_size, 66);
     assert_eq!(decoded_sig.to_string(), json);
 }
@@ -320,13 +333,13 @@ fn signature_wa() {
     let data = hex_to_bytes("0220d9132bbdb219e4e2d99af9c507e3597f86b615814f36672d501034861792bbcf21a46d1a2eb12bace4a29100b942f987494f3aefc8efb2d5af4d4d8de3e0871525aa14905af60ca17a1bb80e0cf9c3b46908a0f14f72567a2f140c3a3bd2ef074c010000006d737b226f726967696e223a2268747470733a2f2f6b656f73642e696e76616c6964222c2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a226f69567235794848304a4336453962446675347142735a6a527a70416c5131505a50436e5974766850556b3d227d");
     let sig_str = "SIG_WA_2AAAuLJS3pLPgkQQPqLsehL6VeRBaAZS7NYM91UYRUrSAEfUvzKN7DCSwhjsDqe74cZNWKUUGAHGG8ddSA7cvUxChbfKxLSrDCpwe6MVUqz4PDdyCt5tXhEJmKekxG1o1ucY3LVj8Vi9rRbzAkKPCzWqC8cPcUtpLHNG8qUKkQrN4Xuwa9W8rsBiUKwZv1ToLyVhLrJe42pvHYBXicp4E8qec5E4m6SX11KuXERFcV48Mhiie2NyaxdtNtNzQ5XZ5hjBkxRujqejpF4SNHvdAGKRBbvhkiPLA25FD3xoCbrN26z72";
 
-    let sig = Signature::from_string(sig_str).unwrap();
+    let sig = Signature::from_str(sig_str).unwrap();
     let encoded = Encoder::pack(&sig);
     assert_eq!(encoded, data);
 
     let mut decoder = Decoder::new(data.as_slice());
     let decoded_sig = &mut Signature::default();
-    let decoded_size = decoder.unpack(decoded_sig);
+    let decoded_size = decoder.unpack(decoded_sig).unwrap();
     let decoded_sig_str = decoded_sig.to_string();
     assert_eq!(decoded_size, 220);
     assert_eq!(decoded_sig_str, sig_str);
@@ -450,7 +463,7 @@ fn variant() {
     let data_bytes = hex_to_bytes(data);
     let mut decoder = Decoder::new(data_bytes.as_slice());
     let decoded_uint8 = &mut MyVariant::default();
-    let decoded_size = decoder.unpack(decoded_uint8);
+    let decoded_size = decoder.unpack(decoded_uint8).unwrap();
     assert_eq!(decoded_size, 2);
     match decoded_uint8 {
         MyVariant::MyUint8(value) => assert_eq!(value, &255),
@@ -466,7 +479,7 @@ fn variant() {
     let data_bytes = hex_to_bytes(data);
     let mut decoder = Decoder::new(data_bytes.as_slice());
     let decoded_opt_struct = &mut MyVariant::default();
-    let decoded_size = decoder.unpack(decoded_opt_struct);
+    let decoded_size = decoder.unpack(decoded_opt_struct).unwrap();
     assert_eq!(decoded_size, 3);
     match decoded_opt_struct {
         MyVariant::StructOption(opt) => {
@@ -1239,7 +1252,7 @@ fn abi_def() {
     let data_bytes = hex_to_bytes(abi_hex.as_str());
     let mut decoder = Decoder::new(data_bytes.as_slice());
     let mut abi_decoded = ABI::default();
-    decoder.unpack(&mut abi_decoded);
+    decoder.unpack(&mut abi_decoded).unwrap();
 
     assert_eq!(abi.types, abi_decoded.types);
     assert_eq!(abi.structs, abi_decoded.structs);

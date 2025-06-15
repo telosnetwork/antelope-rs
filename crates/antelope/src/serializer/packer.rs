@@ -1,7 +1,44 @@
 use core::mem::size_of;
-use serde::{Deserialize, Serialize};
+use crate::{chain::varint::VarUint32, define_error, util::slice_copy};
 
-use crate::{chain::varint::VarUint32, util::slice_copy};
+define_error!(PackerError);
+
+#[macro_export]
+macro_rules! packer_error {
+    ($($arg:tt)*) => {
+        $crate::serializer::packer::PackerError::fmt(format_args!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! check_unpack_len {
+    // With literal expected size
+    ($self:ident, $data:expr, $size:expr) => {{
+        let my_size = $size;
+        let delta = $data.len() as isize - my_size as isize;
+        if delta < 0 {
+            return Err($crate::serializer::packer::PackerError::fmt(format_args!(
+                "buffer overflow by {} bytes while unpacking {}",
+                delta,
+                std::any::type_name::<Self>()
+            )));
+        }
+        my_size
+    }};
+    // Default: use self.data.size()
+    ($self:ident, $data:expr) => {{
+        let my_size = $self.data.size();
+        let delta = $data.len() as isize - my_size as isize;
+        if delta < 0 {
+            return Err($crate::serializer::packer::PackerError::fmt(format_args!(
+                "buffer overflow by {} bytes while unpacking {}",
+                delta,
+                std::any::type_name::<Self>()
+            )));
+        }
+        my_size
+    }};
+}
 
 ///
 /// The `Packer` trait provides methods for packing and unpacking values to and
@@ -18,7 +55,7 @@ use crate::{chain::varint::VarUint32, util::slice_copy};
 ///
 /// let mut decoder = Decoder::new(&encoder.get_bytes());
 /// let mut unpacked_value = 0u32;
-/// decoder.unpack(&mut unpacked_value);
+/// decoder.unpack(&mut unpacked_value).unwrap();
 ///
 /// assert_eq!(value, unpacked_value);
 /// ```
@@ -46,7 +83,7 @@ pub trait Packer {
     /// # Returns
     ///
     /// The number of bytes read from the byte array.
-    fn unpack(&mut self, data: &[u8]) -> usize;
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError>;
 }
 
 /// The `Encoder` struct provides methods for packing values that implement the
@@ -119,6 +156,16 @@ impl Encoder {
         &mut self.buf[old_size..]
     }
 
+    /// Pack a raw slice directly
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The slice to append at the end of the current encoder payload.
+    pub fn pack_raw(&mut self, bytes: &[u8]) {
+        let target = self.alloc(bytes.len());
+        target.copy_from_slice(bytes);
+    }
+
     /// Packs the given value using the encoder
     ///
     /// # Arguments
@@ -169,18 +216,28 @@ impl<'a> Decoder<'a> {
     }
 
     /// Unpacks the given value from the decoder
-    pub fn unpack<T>(&mut self, packer: &mut T) -> usize
+    pub fn unpack<T>(&mut self, packer: &mut T) -> Result<usize, PackerError>
     where
         T: Packer,
     {
-        let size = packer.unpack(&self.buf[self.pos..]);
+        let size = packer.unpack(&self.buf[self.pos..])?;
         self.pos += size;
-        size
+        Ok(size)
     }
 
     /// Returns the current position of the decoder
     pub fn get_pos(&self) -> usize {
         self.pos
+    }
+
+    /// Returns the total size of the buffer to decode
+    pub fn size(&self) -> usize {
+        self.buf.len()
+    }
+
+    /// Return the amount of remaining bytes to decode
+    pub fn remaining(&self) -> usize {
+        self.buf.len() - self.pos
     }
 }
 
@@ -202,10 +259,18 @@ macro_rules! impl_packed {
             }
 
             /// Unpacks this value from the given data.
-            fn unpack(&mut self, data: &[u8]) -> usize {
-                assert!(data.len() >= self.size(), "number: buffer overflow");
-                *self = $ty::from_le_bytes(data[..self.size()].try_into().unwrap());
-                size_of::<$ty>()
+            fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+                let size = size_of::<$ty>();
+                check_unpack_len!(self, data, size);
+                *self = $ty::from_le_bytes(
+                    data[..size]
+                        .try_into()
+                        .map_err(|_e| packer_error!(
+                            "overflow while unpacking {}",
+                            std::any::type_name::<Self>(),
+                        ))?
+                );
+                Ok(size)
             }
         }
     };
@@ -219,26 +284,26 @@ impl Packer for bool {
 
     /// Packs this value into the given encoder.
     fn pack(&self, enc: &mut Encoder) -> usize {
-        let data = enc.alloc(self.size());
+        let data = enc.alloc(1);
         if *self {
             data[0] = 1u8;
         } else {
             data[0] = 0u8;
         }
-        self.size()
+        1
     }
 
     /// Unpacks this value from the given data.
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(data.len() >= self.size(), "bool::unpack: buffer overflow");
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, data, 1);
         if data[0] == 1 {
             *self = true;
         } else if data[0] == 0 {
             *self = false;
         } else {
-            panic!("bool::unpack: invalid raw bool value");
+            return Err(packer_error!("bool unpack: invalid raw bool value {}", data[0]));
         }
-        self.size()
+        Ok(1)
     }
 }
 
@@ -246,21 +311,21 @@ impl Packer for bool {
 impl Packer for i8 {
     /// Returns the size of this value in bytes.
     fn size(&self) -> usize {
-        1usize
+        1
     }
 
     /// Packs this value into the given encoder.
     fn pack(&self, enc: &mut Encoder) -> usize {
-        let data = enc.alloc(self.size());
+        let data = enc.alloc(1);
         data[0] = *self as u8;
-        self.size()
+        1
     }
 
     /// Unpacks this value from the given data.
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(data.len() >= self.size(), "i8::unpack: buffer overflow");
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, data, 1);
         *self = data[0] as i8;
-        self.size()
+        Ok(1)
     }
 }
 
@@ -268,21 +333,21 @@ impl Packer for i8 {
 impl Packer for u8 {
     /// Returns the size of this value in bytes.
     fn size(&self) -> usize {
-        1usize
+        1
     }
 
     /// Packs this value into the given encoder.
     fn pack(&self, enc: &mut Encoder) -> usize {
-        let data = enc.alloc(self.size());
+        let data = enc.alloc(1);
         data[0] = *self;
-        self.size()
+        1
     }
 
     /// Unpacks this value from the given data.
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(data.len() >= self.size(), "u8::unpack: buffer overflow");
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, data, 1);
         *self = data[0];
-        self.size()
+        Ok(1)
     }
 }
 
@@ -297,45 +362,11 @@ impl_packed!(u128);
 impl_packed!(f32);
 impl_packed!(f64);
 
-#[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Debug, Default)]
-pub struct Float128 {
-    pub data: [u8; 16],
-}
-
-impl Float128 {
-    pub fn new(data: [u8; 16]) -> Self {
-        Self { data }
-    }
-
-    pub fn data(&self) -> &[u8; 16] {
-        &self.data
-    }
-}
-
-impl Packer for Float128 {
-    fn size(&self) -> usize {
-        16
-    }
-
-    fn pack(&self, enc: &mut Encoder) -> usize {
-        let data = enc.alloc(self.size());
-        slice_copy(data, &self.data);
-        self.size()
-    }
-
-    fn unpack(&mut self, raw: &[u8]) -> usize {
-        let size = self.size();
-        assert!(raw.len() >= size, "Float128.unpack: buffer overflow!");
-        slice_copy(&mut self.data, &raw[..size]);
-        self.size()
-    }
-}
-
 /// Implement `Packer` for `String` type.
 impl Packer for String {
     /// Returns the size of this value in bytes.
     fn size(&self) -> usize {
-        VarUint32::new(self.len() as u32).size() + self.len()
+        VarUint32::from(self.len()).size() + self.len()
     }
 
     /// Packs this value into the given encoder.
@@ -344,7 +375,7 @@ impl Packer for String {
 
         let raw = self.as_bytes();
 
-        let n = VarUint32::new(raw.len() as u32);
+        let n = VarUint32::from(raw.len());
         n.pack(enc);
 
         let data = enc.alloc(raw.len());
@@ -354,15 +385,16 @@ impl Packer for String {
     }
 
     /// Unpacks this value from the given data.
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        let mut length = VarUint32 { n: 0 };
-        let size = length.unpack(data);
-        if let Ok(s) = String::from_utf8(data[size..size + length.value() as usize].to_vec()) {
-            *self = s;
-        } else {
-            panic!("invalid utf8 string");
-        }
-        size + length.value() as usize
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        // First 1 to 4 bytes is gonna be LEB128 encoded u32
+        // with length of string
+        let mut length = VarUint32::default();
+        let size: usize = length.unpack(data)?;
+        // TODO: Non utf-8 strings will return error, but leap supports them?
+        *self = String::from_utf8(
+            data[size..size + usize::from(&length)].to_vec()
+        ).map_err(|e| packer_error!("{} while unpacking string", e.to_string()))?;
+        Ok(size + usize::from(length))
     }
 }
 
@@ -381,15 +413,13 @@ where
         for i in self {
             size += i.size();
         }
-        VarUint32::new(size as u32).size() + size
+        VarUint32::from(size as u32).size() + size
     }
 
     /// Packs this value into the given encoder.
     fn pack(&self, enc: &mut Encoder) -> usize {
         let pos = enc.get_size();
-        let len = VarUint32 {
-            n: self.len() as u32,
-        };
+        let len = VarUint32::from(self.len());
         len.pack(enc);
         for v in self {
             v.pack(enc);
@@ -398,17 +428,20 @@ where
     }
 
     /// Unpacks this value from the given data.
-    fn unpack(&mut self, data: &[u8]) -> usize {
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        // First 1 to 4 bytes is gonna be LEB128 encoded u32
+        // with item length of vector
         let mut dec = Decoder::new(data);
-        let mut size = VarUint32 { n: 0 };
-        dec.unpack(&mut size);
-        self.reserve(size.value() as usize);
-        for _ in 0..size.value() {
+        let mut size = VarUint32::default();
+        dec.unpack(&mut size)?;
+        self.reserve((&size).into());
+        // Each item will be packed next to each other
+        for _ in 0..usize::from(size) {
             let mut v: T = Default::default();
-            dec.unpack(&mut v);
+            dec.unpack(&mut v)?;
             self.push(v);
         }
-        dec.get_pos()
+        Ok(dec.get_pos())
     }
 }
 
@@ -441,25 +474,31 @@ where
     }
 
     /// Unpacks this value from the given data.
-    fn unpack(&mut self, data: &[u8]) -> usize {
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        // TODO: no more bytes to read is ok?
+        // is this for extension support?
         if data.is_empty() {
             *self = None;
-            return 0;
+            return Ok(0);
         }
+        // Decode actual flag
         let mut dec = Decoder::new(data);
         let mut ty: u8 = 0;
         let mut value: T = Default::default();
-        dec.unpack(&mut ty);
+        dec.unpack(&mut ty)?;
+        // Flag indicates no value present
         if ty == 0 {
             *self = None;
-            return 1;
+            return Ok(1);
         }
-
-        assert_eq!(ty, 1, "bad option type!");
-
-        dec.unpack(&mut value);
+        // Only other allowed value is 1, assert
+        if ty != 1 {
+            return Err(packer_error!("bad option type!: {}", ty))
+        }
+        // Finally unpack into underlying value
+        dec.unpack(&mut value)?;
         *self = Some(value);
-        dec.get_pos()
+        Ok(dec.get_pos())
     }
 }
 
@@ -479,7 +518,7 @@ where
     }
 
     /// Unpacks this value from the given data.
-    fn unpack(&mut self, data: &[u8]) -> usize {
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
         (**self).unpack(data)
     }
 }

@@ -1,9 +1,9 @@
-use crate::serializer::{Encoder, Packer};
+use crate::serializer::{Encoder, Packer, PackerError};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct BinaryExtension<T: Packer + Default> {
-    value: Option<T>,
+    pub value: Option<T>,
 }
 
 impl<T> BinaryExtension<T>
@@ -39,15 +39,15 @@ where
         enc.get_size() - pos
     }
 
-    fn unpack(&mut self, data: &[u8]) -> usize {
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
         if !data.is_empty() {
             let mut value = T::default();
-            let size = value.unpack(data);
+            let size = value.unpack(data)?;
             self.value = Some(value);
-            size
+            Ok(size)
         } else {
             self.value = None;
-            0
+            Ok(0)
         }
     }
 }

@@ -1,3 +1,4 @@
+use bs58;
 use ripemd::{Digest as RipeDigest, Ripemd160};
 use sha2::Sha256;
 
@@ -8,14 +9,14 @@ pub fn encode(data: Vec<u8>) -> String {
 }
 
 pub fn decode(encoded: &str, size: Option<usize>) -> Result<Vec<u8>, String> {
-    let decode_result = bs58::decode(encoded).into_vec();
-    if decode_result.is_err() {
-        return Err(format!("Failed to decode str {encoded}"));
-    }
-    let decoded = decode_result.unwrap();
+    let decoded = bs58::decode(encoded)
+        .into_vec()
+        .map_err(|_| format!("Failed to decode str {encoded}"))?;
 
-    if size.is_some() && decoded.len() != size.unwrap() {
-        return Err(String::from("Size did not match"));
+    if let Some(expected) = size {
+        if decoded.len() != expected {
+            return Err("Size did not match".to_string());
+        }
     }
 
     Ok(decoded)
@@ -37,16 +38,16 @@ pub fn decode_ripemd160_check(
 
     let (data, checksum) = decoded.split_at(decoded.len() - 4);
     let suffix = key_type.as_ref().map(KeyType::to_string);
-    let hash = ripemd160_checksum(data.to_vec(), suffix.as_deref());
+    let expected = ripemd160_checksum(data, suffix.as_deref());
 
-    if !ignore_checksum && checksum != &hash[..4] {
+    if !ignore_checksum && checksum != expected.as_slice() {
         return Err("Checksum mismatch".to_string());
     }
 
-    if size.is_some() {
-        let size_value = size.unwrap() + 4;
-        if data.len() > size_value {
-            return Ok(data[0..size_value].to_vec());
+    if let Some(base) = size {
+        let limit = base + 4;
+        if data.len() > limit {
+            return Ok(data[..limit].to_vec());
         }
     }
 
@@ -63,9 +64,9 @@ pub fn decode_check(encoded: &str, ignore_checksum: bool) -> Result<Vec<u8>, Str
     }
 
     let (data, checksum) = decoded.split_at(decoded.len() - 4);
-    let expected_checksum = double_sha_checksum(data.to_vec());
+    let expected = double_sha_checksum(data);
 
-    if !ignore_checksum && checksum != expected_checksum {
+    if !ignore_checksum && checksum != expected.as_slice() {
         return Err("Checksum mismatch".to_string());
     }
 
@@ -73,104 +74,98 @@ pub fn decode_check(encoded: &str, ignore_checksum: bool) -> Result<Vec<u8>, Str
 }
 
 pub fn decode_public_key(value: &str) -> Result<(KeyType, Vec<u8>), String> {
-    if value.starts_with("PUB_") {
-        let parts: Vec<&str> = value.split('_').collect();
-        if parts.len() != 3 {
+    if let Some(rest) = value.strip_prefix("PUB_") {
+        let mut parts = rest.split('_');
+        let ty = parts.next().ok_or("Invalid key type")?;
+        let body = parts.next().ok_or("Invalid format")?;
+        if parts.next().is_some() {
             return Err("Invalid PVT format".to_string());
         }
-        let key_type = match parts[1] {
+
+        let key_type = match ty {
             "K1" => KeyType::K1,
             "R1" => KeyType::R1,
             "WA" => KeyType::WA,
             _ => return Err("Invalid key type".to_string()),
         };
+
         let size = match key_type {
             KeyType::K1 | KeyType::R1 => Some(32),
-            KeyType::WA => None, // ... other cases ...
+            KeyType::WA => None,
         };
-        let data = decode_ripemd160_check(parts[2], size, Option::from(key_type), false).unwrap();
-        Ok((key_type, data))
-    } else if value.len() > 50 {
-        let without_prefix = value.chars().skip(value.len() - 50).collect::<String>();
-        let data = base58::decode_ripemd160_check(without_prefix.as_str(), Some(32), None, false);
-        Ok((KeyType::K1, data.unwrap().to_vec()))
-    } else {
-        Err(String::from("Public key format invalid"))
+
+        let data = decode_ripemd160_check(body, size, Some(key_type), false)?;
+        return Ok((key_type, data));
     }
+
+    if value.len() > 50 {
+        let without_prefix: String = value.chars().skip(value.len() - 50).collect();
+        let data = base58::decode_ripemd160_check(&without_prefix, Some(32), None, false)?;
+        return Ok((KeyType::K1, data));
+    }
+
+    Err("Public key format invalid".to_string())
 }
 
 pub fn decode_key(value: &str, ignore_checksum: bool) -> Result<(KeyType, Vec<u8>), String> {
-    if value.starts_with("PVT_") {
-        let parts: Vec<&str> = value.split('_').collect();
-        if parts.len() != 3 {
+    if let Some(rest) = value.strip_prefix("PVT_") {
+        let mut parts = rest.split('_');
+        let ty = parts.next().ok_or("Invalid key type")?;
+        let body = parts.next().ok_or("Invalid format")?;
+        if parts.next().is_some() {
             return Err("Invalid PVT format".to_string());
         }
-        let key_type = match parts[1] {
+
+        let key_type = match ty {
             "K1" => KeyType::K1,
             "R1" => KeyType::R1,
-            // ... handle other key types ...
             _ => return Err("Invalid key type".to_string()),
         };
+
         let size = match key_type {
             KeyType::K1 | KeyType::R1 => Some(32),
-            KeyType::WA => None, // ... other cases ...
+            KeyType::WA => None,
         };
-        let data_result = decode_ripemd160_check(parts[2], size, Some(key_type), ignore_checksum);
-        if data_result.is_err() {
-            let data_result_err = data_result
-                .err()
-                .unwrap_or(String::from("Unknown decode_ripemd160_check error"));
-            return Err(data_result_err);
-        }
 
-        Ok((key_type, data_result.unwrap()))
-    } else {
-        // WIF format
-        let key_type = KeyType::K1;
-        let data_result = decode_check(value, ignore_checksum);
-        if data_result.is_err() {
-            let data_result_err = data_result
-                .err()
-                .unwrap_or(String::from("Unknown decode_check error"));
-            return Err(data_result_err);
-        }
-
-        let mut data = data_result.unwrap();
-        if data[0] != 0x80 {
-            return Err("Invalid WIF".to_string());
-        }
-        data.remove(0); // droppingFirst equivalent
-        Ok((key_type, data))
+        let data = decode_ripemd160_check(body, size, Some(key_type), ignore_checksum)?;
+        return Ok((key_type, data));
     }
+
+    // WIF
+    let key_type = KeyType::K1;
+    let mut data = decode_check(value, ignore_checksum)?;
+
+    if data.first() != Some(&0x80) {
+        return Err("Invalid WIF".to_string());
+    }
+
+    data.remove(0);
+    Ok((key_type, data))
 }
 
-pub fn encode_check(data: Vec<u8>) -> String {
-    let double_hash = double_sha_checksum(data.to_vec());
-    let mut with_checksum = data.to_vec();
-    with_checksum.append(&mut double_hash.to_vec());
-    bs58::encode(with_checksum).into_string()
+pub fn encode_check(mut data: Vec<u8>) -> String {
+    let checksum = double_sha_checksum(&data);
+    data.extend_from_slice(&checksum);
+    bs58::encode(data).into_string()
 }
 
-pub fn encode_ripemd160_check(data: Vec<u8>, suffix: Option<&str>) -> String {
-    let ripe_checksum = ripemd160_checksum(data.to_vec(), suffix);
-
-    let mut with_ripe_checksum = data.to_vec();
-    with_ripe_checksum.append(&mut ripe_checksum.to_vec());
-    bs58::encode(with_ripe_checksum).into_string()
+pub fn encode_ripemd160_check(mut data: Vec<u8>, suffix: Option<&str>) -> String {
+    let checksum = ripemd160_checksum(&data, suffix);
+    data.extend_from_slice(&checksum);
+    bs58::encode(data).into_string()
 }
 
-fn ripemd160_checksum(data: Vec<u8>, suffix: Option<&str>) -> Vec<u8> {
+fn ripemd160_checksum(data: &[u8], suffix: Option<&str>) -> Vec<u8> {
     let mut hasher = Ripemd160::new();
-    hasher.update(&data);
+    hasher.update(data);
     if let Some(s) = suffix {
-        hasher.update(s);
+        hasher.update(s.as_bytes());
     }
-    let ripe_hash = hasher.finalize();
-    ripe_hash.as_slice()[0..4].to_vec()
+    hasher.finalize()[..4].to_vec()
 }
 
-fn double_sha_checksum(data: Vec<u8>) -> Vec<u8> {
-    let data_hash = Sha256::digest(Sha256::digest(data));
-    let checksum = &data_hash[..4];
-    checksum.to_vec()
+fn double_sha_checksum(data: &[u8]) -> Vec<u8> {
+    let first = Sha256::digest(data);
+    let second = Sha256::digest(first);
+    second[..4].to_vec()
 }

@@ -2,23 +2,21 @@ use std::{
     fmt::{Debug, Formatter},
     fs,
     path::PathBuf,
+    str::FromStr
 };
 
 use antelope::{
     api::{
-        client::{HTTPMethod, Provider},
+        client::{HTTPMethod, Provider, ProviderError},
         v1::structs::GetInfoResponse,
-    },
-    chain::{
+    }, chain::{
         action::{Action, PermissionLevel},
         asset::Asset,
         checksum::Checksum160,
         name::Name,
         private_key::PrivateKey,
         transaction::{SignedTransaction, Transaction},
-        Decoder, Encoder, Packer,
-    },
-    name,
+    }, name, serializer::{Decoder, Encoder, Packer, PackerError}
 };
 use antelope_client_macros::StructPacker;
 
@@ -31,7 +29,7 @@ impl MockProvider {
         method: HTTPMethod,
         path: String,
         body: Option<String>,
-    ) -> Result<String, String> {
+    ) -> Result<String, ProviderError> {
         let mut to_hash = method.to_string() + &path;
 
         if let Some(body) = body {
@@ -39,6 +37,7 @@ impl MockProvider {
         }
 
         let filename = Checksum160::hash(to_hash.into_bytes()).to_string();
+        println!("{}", filename);
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("tests/utils/mock_provider_data/");
         d.push(filename + ".json");
@@ -54,11 +53,11 @@ impl Debug for MockProvider {
 
 #[async_trait::async_trait]
 impl Provider for MockProvider {
-    async fn post(&self, path: String, body: Option<String>) -> Result<String, String> {
+    async fn post(&self, path: String, body: Option<String>) -> Result<String, ProviderError> {
         self.call(HTTPMethod::POST, path, body)
     }
 
-    async fn get(&self, path: String) -> Result<String, String> {
+    async fn get(&self, path: String) -> Result<String, ProviderError> {
         self.call(HTTPMethod::GET, path, None)
     }
 }
@@ -100,11 +99,11 @@ pub fn make_mock_transaction(info: &GetInfoResponse, asset_to_transfer: Asset) -
 #[allow(dead_code)]
 pub fn sign_mock_transaction(trx: &Transaction, info: &GetInfoResponse) -> SignedTransaction {
     let private_key =
-        PrivateKey::from_str("5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9", false).unwrap();
+        PrivateKey::from_str("5JW71y3njNNVf9fiGaufq8Up5XiGk68jZ5tYhKpy69yyU9cr7n9").unwrap();
     let sign_data = trx.signing_data(info.chain_id.data.as_ref());
     SignedTransaction {
         transaction: trx.clone(),
-        signatures: vec![private_key.sign_message(&sign_data)],
+        signatures: vec![private_key.sign_message(&sign_data).unwrap()],
         context_free_data: vec![],
     }
 }

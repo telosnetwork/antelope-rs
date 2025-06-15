@@ -1,22 +1,30 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::{
-    chain::{
-        checksum::Checksum256,
-        name::{deserialize_name, Name},
-        varint::VarUint32,
+use crate::{chain::{
+    checksum::Checksum256,
+    name::{
+        serialize_name,
+        deserialize_name,
+        Name
     },
-    serializer::{Decoder, Encoder, Packer},
-};
+    varint::VarUint32,
+}, check_unpack_len, serializer::{Decoder, Encoder, Packer}};
 use serde_json::Value;
+use crate::serializer::PackerError;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct PermissionLevel {
     /// The account holding the permission.
-    #[serde(deserialize_with = "deserialize_name")]
+    #[serde(
+        serialize_with = "serialize_name",
+        deserialize_with = "deserialize_name"
+    )]
     pub actor: Name,
     /// The permission type.
-    #[serde(deserialize_with = "deserialize_name")]
+    #[serde(
+        serialize_with = "serialize_name",
+        deserialize_with = "deserialize_name"
+    )]
     pub permission: Name,
 }
 
@@ -44,15 +52,12 @@ impl Packer for PermissionLevel {
     }
 
     /// Unpacks the PermissionLevel structure from the provided data slice.
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(
-            data.len() >= self.size(),
-            "PermissionLevel.unpack: buffer overflow"
-        );
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, data, 16);
         let mut dec = Decoder::new(data);
-        dec.unpack(&mut self.actor);
-        dec.unpack(&mut self.permission);
-        16
+        dec.unpack(&mut self.actor)?;
+        dec.unpack(&mut self.permission)?;
+        Ok(16)
     }
 }
 
@@ -127,8 +132,8 @@ impl Action {
 impl Default for Action {
     fn default() -> Self {
         Self {
-            account: Name { n: 0 },
-            name: Name { n: 0 },
+            account: Name::default(),
+            name: Name::default(),
             authorization: Vec::new(),
             data: Vec::new(),
         }
@@ -143,8 +148,8 @@ impl Packer for Action {
         let mut size: usize;
         size = 16;
         size +=
-            VarUint32::new(self.authorization.len() as u32).size() + self.authorization.len() * 16;
-        size += VarUint32::new(self.data.len() as u32).size() + self.data.len();
+            VarUint32::from(self.authorization.len()).size() + self.authorization.len() * 16;
+        size += VarUint32::from(self.data.len()).size() + self.data.len();
         size
     }
 
@@ -161,15 +166,14 @@ impl Packer for Action {
     }
 
     /// Unpacks the Action structure from the provided data slice.
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(data.len() >= self.size(), "Action.unpack: buffer overflow");
-
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, data, 16);
         let mut dec = Decoder::new(data);
-        dec.unpack(&mut self.account);
-        dec.unpack(&mut self.name);
-        dec.unpack(&mut self.authorization);
-        dec.unpack(&mut self.data);
-        dec.get_pos()
+        dec.unpack(&mut self.account)?;
+        dec.unpack(&mut self.name)?;
+        dec.unpack(&mut self.authorization)?;
+        dec.unpack(&mut self.data)?;
+        Ok(dec.get_pos())
     }
 }
 
@@ -210,15 +214,14 @@ impl Packer for GetCodeHashResult {
     }
 
     /// Unpacks the Action structure from the provided data slice.
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(data.len() >= self.size(), "Action.unpack: buffer overflow");
-
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, data, 1 + 8 + 32 + 1 + 1);
         let mut dec = Decoder::new(data);
-        dec.unpack(&mut self.struct_version);
-        dec.unpack(&mut self.code_sequence);
-        dec.unpack(&mut self.code_hash);
-        dec.unpack(&mut self.vm_type);
-        dec.unpack(&mut self.vm_version);
-        dec.get_pos()
+        dec.unpack(&mut self.struct_version)?;
+        dec.unpack(&mut self.code_sequence)?;
+        dec.unpack(&mut self.code_hash)?;
+        dec.unpack(&mut self.vm_type)?;
+        dec.unpack(&mut self.vm_version)?;
+        Ok(dec.get_pos())
     }
 }

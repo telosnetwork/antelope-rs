@@ -1,4 +1,7 @@
-use antelope::{base58, chain::key_type::KeyType, util, util::hex_to_bytes};
+use antelope::{base58, chain::key_type::KeyType};
+
+mod utils;
+use utils::hex_to_bytes;
 
 #[test]
 fn decode() {
@@ -25,7 +28,7 @@ fn encode() {
         String::from("StV1DL6CwTryKyV")
     );
     assert_eq!(
-        base58::encode(util::hex_to_bytes("0000")),
+        base58::encode(hex_to_bytes("0000")),
         String::from("11")
     );
 }

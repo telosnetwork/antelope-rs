@@ -1,111 +1,116 @@
-use core::ops;
 use serde::{de, Deserialize, Deserializer, Serialize};
-use std::fmt;
-use std::fmt::{Display, Formatter};
+use std::{fmt, str::FromStr};
+use thiserror::Error;
 
-use crate::chain::{name::Name, Decoder, Encoder, Packer};
+use crate::chain::name::Name;
+use crate::{check_unpack_len, packer_error};
+use crate::serializer::{Decoder, Encoder, Packer, PackerError};
 
-const MAX_AMOUNT: i64 = (1 << 62) - 1;
-const MAX_PRECISION: u8 = 18;
+pub const ASSET_MAX_AMOUNT: i64 = (1 << 62) - 1;
+pub const ASSET_MAX_PRECISION: u8 = 18;
 
-/// Check if the given symbol code is valid.
+#[inline]
 pub fn is_valid_symbol_code(sym: u64) -> bool {
-    let mut i: i32 = 0;
     let mut tmp = sym;
     if (sym >> 56) != 0 {
         return false;
     }
-
-    for j in 0..7 {
+    for _ in 0..7 {
         let c = (tmp & 0xFF) as u8;
         if !c.is_ascii_uppercase() {
             return false;
         }
-
         tmp >>= 8;
         if (tmp & 0xFF) == 0 {
             break;
         }
-        i = j;
     }
-    i += 1;
-
-    for _ in i..7 {
-        tmp >>= 8;
-        if (tmp & 0xFF) != 0 {
-            return false;
-        }
-    }
-    true
+    tmp >>= 8;
+    tmp == 0
 }
 
-#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SymbolCode {
-    pub value: u64,
+    value: u64,
 }
 
 impl SymbolCode {
-    pub fn new(sym: &str) -> Self {
-        let raw = sym.as_bytes();
-        assert!(raw.len() < 7 && !raw.is_empty(), "bad symbol name");
-
-        let mut value: u64 = 0;
-        for i in (0..raw.len()).rev() {
-            let c = raw[i];
-            assert!(c.is_ascii_uppercase(), "invalid symbol code character");
-            value <<= 8;
-            value |= c as u64;
-        }
-        Self { value }
-    }
-
+    #[inline]
     pub fn value(&self) -> u64 {
         self.value
     }
+}
 
-    pub fn as_string(&self) -> String {
-        let mut v: Vec<u8> = Vec::with_capacity(7);
-        let mut tmp = self.value;
-        for _ in 0..7 {
-            let c = (tmp & 0xff) as u8;
-            assert!(c.is_ascii_uppercase(), "invalid symbol character");
-            v.push(c);
-            tmp >>= 8;
-            if tmp == 0 {
-                break;
-            }
+impl From<SymbolCode> for u64 {
+    #[inline]
+    fn from(s: SymbolCode) -> u64 { s.value }
+}
+
+
+#[derive(Debug, Error)]
+#[error("{0}")]
+pub struct SymbolCodeError(String);
+
+impl TryFrom<u64> for SymbolCode {
+    type Error = SymbolCodeError;
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        if !is_valid_symbol_code(value) {
+            Err(SymbolCodeError("invalid symbol code".into()))
+        } else {
+            Ok(SymbolCode { value })
         }
-        String::from_utf8(v).unwrap()
-    }
-
-    pub fn is_valid(&self) -> bool {
-        is_valid_symbol_code(self.value)
     }
 }
 
-impl Display for SymbolCode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_string())
+impl FromStr for SymbolCode {
+    type Err = SymbolCodeError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let raw = s.as_bytes();
+        if raw.is_empty() {
+            return Err(SymbolCodeError("empty symbol code".into()));
+        }
+        if raw.len() > 7 {
+            return Err(SymbolCodeError("symbol code too long".into()));
+        }
+        let mut value = 0u64;
+        for &c in raw.iter().rev() {
+            if !c.is_ascii_uppercase() {
+                return Err(SymbolCodeError(format!("invalid char '{}'", c as char)));
+            }
+            value = (value << 8) | c as u64;
+        }
+        SymbolCode::try_from(value)
+    }
+}
+
+impl fmt::Display for SymbolCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut tmp = self.value;
+        let mut s = String::new();
+        for _ in 0..7 {
+            let c = (tmp & 0xFF) as u8;
+            if c == 0 {
+                break;
+            }
+            s.push(c as char);
+            tmp >>= 8;
+        }
+        write!(f, "{s}")
     }
 }
 
 impl Packer for SymbolCode {
-    fn size(&self) -> usize {
-        8
-    }
-
-    fn pack(&self, enc: &mut Encoder) -> usize {
-        self.value.pack(enc)
-    }
-
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(
-            data.len() >= self.size(),
-            "SymbolCode.unpack: buffer overflow"
-        );
-        self.value.unpack(data);
-        assert!(self.is_valid(), "SymbolCode.unpack:: bad symbol code");
-        8
+    fn size(&self) -> usize { 8 }
+    fn pack(&self, enc: &mut Encoder) -> usize { self.value.pack(enc) }
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, data, 8);
+        let mut val = 0u64;
+        val.unpack(data)?;
+        if !is_valid_symbol_code(val) {
+            return Err(packer_error!("bad symbol code"));
+        }
+        self.value = val;
+        Ok(8)
     }
 }
 
@@ -114,68 +119,94 @@ pub struct Symbol {
     value: u64,
 }
 
-impl Symbol {
-    pub fn new(name: &str, precision: u8) -> Self {
-        let raw = name.as_bytes();
-        assert!(raw.len() < 7 && !raw.is_empty(), "bad symbol name");
+#[derive(Debug, Error)]
+#[error("{0}")]
+pub struct SymbolError(String);
 
-        let mut value: u64 = 0;
-        for i in (0..raw.len()).rev() {
-            let c = raw[i];
-            assert!(c.is_ascii_uppercase(), "invalid symbol character");
-            value <<= 8;
-            value |= c as u64;
-        }
-
-        value <<= 8;
-        value |= precision as u64;
-        Self { value }
+pub fn str_to_symbol(input: &str) -> Result<u64, SymbolError> {
+    let (prec, code) = input
+        .split_once(',')
+        .ok_or_else(|| SymbolError("expected 'precision,SYMBOL'".into()))?;
+    let precision: u8 = prec
+        .parse()
+        .map_err(|_| SymbolError("invalid precision".into()))?;
+    if !(1..=7).contains(&code.len())
+        || !code.bytes().all(|b| b.is_ascii_uppercase())
+    {
+        return Err(SymbolError("invalid symbol code".into()));
     }
-
-    pub fn value(&self) -> u64 {
-        self.value
+    let mut value = precision as u64;
+    for (i, &b) in code.as_bytes().iter().enumerate() {
+        value |= (b as u64) << (8 * (i + 1));
     }
+    Ok(value)
+}
 
-    pub fn code(&self) -> SymbolCode {
-        SymbolCode {
-            value: self.value >> 8,
-        }
-    }
+impl From<u64> for Symbol {
+    #[inline]
+    fn from(value: u64) -> Self { Self { value } }
+}
 
-    pub fn precision(&self) -> usize {
-        (self.value & 0xFF) as usize
-    }
+impl From<Symbol> for u64 {
+    #[inline]
+    fn from(s: Symbol) -> u64 { s.value }
+}
 
-    pub fn as_string(&self) -> String {
-        self.precision().to_string() + "," + &self.code().to_string()
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.code().is_valid()
+impl FromStr for Symbol {
+    type Err = SymbolError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let v = str_to_symbol(s)?;
+        Ok(Symbol { value: v })
     }
 }
 
-impl Display for Symbol {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_string())
+impl TryFrom<(&str, u8)> for Symbol {
+    type Error = SymbolError;
+    fn try_from((name, prec): (&str, u8)) -> Result<Self, Self::Error> {
+        if name.is_empty() || name.len() > 7 {
+            return Err(SymbolError("invalid symbol name length".into()));
+        }
+        let mut v = 0u64;
+        for &b in name.as_bytes().iter().rev() {
+            if !b.is_ascii_uppercase() {
+                return Err(SymbolError("invalid symbol name char".into()));
+            }
+            v = (v << 8) | b as u64;
+        }
+        v = (v << 8) | prec as u64;
+        Ok(Symbol { value: v })
+    }
+}
+
+impl Symbol {
+    pub fn value(&self) -> u64 { self.value }
+    pub fn code(&self) -> SymbolCode {
+        SymbolCode { value: self.value >> 8 }
+    }
+    pub fn precision(&self) -> u8 { (self.value & 0xFF) as u8 }
+}
+
+impl fmt::Display for Symbol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{}", self.precision(), self.code())
     }
 }
 
 impl Packer for Symbol {
-    fn size(&self) -> usize {
-        8
+    fn size(&self) -> usize { 8 }
+    fn pack(&self, enc: &mut Encoder) -> usize { self.value.pack(enc) }
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, data, 8);
+        self.value.unpack(data)?;
+        Ok(8)
     }
+}
 
-    fn pack(&self, enc: &mut Encoder) -> usize {
-        self.value.pack(enc)
-    }
-
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(data.len() >= self.size(), "Symbol.unpack: buffer overflow");
-        self.value.unpack(data);
-        assert!(self.code().is_valid(), "Symbol.unpack: bad symbol value");
-        8
-    }
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum AssetStringParseStatus {
+    Initial,
+    FoundDot,
+    FoundSpace,
 }
 
 #[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
@@ -184,225 +215,181 @@ pub struct Asset {
     symbol: Symbol,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
-enum AssetStringParseStatus {
-    Initial,
-    FoundDot,
-    FoundSpace,
-}
+#[derive(Debug, Error)]
+#[error("{0}")]
+pub struct AssetParseError(String);
 
-fn is_amount_within_range(amount: i64) -> bool {
-    (-MAX_AMOUNT..=MAX_AMOUNT).contains(&amount)
+#[derive(Debug, Error)]
+#[error("{0}")]
+pub struct AssetOpError(String);
+
+impl TryFrom<(i64, Symbol)> for Asset {
+    type Error = AssetParseError;
+    fn try_from((amt, sym): (i64, Symbol)) -> Result<Self, Self::Error> {
+        if !(-ASSET_MAX_AMOUNT..=ASSET_MAX_AMOUNT).contains(&amt) {
+            return Err(AssetParseError("amount out of range".into()));
+        }
+        Ok(Asset { amount: amt, symbol: sym })
+    }
 }
 
 impl Asset {
-    pub fn new(amount: i64, symbol: Symbol) -> Self {
-        assert!(
-            is_amount_within_range(amount),
-            "magnitude of asset amount must be less than 2^62"
-        );
-        assert!(symbol.is_valid(), "invalid symbol name");
-        Self { amount, symbol }
+    pub fn amount(&self) -> i64 { self.amount }
+    pub fn symbol(&self) -> Symbol { self.symbol }
+
+    pub fn try_add(&self, other: Asset) -> Result<Asset, AssetOpError> {
+        if self.symbol != other.symbol {
+            return Err(AssetOpError("symbol mismatch".into()));
+        }
+        let sum = self.amount.checked_add(other.amount)
+            .ok_or_else(|| AssetOpError("addition overflow".into()))?;
+        Asset::try_from((sum, self.symbol))
+            .map_err(|e| AssetOpError(e.to_string()))
     }
 
-    pub fn from_string(s: &str) -> Self {
-        assert!(!s.is_empty(), "Asset.from_string: empty string");
-        let mut status = AssetStringParseStatus::Initial;
-        let mut raw = s.as_bytes();
-
-        let mut minus: bool = false;
-        let mut amount: i64 = 0;
-        let mut symbol: u64 = 0;
-        let mut precision: u8 = 0;
-        let mut raw_symbol: Vec<u8> = Vec::with_capacity(7);
-
-        if raw[0] == b'-' {
-            minus = true;
-            raw = &raw[1..];
+    pub fn try_sub(&self, other: Asset) -> Result<Asset, AssetOpError> {
+        if self.symbol != other.symbol {
+            return Err(AssetOpError("symbol mismatch".into()));
         }
+        let diff = self.amount.checked_sub(other.amount)
+            .ok_or_else(|| AssetOpError("subtraction overflow".into()))?;
+        Asset::try_from((diff, self.symbol))
+            .map_err(|e| AssetOpError(e.to_string()))
+    }
 
-        for &c in raw {
-            if c == b'.' {
-                assert!(
-                    status == AssetStringParseStatus::Initial,
-                    "Asset.from_string: invalid dot character"
-                );
+    pub fn try_mul(&self, other: Asset) -> Result<Asset, AssetOpError> {
+        if self.symbol != other.symbol {
+            return Err(AssetOpError("symbol mismatch".into()));
+        }
+        let mul = self.amount.checked_mul(other.amount)
+            .ok_or_else(|| AssetOpError("addition overflow".into()))?;
+        Asset::try_from((mul, self.symbol))
+            .map_err(|e| AssetOpError(e.to_string()))
+    }
+
+    pub fn try_div(&self, other: Asset) -> Result<Asset, AssetOpError> {
+        if self.symbol != other.symbol {
+            return Err(AssetOpError("symbol mismatch".into()));
+        }
+        let div = self.amount.checked_div(other.amount)
+            .ok_or_else(|| AssetOpError("subtraction overflow".into()))?;
+        Asset::try_from((div, self.symbol))
+            .map_err(|e| AssetOpError(e.to_string()))
+    }
+}
+
+impl FromStr for Asset {
+    type Err = AssetParseError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.is_empty() {
+            return Err(AssetParseError("empty string".into()));
+        }
+        let mut status = AssetStringParseStatus::Initial;
+        let mut bytes = s.as_bytes();
+        let mut negative = false;
+        if bytes[0] == b'-' {
+            negative = true;
+            bytes = &bytes[1..];
+        }
+        let mut amt = 0i64;
+        let mut prec = 0u8;
+        let mut sym_bytes = Vec::new();
+        for &c in bytes {
+            // decimal separator only valid before space
+            if status == AssetStringParseStatus::Initial && c == b'.' {
                 status = AssetStringParseStatus::FoundDot;
                 continue;
-            } else if c == b' ' {
-                assert!(
-                    status == AssetStringParseStatus::Initial
-                        || status == AssetStringParseStatus::FoundDot,
-                    "Asset.from_string: invalid space character"
-                );
-                // if status == AssetStringParseStatus::FoundDot {
-                //     assert!(precision > 0, "Asset.from_string: invalid precision");
-                // }
+            }
+            // always transition to symbol on the first space, whether before or after dot
+            if (status == AssetStringParseStatus::Initial
+                || status == AssetStringParseStatus::FoundDot)
+                && c == b' '
+            {
                 status = AssetStringParseStatus::FoundSpace;
                 continue;
             }
 
             match status {
                 AssetStringParseStatus::Initial => {
-                    assert!(c.is_ascii_digit(), "Asset.from_string: bad amount");
-                    amount *= 10;
-                    amount += (c - b'0') as i64;
-                    assert!(is_amount_within_range(amount), "bad amount");
+                    if !c.is_ascii_digit() {
+                        return Err(AssetParseError("invalid digit".into()));
+                    }
+                    amt = amt
+                        .checked_mul(10)
+                        .and_then(|a| a.checked_add((c - b'0') as i64))
+                        .ok_or_else(|| AssetParseError("amount overflow".into()))?;
                 }
                 AssetStringParseStatus::FoundDot => {
-                    assert!(c.is_ascii_digit(), "Asset.from_string: bad amount");
-                    amount *= 10;
-                    amount += (c - b'0') as i64;
-                    precision += 1;
-                    assert!(
-                        precision <= MAX_PRECISION,
-                        "Asset.from_string: bad precision"
-                    );
-                    assert!(is_amount_within_range(amount), "bad amount");
+                    if !c.is_ascii_digit() {
+                        return Err(AssetParseError("invalid digit".into()));
+                    }
+                    prec = prec
+                        .checked_add(1)
+                        .ok_or_else(|| AssetParseError("precision overflow".into()))?;
+                    amt = amt
+                        .checked_mul(10)
+                        .and_then(|a| a.checked_add((c - b'0') as i64))
+                        .ok_or_else(|| AssetParseError("amount overflow".into()))?;
+                    if prec > ASSET_MAX_PRECISION {
+                        return Err(AssetParseError("precision too high".into()));
+                    }
                 }
                 AssetStringParseStatus::FoundSpace => {
-                    assert!(c.is_ascii_uppercase(), "Asset.from_string: bad symbol");
-                    raw_symbol.push(c);
-                    assert!(raw_symbol.len() < 7, "Asset.from_string: bad symbol");
+                    if !c.is_ascii_uppercase() {
+                        return Err(AssetParseError("invalid symbol char".into()));
+                    }
+                    sym_bytes.push(c);
                 }
             }
         }
-
-        assert!(!raw_symbol.is_empty(), "Asset.from_string: bad symbol");
-
-        if minus {
-            amount = -amount;
+        if sym_bytes.is_empty() {
+            return Err(AssetParseError("empty symbol".into()));
         }
-
-        raw_symbol.reverse();
-        for c in raw_symbol {
-            symbol <<= 8;
-            symbol |= c as u64;
+        if negative {
+            amt = -amt;
         }
-
-        symbol <<= 8;
-        symbol |= precision as u64;
-
-        Self {
-            amount,
-            symbol: Symbol { value: symbol },
+        let mut sym_val = 0u64;
+        for &b in sym_bytes.iter().rev() {
+            sym_val = (sym_val << 8) | b as u64;
         }
-    }
-
-    pub fn amount(&self) -> i64 {
-        self.amount
-    }
-
-    pub fn symbol(&self) -> Symbol {
-        self.symbol
-    }
-
-    pub fn as_string(self) -> String {
-        let mut part1: i64 = self.amount;
-
-        for _ in 0..self.symbol.precision() {
-            part1 /= 10;
-        }
-
-        let mut part2: Vec<u8> = vec![0u8; self.symbol.precision()];
-
-        let mut tmp: i64 = self.amount;
-        for i in (0..self.symbol.precision()).rev() {
-            part2[i] = b'0' + (tmp % 10) as u8;
-            tmp /= 10;
-        }
-        let mut decimal = String::from_utf8(part2).unwrap();
-        if !decimal.is_empty() {
-            decimal = String::from(".") + decimal.as_str();
-        }
-
-        part1.to_string() + decimal.as_str() + " " + &self.symbol.code().to_string()
-    }
-
-    pub fn is_valid(&self) -> bool {
-        is_amount_within_range(self.amount) && self.symbol().is_valid()
+        sym_val = (sym_val << 8) | prec as u64;
+        let sym = Symbol { value: sym_val };
+        Asset::try_from((amt, sym))
     }
 }
 
-impl Display for Asset {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_string())
-    }
-}
-
-// assert!(a.symbol.value == b.symbol.value, "symbol not the same");
-// let amount: i64 = a.amount + b.amount;
-// assert!(-MAX_AMOUNT <= amount, "addition underflow");
-// assert!(amount <= MAX_AMOUNT, "addition overflow");
-// return new Asset(amount, Symbol.fromU64(a.symbol.value));
-
-impl ops::Add for Asset {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        assert!(self.symbol == rhs.symbol, "add: bad symbol");
-        let amount = self.amount + rhs.amount;
-        assert!(amount >= -MAX_AMOUNT, "addition underflow");
-        assert!(amount <= MAX_AMOUNT, "addition overflow");
-        Self {
-            amount,
-            symbol: self.symbol,
+impl fmt::Display for Asset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let p = self.symbol.precision() as usize;
+        let abs = self.amount.unsigned_abs();
+        let mut pow10 = 10u64.pow(p as u32);
+        if pow10 == 0 {
+            pow10 = 1;
         }
-    }
-}
-
-impl ops::AddAssign for Asset {
-    fn add_assign(&mut self, rhs: Asset) {
-        *self = *self + rhs;
-    }
-}
-
-impl ops::Sub for Asset {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        assert!(self.symbol == rhs.symbol, "sub: bad symbol");
-        let amount = self.amount() - rhs.amount();
-        assert!(amount >= -MAX_AMOUNT, "subtraction underflow");
-        assert!(amount <= MAX_AMOUNT, "subtraction overflow");
-        Self {
-            amount,
-            symbol: self.symbol,
+        let int = self.amount / pow10 as i64;
+        let frac = abs % pow10;
+        if p > 0 {
+            write!(f, "{}.{:0width$} {}", int, frac, self.symbol.code(), width = p)
+        } else {
+            write!(f, "{} {}", int, self.symbol.code())
         }
-    }
-}
-
-impl ops::SubAssign for Asset {
-    fn sub_assign(&mut self, rhs: Asset) {
-        *self = *self - rhs;
     }
 }
 
 impl Packer for Asset {
-    fn size(&self) -> usize {
-        16
-    }
-
+    fn size(&self) -> usize { 16 }
     fn pack(&self, enc: &mut Encoder) -> usize {
-        let pos = enc.get_size();
-
+        let start = enc.get_size();
         self.amount.pack(enc);
         self.symbol.pack(enc);
-
-        enc.get_size() - pos
+        enc.get_size() - start
     }
-
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(data.len() >= self.size(), "Asset.unpack: buffer overflow");
-
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, data, 16);
         let mut dec = Decoder::new(data);
-        dec.unpack(&mut self.amount);
-        assert!(
-            self.amount >= -MAX_AMOUNT && self.amount <= MAX_AMOUNT,
-            "Asset.unpack: bad asset amount"
-        );
-        dec.unpack(&mut self.symbol);
-        dec.get_pos()
+        dec.unpack(&mut self.amount)?;
+        dec.unpack(&mut self.symbol)?;
+        Ok(dec.get_pos())
     }
 }
 
@@ -410,96 +397,88 @@ pub(crate) fn deserialize_asset<'de, D>(deserializer: D) -> Result<Asset, D::Err
 where
     D: Deserializer<'de>,
 {
-    struct AssetVisitor;
-
-    impl de::Visitor<'_> for AssetVisitor {
+    struct Visitor;
+    impl de::Visitor<'_> for Visitor {
         type Value = Asset;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a string representing an asset in the format 'amount symbol_code'")
+        fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            f.write_str("asset string, e.g. \"1.23 EOS\"")
         }
-
-        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-        where
-            E: de::Error,
-        {
-            // Directly return the Asset instance since Asset::from_string does not produce errors.
-            Ok(Asset::from_string(value))
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where E: de::Error {
+            Asset::from_str(v).map_err(E::custom)
         }
     }
-
-    deserializer.deserialize_str(AssetVisitor)
+    deserializer.deserialize_str(Visitor)
 }
 
-pub(crate) fn deserialize_optional_asset<'de, D>(deserializer: D) -> Result<Option<Asset>, D::Error>
+pub(crate) fn deserialize_optional_asset<'de, D>(
+    deserializer: D,
+) -> Result<Option<Asset>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    struct OptionalAssetVisitor;
-
-    impl<'de> de::Visitor<'de> for OptionalAssetVisitor {
+    struct Visitor;
+    impl<'de> de::Visitor<'de> for Visitor {
         type Value = Option<Asset>;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str(
-                "an optional string representing an asset in the format 'amount symbol_code'",
-            )
+        fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            f.write_str("optional asset string")
         }
-
-        fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            Ok(Some(deserialize_asset(deserializer)?))
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where E: de::Error {
+            Ok(None)
+        }
+        fn visit_some<D>(self, d: D) -> Result<Self::Value, D::Error>
+        where D: Deserializer<'de> {
+            deserialize_asset(d).map(Some)
         }
     }
-
-    deserializer.deserialize_option(OptionalAssetVisitor)
+    deserializer.deserialize_option(Visitor)
 }
 
-#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ExtendedAsset {
-    quantity: Asset,
-    contract: Name,
+    pub quantity: Asset,
+    pub contract: Name,
 }
 
-impl ExtendedAsset {
-    pub fn new(quantity: Asset, contract: Name) -> Self {
-        Self { quantity, contract }
+impl fmt::Display for ExtendedAsset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}@{}", self.quantity, self.contract)
     }
+}
 
-    pub fn quantity(&self) -> Asset {
-        self.quantity
-    }
+#[derive(Debug, Error)]
+#[error("{0}")]
+pub struct ExtendedAssetError(String);
 
-    pub fn contract(&self) -> Name {
-        self.contract
+impl FromStr for ExtendedAsset {
+    type Err = ExtendedAssetError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<_> = s.split('@').collect();
+        if parts.len() != 2 {
+            return Err(ExtendedAssetError("invalid format".into()));
+        }
+        let qty = Asset::from_str(parts[0])
+            .map_err(|e| ExtendedAssetError(e.to_string()))?;
+        let contract = Name::from_str(parts[1])
+            .map_err(|e| ExtendedAssetError(e.to_string()))?;
+        Ok(ExtendedAsset { quantity: qty, contract })
     }
 }
 
 impl Packer for ExtendedAsset {
-    fn size(&self) -> usize {
-        16 + 8
-    }
-
+    fn size(&self) -> usize { 16 + 8 }
     fn pack(&self, enc: &mut Encoder) -> usize {
-        let pos = enc.get_size();
-
+        let start = enc.get_size();
         self.quantity.pack(enc);
         self.contract.pack(enc);
-
-        enc.get_size() - pos
+        enc.get_size() - start
     }
-
-    fn unpack(&mut self, data: &[u8]) -> usize {
-        assert!(
-            data.len() >= self.size(),
-            "ExtendedAsset.unpack: buffer overflow"
-        );
-
+    fn unpack(&mut self, data: &[u8]) -> Result<usize, PackerError> {
+        check_unpack_len!(self, data, 24);
         let mut dec = Decoder::new(data);
-        dec.unpack(&mut self.quantity);
-        dec.unpack(&mut self.contract);
-        dec.get_pos()
+        dec.unpack(&mut self.quantity)?;
+        dec.unpack(&mut self.contract)?;
+        Ok(dec.get_pos())
     }
 }

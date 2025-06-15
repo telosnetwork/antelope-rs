@@ -6,7 +6,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.75"
 authors = ["Jesse Schulman <jesse@telos.net>"]
@@ -15,3 +15,6 @@ homepage = "https://github.com/telosnetwork/antelope-rs"
 repository = "https://github.com/telosnetwork/antelope-rs"
 keywords = ["blockchain", "antelope"]
 categories = ["cryptography::cryptocurrencies", "encoding"]
+
+[workspace.dependencies]
+antelope-client-macros.path = "crates/macros"

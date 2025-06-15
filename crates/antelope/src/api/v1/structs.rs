@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use std::fmt;
 use std::mem::discriminant;
 
+use crate::api::client::ProviderError;
 use crate::chain::abi::ABI;
 use crate::chain::public_key::PublicKey;
 use crate::chain::signature::Signature;
@@ -14,91 +15,73 @@ use crate::chain::{
     action::{Action, PermissionLevel},
     asset::{deserialize_asset, deserialize_optional_asset, Asset},
     authority::Authority,
-    block_id::{deserialize_block_id, deserialize_optional_block_id, BlockId},
-    checksum::{deserialize_checksum256, Checksum160, Checksum256},
+    checksum::{deserialize_checksum256, deserialize_blockid, deserialize_optional_blockid, Checksum160, Checksum256, BlockId},
     name::{deserialize_name, deserialize_optional_name, deserialize_vec_name, Name},
     signature::deserialize_signature,
     time::{deserialize_optional_timepoint, deserialize_timepoint, TimePoint, TimePointSec},
     transaction::TransactionHeader,
     varint::VarUint32,
 };
+use crate::crypto::sign::SignError;
 use tracing::info;
+use serde_json::Error as JsonError;
+use thiserror::Error;
 
-#[derive(Debug)]
-pub enum ClientError<T> {
-    SIMPLE(SimpleError),
-    SERVER(ServerError<T>),
-    HTTP(HTTPError),
-    ENCODING(EncodingError),
-    NETWORK(String),
+#[derive(Debug, Deserialize)]
+pub struct NodeosErrorEnvelope {
+    pub error: NodeosError,
 }
 
-impl<T> ClientError<T> {
-    pub fn simple(message: String) -> Self {
-        ClientError::SIMPLE(SimpleError { message })
-    }
-
-    pub fn encoding(message: String) -> Self {
-        ClientError::ENCODING(EncodingError { message })
-    }
-
-    pub fn server(error: T) -> Self {
-        ClientError::SERVER(ServerError { error })
-    }
+#[derive(Debug, Deserialize)]
+pub struct NodeosError {
+    pub code:    u32,
+    pub name:    String,
+    pub what:    String,
+    pub details: Option<Vec<NodeosErrorDetail>>,
 }
 
-impl<T> From<EncodingError> for ClientError<T> {
-    fn from(value: EncodingError) -> Self {
-        ClientError::ENCODING(value)
-    }
-}
-
-impl<T> From<String> for ClientError<T> {
-    fn from(value: String) -> Self {
-        ClientError::simple(value)
-    }
-}
-
-#[derive(Debug)]
-pub struct SimpleError {
+#[derive(Debug, Deserialize)]
+pub struct NodeosErrorDetail {
     pub message: String,
 }
 
-#[derive(Debug)]
-pub struct ServerError<T> {
-    pub error: T,
+#[derive(Debug, Error)]
+pub enum ChainAPIError {
+    #[error(transparent)]
+    Network(#[from] ProviderError),
+
+    /// Non-2xx HTTP status returned by nodeos.
+    #[error("HTTP {status}: {body}")]
+    Http {
+        status: u16,
+        body:   String,
+    },
+
+    /// `nodeos` sent a structured error response (eosio style).
+    #[error("nodeos error {code}: {name} – {what}")]
+    Nodeos {
+        code:    u32,
+        name:    String,
+        what:    String,
+        details: Option<String>,
+    },
+
+    // local processing
+    #[error(transparent)]
+    Json(#[from] JsonError),
+
+    #[error("binary pack/unpack error: {0}")]
+    Pack(String),
+
+    #[error(transparent)]
+    Signing(SignError),
+
+    #[error("parse error: {0}")]
+    Parse(String),
 }
 
-#[derive(Debug)]
-pub struct HTTPError {
-    pub code: u16,
-    pub message: String,
-}
-
-#[derive(Debug)]
-pub struct EncodingError {
-    pub message: String,
-}
-
-impl EncodingError {
-    pub fn new(message: String) -> Self {
-        EncodingError { message }
-    }
-}
-
-// pub trait ClientError {
-//     fn get_message(&self) -> &str;
-// }
-//
-// pub struct SimpleError {
-//     pub message: str,
-// }
-//
-// impl ClientError for SimpleError {
-//     fn get_message(&self) -> String {
-//         self.message.to_string()
-//     }
-// }
+/// Convenient local alias
+pub type ChainResult<T> = std::result::Result<T, ChainAPIError>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetInfoResponse {
@@ -107,9 +90,9 @@ pub struct GetInfoResponse {
     pub chain_id: Checksum256,
     pub head_block_num: u32,
     pub last_irreversible_block_num: u32,
-    #[serde(deserialize_with = "deserialize_block_id")]
+    #[serde(deserialize_with = "deserialize_blockid")]
     pub last_irreversible_block_id: BlockId,
-    #[serde(deserialize_with = "deserialize_block_id")]
+    #[serde(deserialize_with = "deserialize_blockid")]
     pub head_block_id: BlockId,
     #[serde(deserialize_with = "deserialize_timepoint")]
     pub head_block_time: TimePoint,
@@ -121,7 +104,7 @@ pub struct GetInfoResponse {
     pub block_net_limit: u64,
     pub server_version_string: Option<String>,
     pub fork_db_head_block_num: Option<u32>,
-    #[serde(deserialize_with = "deserialize_optional_block_id")]
+    #[serde(deserialize_with = "deserialize_optional_blockid")]
     pub fork_db_head_block_id: Option<BlockId>,
     pub server_full_version_string: String,
     #[serde(deserialize_with = "deserialize_number_or_string")]
@@ -132,25 +115,31 @@ pub struct GetInfoResponse {
     pub last_irreversible_block_time: String,
 }
 
+
 impl GetInfoResponse {
     pub fn get_transaction_header(&self, seconds_ahead: u32) -> TransactionHeader {
         let expiration = TimePointSec {
-            // head_block_time.elapsed is microseconds, convert to seconds
-            seconds: (self.head_block_time.elapsed / 1000 / 1000) as u32 + seconds_ahead,
+            seconds: (self.head_block_time.elapsed / 1_000_000) as u32 + seconds_ahead,
         };
-        let id = self.last_irreversible_block_id.bytes.to_vec();
-        let prefix_array = &id[8..12];
-        let prefix = u32::from_ne_bytes(prefix_array.try_into().unwrap());
+
+        // Destructure the array; the compiler guarantees it is 32 bytes long.
+        let [_, _, _, _, _, _, _, _, b8, b9, b10, b11, ..] =
+            self.last_irreversible_block_id.data;
+
+        // Native-endian;
+        let ref_block_prefix = u32::from_ne_bytes([b8, b9, b10, b11]);
+
         TransactionHeader {
             max_net_usage_words: VarUint32::default(),
             max_cpu_usage_ms: 0,
             delay_sec: VarUint32::default(),
             expiration,
             ref_block_num: (self.last_irreversible_block_num & 0xffff) as u16,
-            ref_block_prefix: prefix,
+            ref_block_prefix,
         }
     }
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessedTransactionReceipt {
@@ -189,7 +178,7 @@ pub struct ProcessedTransaction2 {
     pub error_code: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SendTransactionResponseExceptionStackContext {
     pub level: String,
     pub file: String,
@@ -207,22 +196,11 @@ pub struct SendTransactionResponseExceptionStack {
     pub data: String, // TODO: create a type for this?
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SendTransactionResponse2ExceptionStack {
     pub context: SendTransactionResponseExceptionStackContext,
     pub format: String,
     pub data: Value,
-}
-
-impl From<SendTransactionResponseExceptionStack> for SendTransactionResponse2ExceptionStack {
-    fn from(value: SendTransactionResponseExceptionStack) -> Self {
-        let data: Value = serde_json::from_str(&value.data).expect("Failed to parse JSON");
-        Self {
-            context: value.context,
-            format: value.format,
-            data,
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -234,31 +212,13 @@ pub struct SendTransactionResponseError {
     pub details: Vec<SendTransactionResponseErrorDetails>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SendTransactionResponse2Error {
     pub code: Option<u32>,
     pub name: String,
     pub message: String,
     pub stack: Vec<SendTransactionResponse2ExceptionStack>,
     pub details: Option<Vec<SendTransactionResponseErrorDetails>>,
-}
-
-impl From<SendTransactionResponseError> for SendTransactionResponse2Error {
-    fn from(value: SendTransactionResponseError) -> Self {
-        let stack = value
-            .stack
-            .unwrap_or_default()
-            .into_iter()
-            .map(Into::into)
-            .collect::<Vec<_>>();
-        Self {
-            code: value.code,
-            name: value.name,
-            message: value.what,
-            stack,
-            details: Some(value.details),
-        }
-    }
 }
 
 impl SendTransactionResponseError {
@@ -279,7 +239,7 @@ impl SendTransactionResponseError {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SendTransactionResponseErrorDetails {
     pub message: String,
     pub file: String,
@@ -362,23 +322,23 @@ pub enum TransactionState {
 pub struct GetTransactionStatusResponse {
     pub state: TransactionState,
     pub block_number: Option<u32>,
-    #[serde(deserialize_with = "deserialize_optional_block_id", default)]
+    #[serde(deserialize_with = "deserialize_optional_blockid", default)]
     pub block_id: Option<BlockId>,
     #[serde(deserialize_with = "deserialize_optional_timepoint", default)]
     pub block_timestamp: Option<TimePoint>,
     #[serde(deserialize_with = "deserialize_optional_timepoint", default)]
     pub expiration: Option<TimePoint>,
     pub head_number: u32,
-    #[serde(deserialize_with = "deserialize_block_id")]
+    #[serde(deserialize_with = "deserialize_blockid")]
     pub head_id: BlockId,
     #[serde(deserialize_with = "deserialize_timepoint")]
     pub head_timestamp: TimePoint,
     pub irreversible_number: u32,
-    #[serde(deserialize_with = "deserialize_block_id")]
+    #[serde(deserialize_with = "deserialize_blockid")]
     pub irreversible_id: BlockId,
     #[serde(deserialize_with = "deserialize_timepoint")]
     pub irreversible_timestamp: TimePoint,
-    #[serde(deserialize_with = "deserialize_block_id")]
+    #[serde(deserialize_with = "deserialize_blockid")]
     pub earliest_tracked_block_id: BlockId,
     pub earliest_tracked_block_number: u32,
 }
@@ -485,8 +445,8 @@ impl TableIndexType {
             TableIndexType::UINT64(value) => json!(value.to_string()),
             TableIndexType::UINT128(value) => json!(value.to_string()),
             TableIndexType::FLOAT64(value) => json!(value.to_string()),
-            TableIndexType::CHECKSUM256(value) => json!(value.as_string()),
-            TableIndexType::CHECKSUM160(value) => json!(value.as_string()),
+            TableIndexType::CHECKSUM256(value) => json!(value.to_string()),
+            TableIndexType::CHECKSUM160(value) => json!(value.to_string()),
         }
     }
 
@@ -526,7 +486,6 @@ impl GetTableRowsParams {
 
         let scope = self.scope.unwrap_or(self.code);
         req.insert("scope", Value::String(scope.to_string()));
-
         req.insert("json", Value::Bool(false));
 
         if let Some(limit) = &self.limit {
@@ -537,29 +496,32 @@ impl GetTableRowsParams {
             req.insert("reverse", Value::Bool(*reverse));
         }
 
-        if self.lower_bound.is_some() || self.upper_bound.is_some() {
-            if self.upper_bound.is_none() {
-                let lower = self.lower_bound.as_ref().unwrap();
+        match (&self.lower_bound, &self.upper_bound) {
+            (Some(lower), None) => {
                 req.insert("key_type", lower.get_key_type());
                 req.insert("lower_bound", lower.to_json());
-            } else if self.lower_bound.is_none() {
-                let upper = self.upper_bound.as_ref().unwrap();
+            }
+            (None, Some(upper)) => {
                 req.insert("key_type", upper.get_key_type());
                 req.insert("upper_bound", upper.to_json());
-            } else {
-                let lower = self.lower_bound.as_ref().unwrap();
-                let upper = self.upper_bound.as_ref().unwrap();
-                if discriminant(lower) != discriminant(upper) {
-                    panic!("lower_bound and upper_bound must be of the same type");
-                }
+            }
+            (Some(lower), Some(upper)) => {
+                debug_assert_eq!(
+                    discriminant(lower), discriminant(upper),
+                    "lower_bound and upper_bound must be of the same type"
+                );
                 req.insert("key_type", lower.get_key_type());
                 req.insert("lower_bound", lower.to_json());
                 req.insert("upper_bound", upper.to_json());
             }
+            _ => {}
+        }
 
-            if let Some(index_position) = &self.index_position {
-                req.insert("index_position", index_position.to_json());
-            }
+        if let Some(position) = &self.index_position {
+            req.insert(
+                "index_position",
+                position.to_json(),
+            );
         }
 
         json!(req).to_string()
@@ -809,7 +771,7 @@ pub struct GetBlockResponse {
     #[serde(deserialize_with = "deserialize_name")]
     pub producer: Name,
     pub confirmed: u16,
-    #[serde(deserialize_with = "deserialize_block_id")]
+    #[serde(deserialize_with = "deserialize_blockid")]
     pub previous: BlockId,
     #[serde(deserialize_with = "deserialize_checksum256")]
     pub transaction_mroot: Checksum256,
@@ -823,7 +785,7 @@ pub struct GetBlockResponse {
     pub producer_signature: Signature,
     pub transactions: Vec<GetBlockResponseTransactionReceipt>,
     pub block_extensions: Option<Vec<BlockExtension>>,
-    #[serde(deserialize_with = "deserialize_block_id")]
+    #[serde(deserialize_with = "deserialize_blockid")]
     pub id: BlockId,
     pub block_num: u32,
     pub ref_block_prefix: u32,
